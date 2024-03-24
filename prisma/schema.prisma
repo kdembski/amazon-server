@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model OlxAdCategory {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique(map: "name_UNIQUE") @db.VarChar(63)
+  createdAt DateTime @db.Timestamp(2)
+  updatedAt DateTime @db.Timestamp(2)
+  ads       OlxAd[]
+}
+
+model OlxAd {
+  id         Int            @id @default(autoincrement())
+  olxId      String         @unique(map: "olx_id_UNIQUE") @db.VarChar(63)
+  name       String         @db.VarChar(63)
+  price      Int
+  url        String         @db.VarChar(255)
+  categoryId Int
+  createdAt  DateTime       @db.Timestamp(2)
+  updatedAt  DateTime       @db.Timestamp(2)
+  category   OlxAdCategory  @relation(fields: [categoryId], references: [id], map: "olx_ad_category_id_fk")
+  productAds OlxProductAd[]
+
+  @@index([categoryId], map: "olx_ad_category_id_fk_idx")
+}
+
+model OlxProductAd {
+  id        Int        @id @default(autoincrement())
+  productId Int
+  adId      Int        @unique(map: "ad_id_UNIQUE")
+  createdAt DateTime   @db.Timestamp(2)
+  updatedAt DateTime   @db.Timestamp(2)
+  ad        OlxAd      @relation(fields: [adId], references: [id], map: "olx_product_ad_ad_id_fk")
+  product   OlxProduct @relation(fields: [productId], references: [id], map: "olx_product_ad_product_id_fk")
+
+  @@index([adId], map: "olx_product_ad_ad_id_fk_idx")
+  @@index([productId], map: "olx_product_ad_product_id_fk_idx")
+}
+
+model OlxProduct {
+  id         Int            @id @default(autoincrement())
+  name       String         @db.VarChar(63)
+  avgPrice   Int
+  createdAt  DateTime       @db.Timestamp(2)
+  updatedAt  DateTime       @db.Timestamp(2)
+  productAds OlxProductAd[]
+}
