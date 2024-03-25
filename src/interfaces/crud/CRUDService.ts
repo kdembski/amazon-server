@@ -6,8 +6,8 @@ export interface CreatableServiceI<CreateDto, Model> {
   create: (data: CreateDto) => Promise<Model>;
 }
 
-export interface UpdatableServiceI<UpdateInput, Model> {
-  update: (id: number, data: UpdateInput) => Promise<Model>;
+export interface UpdatableServiceI<UpdateDto, Model> {
+  update: (id: number, data: UpdateDto) => Promise<Model>;
 }
 
 export interface DeletableServiceI<Model> {

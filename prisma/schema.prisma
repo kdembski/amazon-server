@@ -16,16 +16,16 @@ model OlxAdCategory {
 }
 
 model OlxAd {
-  id         Int            @id @default(autoincrement())
-  olxId      String         @unique(map: "olx_id_UNIQUE") @db.VarChar(63)
-  name       String         @db.VarChar(63)
+  id         Int           @id @default(autoincrement())
+  olxId      String        @unique(map: "olx_id_UNIQUE") @db.VarChar(63)
+  name       String        @db.VarChar(63)
   price      Int
-  url        String         @db.VarChar(255)
+  url        String        @db.VarChar(255)
   categoryId Int
-  createdAt  DateTime       @db.Timestamp(2)
-  updatedAt  DateTime       @db.Timestamp(2)
-  category   OlxAdCategory  @relation(fields: [categoryId], references: [id], map: "olx_ad_category_id_fk")
-  productAds OlxProductAd[]
+  createdAt  DateTime      @db.Timestamp(2)
+  updatedAt  DateTime      @db.Timestamp(2)
+  category   OlxAdCategory @relation(fields: [categoryId], references: [id], map: "olx_ad_category_id_fk")
+  productAd  OlxProductAd?
 
   @@index([categoryId], map: "olx_ad_category_id_fk_idx")
 }
@@ -45,9 +45,12 @@ model OlxProductAd {
 
 model OlxProduct {
   id         Int            @id @default(autoincrement())
-  name       String         @db.VarChar(63)
-  avgPrice   Int
+  brand      String         @db.VarChar(63)
+  model      String         @db.VarChar(63)
+  avgPrice   Int?
   createdAt  DateTime       @db.Timestamp(2)
   updatedAt  DateTime       @db.Timestamp(2)
   productAds OlxProductAd[]
+
+  @@unique([brand, model], map: "unique_product_idx")
 }

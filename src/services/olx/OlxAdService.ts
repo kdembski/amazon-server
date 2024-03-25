@@ -1,4 +1,4 @@
-import { OlxAdCreateDtoCreateInputMapper } from "@/mapper/olx/OlxAdCreateDtoCreateInputMapper";
+import { OlxAdCreateDtoCreateInputMapper } from "@/mappers/olx/OlxAdCreateDtoCreateInputMapper";
 import { OlxAdRepository } from "@/repositories/olx/OlxAdRepository";
 import { CreatableService } from "@/services/crud/CreatableService";
 import { DeletableService } from "@/services/crud/DeletableService";
@@ -23,5 +23,9 @@ export class OlxAdService {
     this.getById = selectable.getById;
     this.create = creatable.create;
     this.delete = deletable.delete;
+  }
+
+  getAll() {
+    return this.repository.getAll();
   }
 }

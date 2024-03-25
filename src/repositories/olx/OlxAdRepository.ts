@@ -14,6 +14,10 @@ export class OlxAdRepository {
     });
   }
 
+  async getAll() {
+    return this.prisma.olxAd.findMany();
+  }
+
   async create(data: Prisma.OlxAdCreateInput) {
     return this.prisma.olxAd.create({ data });
   }
