@@ -17,10 +17,10 @@ export class OlxProductRouter implements SubRouterI {
 
   constructor(
     controller = new OlxProductController(),
-    selectable = new SelectableRouter(controller),
-    creatable = new CreatableRouter(controller),
-    updatable = new UpdatableRouter(controller),
-    deletable = new DeletableRouter(controller),
+    selectable = new SelectableRouter(controller.selectable),
+    creatable = new CreatableRouter(controller.creatable),
+    updatable = new UpdatableRouter(controller.updatable),
+    deletable = new DeletableRouter(controller.deletable),
     router = Router()
   ) {
     this.controller = controller;

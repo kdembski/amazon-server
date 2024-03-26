@@ -6,20 +6,20 @@ import { OlxAdService } from "@/services/olx/OlxAdService";
 
 export class OlxAdController {
   private service;
-  getById;
-  create;
-  delete;
+  selectable;
+  creatable;
+  deletable;
 
   constructor(
     service = new OlxAdService(),
-    selectable = new SelectableController(service),
-    creatable = new CreatableController(service),
-    deletable = new DeletableController(service)
+    selectable = new SelectableController(service.selectable),
+    creatable = new CreatableController(service.creatable),
+    deletable = new DeletableController(service.deletable)
   ) {
     this.service = service;
-    this.getById = selectable.getById;
-    this.create = creatable.create;
-    this.delete = deletable.delete;
+    this.selectable = selectable;
+    this.creatable = creatable;
+    this.deletable = deletable;
   }
 
   async getAll(response: Response) {

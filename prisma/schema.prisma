@@ -36,7 +36,7 @@ model OlxProductAd {
   adId      Int        @unique(map: "ad_id_UNIQUE")
   createdAt DateTime   @db.Timestamp(2)
   updatedAt DateTime   @db.Timestamp(2)
-  ad        OlxAd      @relation(fields: [adId], references: [id], map: "olx_product_ad_ad_id_fk")
+  ad        OlxAd      @relation(fields: [adId], references: [id], onDelete: Cascade, map: "olx_product_ad_ad_id_fk")
   product   OlxProduct @relation(fields: [productId], references: [id], map: "olx_product_ad_product_id_fk")
 
   @@index([adId], map: "olx_product_ad_ad_id_fk_idx")

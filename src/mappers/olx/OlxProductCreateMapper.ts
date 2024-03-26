@@ -2,7 +2,7 @@ import { OlxProductCreateDto } from "@/dtos/olx/OlxProductDtos";
 import { ToCreateInputMapperI } from "@/interfaces/crud/CRUDMapper";
 import { Prisma } from "@prisma/client";
 
-export class OlxProductCreateDtoCreateInputMapper
+export class OlxProductCreateMapper
   implements
     ToCreateInputMapperI<OlxProductCreateDto, Prisma.OlxProductCreateInput>
 {

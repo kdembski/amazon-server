@@ -15,9 +15,9 @@ export class OlxAdRouter implements SubRouterI {
 
   constructor(
     controller = new OlxAdController(),
-    selectable = new SelectableRouter(controller),
-    creatable = new CreatableRouter(controller),
-    deletable = new DeletableRouter(controller),
+    selectable = new SelectableRouter(controller.selectable),
+    creatable = new CreatableRouter(controller.creatable),
+    deletable = new DeletableRouter(controller.deletable),
     router = Router()
   ) {
     this.controller = controller;

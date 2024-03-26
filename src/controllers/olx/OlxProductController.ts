@@ -6,22 +6,22 @@ import { OlxProductService } from "@/services/olx/OlxProductService";
 
 export class OlxProductController {
   private service;
-  getById;
-  create;
-  update;
-  delete;
+  selectable;
+  creatable;
+  updatable;
+  deletable;
 
   constructor(
     service = new OlxProductService(),
-    selectable = new SelectableController(service),
-    creatable = new CreatableController(service),
-    updatable = new UpdatableController(service),
-    deletable = new DeletableController(service)
+    selectable = new SelectableController(service.selectable),
+    creatable = new CreatableController(service.creatable),
+    updatable = new UpdatableController(service.updatable),
+    deletable = new DeletableController(service.deletable)
   ) {
     this.service = service;
-    this.getById = selectable.getById;
-    this.create = creatable.create;
-    this.update = updatable.update;
-    this.delete = deletable.delete;
+    this.selectable = selectable;
+    this.creatable = creatable;
+    this.updatable = updatable;
+    this.deletable = deletable;
   }
 }
