@@ -45,7 +45,7 @@ export class OlxAdService {
   async linkAdWithProduct(ad: OlxAd) {
     try {
       const productInfo = await this.aiChatService.getProductInfo(ad.name);
-
+      console.log(productInfo);
       if (!productInfo) return ad;
 
       await this.productAdService.creatable.create({

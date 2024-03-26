@@ -21,12 +21,16 @@ export class AiChatService {
         `Give the brand and model of the product from "${adName}". Use an object with the keys "brand" and "model" in the response. Exclude Polish words.`
       );
 
+      console.log(response);
+
       const info: OlxProductCreateDto = JSON.parse(
         response.reply
           .replace("```json", "")
           .replace("```javascript", "")
           .replace("```", "")
       );
+
+      console.log(info);
 
       if (!info.brand || !info.model) return;
 
