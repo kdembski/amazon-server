@@ -40,7 +40,7 @@ export class OlxAdService {
     try {
       console.log(this);
       const ad = await this.creatable.create(dto);
-      this.linkAdWithProduct(ad);
+      await this.linkAdWithProduct(ad);
       return ad;
     } catch (error: any) {
       console.log(error);
