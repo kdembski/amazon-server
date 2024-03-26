@@ -37,9 +37,15 @@ export class OlxAdService {
   }
 
   async create(dto: OlxAdCreateDto) {
-    const ad = await this.creatable.create(dto);
-    this.linkAdWithProduct(ad);
-    return ad;
+    try {
+      console.log(this);
+      const ad = await this.creatable.create(dto);
+      this.linkAdWithProduct(ad);
+      return ad;
+    } catch (error: any) {
+      console.log(error);
+      throw Error(error);
+    }
   }
 
   async linkAdWithProduct(ad: OlxAd) {
