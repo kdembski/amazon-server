@@ -13,7 +13,7 @@ export class OlxAdController {
   constructor(
     service = new OlxAdService(),
     selectable = new SelectableController(service.selectable),
-    creatable = new CreatableController(service.creatable),
+    creatable = new CreatableController(service),
     deletable = new DeletableController(service.deletable)
   ) {
     this.service = service;

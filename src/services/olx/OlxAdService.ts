@@ -37,30 +37,20 @@ export class OlxAdService {
   }
 
   async create(dto: OlxAdCreateDto) {
-    try {
-      console.log(this);
-      const ad = await this.creatable.create(dto);
-      await this.linkAdWithProduct(ad);
-      return ad;
-    } catch (error: any) {
-      console.log(error);
-      throw Error(error);
-    }
+    const ad = await this.creatable.create(dto);
+    this.linkAdWithProduct(ad);
+    return ad;
   }
 
   async linkAdWithProduct(ad: OlxAd) {
-    try {
-      const productInfo = await this.aiChatService.getProductInfo(ad.name);
-      console.log(productInfo);
-      if (!productInfo) return ad;
+    const productInfo = await this.aiChatService.getProductInfo(ad.name);
 
-      await this.productAdService.creatable.create({
-        productBrand: productInfo.brand,
-        productModel: productInfo.model,
-        adId: ad.id,
-      });
-    } catch (error: any) {
-      throw Error(error);
-    }
+    if (!productInfo) return ad;
+
+    await this.productAdService.creatable.create({
+      productBrand: productInfo.brand,
+      productModel: productInfo.model,
+      adId: ad.id,
+    });
   }
 }

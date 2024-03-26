@@ -9,4 +9,6 @@ app.use(cors());
 const { router } = useRouter();
 app.use(router);
 
-app.listen(process.env.PORT || 5001, () => console.log("Server is running..."));
+app.listen(process.env.PORT || 5001, () =>
+  console.log("OLX Server is running...")
+);
