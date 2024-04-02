@@ -4,6 +4,7 @@ export interface OlxProductCreateDto {
 }
 
 export interface OlxProductUpdateDto {
-  brand: string;
-  model: string;
+  brand?: string;
+  model?: string;
+  avgPrice?: number;
 }

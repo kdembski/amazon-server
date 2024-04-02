@@ -9,6 +9,10 @@ app.use(cors());
 const { router } = useRouter();
 app.use(router);
 
+process.on("uncaughtException", (err) => {
+  console.log(`Uncaught Exception: ${err.message}`);
+});
+
 app.listen(process.env.PORT || 5001, () =>
   console.log("OLX Server is running...")
 );

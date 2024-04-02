@@ -36,6 +36,10 @@ export class OlxAdService {
     return this.repository.getAll();
   }
 
+  getAllWithoutProductAd() {
+    return this.repository.getAllWithoutProductAd();
+  }
+
   async create(dto: OlxAdCreateDto) {
     const ad = await this.creatable.create(dto);
     this.linkAdWithProduct(ad);
@@ -45,9 +49,12 @@ export class OlxAdService {
   async linkAdWithProduct(ad: OlxAd) {
     const productInfo = await this.aiChatService.getProductInfo(ad.name);
 
-    if (!productInfo) return ad;
+    if (!productInfo) {
+      setTimeout(() => this.linkAdWithProduct(ad), 5000);
+      return;
+    }
 
-    await this.productAdService.creatable.create({
+    return this.productAdService.creatable.create({
       productBrand: productInfo.brand,
       productModel: productInfo.model,
       adId: ad.id,

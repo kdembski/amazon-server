@@ -10,6 +10,7 @@ export class OlxProductService {
   private repository;
   selectable;
   creatable;
+  updateMapper;
   updatable;
   deletable;
 
@@ -18,12 +19,27 @@ export class OlxProductService {
     selectable = new SelectableService(repository),
     deletable = new DeletableService(repository),
     creatable = new CreatableService(repository, new OlxProductCreateMapper()),
-    updatable = new UpdatableService(repository, new OlxProductUpdateMapper())
+    updateMapper = new OlxProductUpdateMapper(),
+    updatable = new UpdatableService(repository, updateMapper)
   ) {
     this.repository = repository;
     this.selectable = selectable;
     this.creatable = creatable;
+    this.updateMapper = updateMapper;
     this.updatable = updatable;
     this.deletable = deletable;
+  }
+
+  async getPricesFromLastMonth() {
+    const products = await this.repository.getPricesFromLastMonth();
+    return products.map((product) => ({
+      id: product.id,
+      prices: product.productAds.map((productAd) => productAd.ad.price),
+    }));
+  }
+
+  async getAllWithSingleAd() {
+    const products = await this.repository.getAllWithAdsCount();
+    return products.filter((product) => product._count.productAds === 1);
   }
 }

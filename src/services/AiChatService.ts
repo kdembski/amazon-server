@@ -1,4 +1,3 @@
-import { OlxProductCreateDto } from "@/dtos/olx/OlxProductDtos";
 import { Hercai } from "hercai";
 
 export class AiChatService {
@@ -17,10 +16,14 @@ export class AiChatService {
 
   async getProductInfo(adName: string) {
     const response = await this.ask(
-      `Give the brand and model of the product from "${adName}". Use an object with the keys "brand" and "model" in the response. Exclude Polish words.`
+      `From ${adName} extract the product brand and model.
+      Return these information in object with keys 'brand' and 'model'.
+      Exclude Polish words.`
     );
 
-    const info: OlxProductCreateDto = JSON.parse(
+    if (!response) return;
+
+    const info: { brand?: string; model?: string } = JSON.parse(
       response.reply
         .replace("```json", "")
         .replace("```javascript", "")

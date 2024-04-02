@@ -1,27 +1,53 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 
 export class OlxProductRepository {
-  private prisma;
+  private delegate;
 
   constructor(prisma = new PrismaClient()) {
-    this.prisma = prisma;
+    this.delegate = prisma.olxProduct;
   }
 
   async getById(id: number) {
-    return this.prisma.olxProduct.findUniqueOrThrow({
+    return this.delegate.findUniqueOrThrow({
       where: { id },
     });
   }
 
+  async getPricesFromLastMonth() {
+    const today = new Date();
+    return this.delegate.findMany({
+      select: {
+        id: true,
+        productAds: {
+          where: {
+            createdAt: { gte: new Date(today.setMonth(today.getMonth() - 1)) },
+          },
+          select: { ad: { select: { price: true } } },
+        },
+      },
+    });
+  }
+
+  async getAllWithAdsCount() {
+    return this.delegate.findMany({
+      select: {
+        id: true,
+        brand: true,
+        model: true,
+        _count: { select: { productAds: true } },
+      },
+    });
+  }
+
   async create(data: Prisma.OlxProductCreateInput) {
-    return this.prisma.olxProduct.create({ data });
+    return this.delegate.create({ data });
   }
 
   async update(id: number, data: Prisma.OlxProductUpdateInput) {
-    return this.prisma.olxProduct.update({ where: { id }, data });
+    return this.delegate.update({ where: { id }, data });
   }
 
   async delete(id: number) {
-    return this.prisma.olxProduct.delete({ where: { id } });
+    return this.delegate.delete({ where: { id } });
   }
 }

@@ -10,6 +10,7 @@ export class OlxProductUpdateMapper
     return {
       brand: dto.brand,
       model: dto.model,
+      avgPrice: dto.avgPrice,
       updatedAt: new Date(Date.now()),
     };
   }
