@@ -60,4 +60,12 @@ export class OlxAdService {
       adId: ad.id,
     });
   }
+
+  async linkAdsThatMissingProducts() {
+    const ads = await this.getAllWithoutProductAd();
+
+    ads.forEach((ad) => {
+      this.linkAdWithProduct(ad);
+    });
+  }
 }

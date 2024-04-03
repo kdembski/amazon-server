@@ -1,4 +1,4 @@
-import { Hercai } from "hercai";
+import { Hercai, QuestionData } from "hercai";
 
 export class AiChatService {
   private herc;
@@ -8,17 +8,26 @@ export class AiChatService {
   }
 
   ask(content: string) {
-    return this.herc.question({
-      model: "v3",
-      content,
+    return new Promise<QuestionData | undefined>((resolve) => {
+      this.herc
+        .question({
+          model: "v3",
+          content,
+        })
+        .then((response) => {
+          resolve(response);
+        })
+        .catch(() => {
+          resolve(undefined);
+        });
     });
   }
 
   async getProductInfo(adName: string) {
+    adName = adName.replaceAll("&", "");
+
     const response = await this.ask(
-      `From ${adName} extract the product brand and model.
-      Return these information in object with keys 'brand' and 'model'.
-      Exclude Polish words.`
+      `From ${adName} extract the product brand and model. Return these information in object with keys 'brand' and 'model'. Exclude Polish words.`
     );
 
     if (!response) return;

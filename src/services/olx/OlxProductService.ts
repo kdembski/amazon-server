@@ -42,4 +42,12 @@ export class OlxProductService {
     const products = await this.repository.getAllWithAdsCount();
     return products.filter((product) => product._count.productAds === 1);
   }
+
+  async deleteAllWithSingleAd() {
+    const products = await this.getAllWithSingleAd();
+
+    products.forEach((product) => {
+      this.deletable.delete(product.id);
+    });
+  }
 }
