@@ -19,12 +19,12 @@ export class OlxProductAvgPriceManager {
       };
     });
 
-    updatedProducts.forEach((product) => {
-      this.service.updatable.update(
+    for (const product of updatedProducts) {
+      await this.service.updatable.update(
         product.id,
         this.service.updateMapper.toUpdateInput(product)
       );
-    });
+    }
   }
 
   private calculateAvgPrice(product: { id: number; prices: number[] }) {

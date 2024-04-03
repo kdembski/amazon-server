@@ -30,6 +30,10 @@ export class OlxProductService {
     this.deletable = deletable;
   }
 
+  getByBrandAndModel(data: { model: string; brand: string }) {
+    return this.repository.getByBrandAndModel(data);
+  }
+
   async getPricesFromLastMonth() {
     const products = await this.repository.getPricesFromLastMonth();
     return products.map((product) => ({

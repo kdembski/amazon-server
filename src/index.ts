@@ -21,6 +21,6 @@ app.listen(process.env.PORT || 5001, () =>
 
 const avgPriceManager = new OlxProductAvgPriceManager();
 
-cron.schedule("0 0 2 * * *", () => {
-  avgPriceManager.calculateAllAvgPrices();
+cron.schedule("0 0 2 * * *", async () => {
+  await avgPriceManager.calculateAllAvgPrices();
 });

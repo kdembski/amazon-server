@@ -13,6 +13,12 @@ export class OlxProductRepository {
     });
   }
 
+  async getByBrandAndModel(data: { model: string; brand: string }) {
+    return this.delegate.findUnique({
+      where: { brand_model: data },
+    });
+  }
+
   async getPricesFromLastMonth() {
     const today = new Date();
     return this.delegate.findMany({
