@@ -1,9 +1,10 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import { PrismaClient } from "@@prisma/PrismaClient";
 
 export class OlxAdRepository {
   private delegate;
 
-  constructor(prisma = new PrismaClient()) {
+  constructor(prisma = PrismaClient.getInstance()) {
     this.delegate = prisma.olxAd;
   }
 

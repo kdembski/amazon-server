@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { CreatableController } from "@/controllers/crud/CreatableController";
 import { DeletableController } from "@/controllers/crud/DeletableController";
 import { SelectableController } from "@/controllers/crud/SelectableController";

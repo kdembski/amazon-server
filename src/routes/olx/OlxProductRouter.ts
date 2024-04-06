@@ -32,6 +32,7 @@ export class OlxProductRouter implements SubRouterI {
   }
 
   build() {
+    this.router.get("/", (req, res) => this.controller.getAll(res));
     this.router.use(this.selectable.build().router);
     this.router.use(this.creatable.build().router);
     this.router.use(this.updatable.build().router);

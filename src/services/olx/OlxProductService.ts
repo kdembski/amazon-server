@@ -30,6 +30,10 @@ export class OlxProductService {
     this.deletable = deletable;
   }
 
+  getAll() {
+    return this.repository.getAll();
+  }
+
   getByBrandAndModel(data: { model: string; brand: string }) {
     return this.repository.getByBrandAndModel(data);
   }

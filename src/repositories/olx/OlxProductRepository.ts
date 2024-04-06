@@ -1,15 +1,62 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import { PrismaClient } from "@@prisma/PrismaClient";
 
 export class OlxProductRepository {
   private delegate;
 
-  constructor(prisma = new PrismaClient()) {
+  constructor(prisma = PrismaClient.getInstance()) {
     this.delegate = prisma.olxProduct;
+  }
+
+  async getAll() {
+    return this.delegate.findMany({
+      where: {
+        productAds: {
+          every: {
+            ad: {
+              categoryId: 2,
+            },
+          },
+        },
+      },
+      select: {
+        productAds: {
+          select: {
+            ad: {
+              select: {
+                category: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
   }
 
   async getById(id: number) {
     return this.delegate.findUniqueOrThrow({
       where: { id },
+      select: {
+        productAds: {
+          select: {
+            ad: {
+              select: {
+                category: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
   }
 
