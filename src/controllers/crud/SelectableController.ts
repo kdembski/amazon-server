@@ -17,8 +17,8 @@ export class SelectableController<SelectResult>
 
       const item = await this.service.getById(id);
       response.json(item);
-    } catch (error) {
-      response.json(error);
+    } catch (error: any) {
+      response.status(500).send(error?.message);
     }
   }
 }

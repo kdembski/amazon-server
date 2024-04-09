@@ -18,13 +18,13 @@ model OlxAdCategory {
 model OlxAd {
   id         Int           @id @default(autoincrement())
   olxId      String        @unique(map: "olx_id_UNIQUE") @db.VarChar(63)
-  name       String        @db.VarChar(63)
+  name       String        @db.VarChar(255)
   price      Int
   url        String        @db.VarChar(255)
   categoryId Int
   createdAt  DateTime      @db.Timestamp(2)
   updatedAt  DateTime      @db.Timestamp(2)
-  category   OlxAdCategory @relation(fields: [categoryId], references: [id], map: "olx_ad_category_id_fk")
+  category   OlxAdCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "olx_ad_category_id_fk")
   productAd  OlxProductAd?
 
   @@index([categoryId], map: "olx_ad_category_id_fk_idx")

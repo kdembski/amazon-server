@@ -30,8 +30,8 @@ export class OlxProductController {
     try {
       const results = await this.service.getAll();
       response.json(results);
-    } catch (error) {
-      response.json(error);
+    } catch (error: any) {
+      response.status(500).send(error?.message);
     }
   }
 }

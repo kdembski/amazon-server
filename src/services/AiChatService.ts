@@ -32,6 +32,8 @@ export class AiChatService {
 
     if (!(response && response.reply)) return;
 
+    console.log(response.reply);
+
     const info: { brand?: string; model?: string } = JSON.parse(
       response.reply
         .replace("```json", "")

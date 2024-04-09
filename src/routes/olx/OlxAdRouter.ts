@@ -11,7 +11,7 @@ export class OlxAdRouter implements SubRouterI {
   private creatable;
   private deletable;
   private _router;
-  readonly path = "/olx-ads";
+  readonly path = "/olx/ads";
 
   constructor(
     controller = new OlxAdController(),

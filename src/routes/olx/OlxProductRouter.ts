@@ -13,7 +13,7 @@ export class OlxProductRouter implements SubRouterI {
   private updatable;
   private deletable;
   private _router;
-  readonly path = "/olx-products";
+  readonly path = "/olx/products";
 
   constructor(
     controller = new OlxProductController(),

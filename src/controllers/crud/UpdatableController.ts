@@ -21,8 +21,8 @@ export class UpdatableController<UpdateInput, Model>
 
       const results = await this.service.update(id, data);
       response.json(results);
-    } catch (error) {
-      response.json(error);
+    } catch (error: any) {
+      response.status(500).send(error?.message);
     }
   }
 }

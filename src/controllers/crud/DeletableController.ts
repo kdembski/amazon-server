@@ -15,8 +15,8 @@ export class DeletableController<Model> implements DeletableControllerI {
 
       const results = await this.service.delete(id);
       response.json(results);
-    } catch (error) {
-      response.json(error);
+    } catch (error: any) {
+      response.status(500).send(error?.message);
     }
   }
 }

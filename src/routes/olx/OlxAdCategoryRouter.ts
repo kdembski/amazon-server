@@ -5,7 +5,7 @@ import { Router } from "express";
 export class OlxAdCategoryRouter implements SubRouterI {
   private controller;
   private _router;
-  readonly path = "/olx-ads/categories";
+  readonly path = "/olx/ads/categories";
 
   constructor(controller = new OlxAdCategoryController(), router = Router()) {
     this.controller = controller;
