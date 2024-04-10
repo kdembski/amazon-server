@@ -7,9 +7,6 @@ export class OlxProductRepository {
 
   constructor(prisma = PrismaClient.getInstance()) {
     this.delegate = prisma.olxProduct;
-    console.log(
-      JSON.stringify(merge(this.selectCategory(), this.selectAd()), null, 2)
-    );
   }
 
   getAll() {
@@ -141,8 +138,10 @@ export class OlxProductRepository {
         select: {
           ad: {
             select: {
+              id: true,
               name: true,
               price: true,
+              url: true,
               createdAt: true,
             },
           },

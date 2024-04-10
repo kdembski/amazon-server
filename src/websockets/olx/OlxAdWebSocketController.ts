@@ -42,6 +42,13 @@ export class OlxAdWebSocketController extends WebSocketController {
       ad.productAd?.product.brand,
       ad.productAd?.product.model
     );
+
+    products.forEach((product) => {
+      product.productAds = product.productAds.filter((productAd) => {
+        return productAd.ad.id !== adId;
+      });
+    });
+
     ws.send(JSON.stringify({ ad, products }));
   }
 }

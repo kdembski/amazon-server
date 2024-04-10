@@ -36,7 +36,7 @@ export class OlxProductAvgPriceManager {
 
     return (
       product.prices.reduce((accum, price) => {
-        if (price < firstAvg * 1.5 || price > firstAvg * 0.5) {
+        if (price < firstAvg * 1.3 || price > firstAvg * 0.7) {
           accum += price;
         }
 
