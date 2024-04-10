@@ -38,6 +38,11 @@ export class OlxProductService {
     return this.repository.getByBrandAndModel(data);
   }
 
+  getRelated(brand?: string, model?: string) {
+    if (!(brand && model)) return [];
+    return this.repository.getRelated(brand, model);
+  }
+
   async getPricesFromLastMonth() {
     const products = await this.repository.getPricesFromLastMonth();
     return products.map((product) => ({

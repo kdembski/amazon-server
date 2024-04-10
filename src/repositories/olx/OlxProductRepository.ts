@@ -1,72 +1,73 @@
 import { Prisma } from "@prisma/client";
 import { PrismaClient } from "@@prisma/PrismaClient";
+import { merge } from "lodash";
 
 export class OlxProductRepository {
   private delegate;
 
   constructor(prisma = PrismaClient.getInstance()) {
     this.delegate = prisma.olxProduct;
+    console.log(
+      JSON.stringify(merge(this.selectCategory(), this.selectAd()), null, 2)
+    );
   }
 
-  async getAll() {
-    return this.delegate.findMany({
-      where: {
-        productAds: {
-          every: {
-            ad: {
-              categoryId: 2,
-            },
-          },
-        },
-      },
-      select: {
-        productAds: {
-          select: {
-            ad: {
-              select: {
-                category: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+  getAll() {
+    return this.delegate.findMany();
   }
 
-  async getById(id: number) {
+  getById(id: number) {
     return this.delegate.findUniqueOrThrow({
       where: { id },
-      select: {
-        productAds: {
-          select: {
-            ad: {
-              select: {
-                category: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
+    });
+  }
+
+  getRelated(brand: string, model: string) {
+    return this.delegate.findMany({
+      where: {
+        AND: [
+          { brand: { contains: brand } },
+          {
+            OR: [
+              {
+                model: { contains: model },
+              },
+              {
+                model: {
+                  in: model.split(" "),
                 },
               },
-            },
+            ],
           },
-        },
+        ],
+      },
+      select: {
+        ...merge(
+          {
+            _count: { select: { productAds: true } },
+            productAds: {
+              orderBy: {
+                ad: {
+                  createdAt: "desc",
+                },
+              },
+              take: 10,
+            },
+          } as const,
+          this.selectProduct(),
+          this.selectAd()
+        ),
       },
     });
   }
 
-  async getByBrandAndModel(data: { model: string; brand: string }) {
+  getByBrandAndModel(data: { model: string; brand: string }) {
     return this.delegate.findUnique({
       where: { brand_model: data },
     });
   }
 
-  async getPricesFromLastMonth() {
+  getPricesFromLastMonth() {
     const today = new Date();
     return this.delegate.findMany({
       select: {
@@ -81,26 +82,72 @@ export class OlxProductRepository {
     });
   }
 
-  async getAllWithAdsCount() {
+  getAllWithAdsCount() {
     return this.delegate.findMany({
       select: {
-        id: true,
-        brand: true,
-        model: true,
-        _count: { select: { productAds: true } },
+        ...merge(
+          {
+            _count: { select: { productAds: true } },
+          },
+          this.selectProduct()
+        ),
       },
     });
   }
 
-  async create(data: Prisma.OlxProductCreateInput) {
+  create(data: Prisma.OlxProductCreateInput) {
     return this.delegate.create({ data });
   }
 
-  async update(id: number, data: Prisma.OlxProductUpdateInput) {
+  update(id: number, data: Prisma.OlxProductUpdateInput) {
     return this.delegate.update({ where: { id }, data });
   }
 
-  async delete(id: number) {
+  delete(id: number) {
     return this.delegate.delete({ where: { id } });
+  }
+
+  private selectProduct() {
+    return {
+      id: true,
+      brand: true,
+      model: true,
+      avgPrice: true,
+    };
+  }
+
+  private selectCategory() {
+    return {
+      productAds: {
+        select: {
+          ad: {
+            select: {
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+  }
+
+  private selectAd() {
+    return {
+      productAds: {
+        select: {
+          ad: {
+            select: {
+              name: true,
+              price: true,
+              createdAt: true,
+            },
+          },
+        },
+      },
+    };
   }
 }

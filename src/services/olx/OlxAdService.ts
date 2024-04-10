@@ -45,8 +45,11 @@ export class OlxAdService {
   }
 
   async create(dto: OlxAdCreateDto) {
+    if (dto.price < 25) {
+      throw Error("Price too low.");
+    }
     const ad = await this.creatable.create(dto);
-    this.linkAdWithProduct(ad);
+    await this.linkAdWithProduct(ad);
     return ad;
   }
 

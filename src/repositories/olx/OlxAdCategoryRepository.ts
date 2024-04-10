@@ -7,7 +7,7 @@ export class OlxAdCategoryRepository {
     this.delegate = prisma.olxAdCategory;
   }
 
-  async getAll() {
+  getAll() {
     return this.delegate.findMany();
   }
 }

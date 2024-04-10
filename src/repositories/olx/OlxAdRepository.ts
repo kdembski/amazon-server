@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { PrismaClient } from "@@prisma/PrismaClient";
+import { merge } from "lodash";
 
 export class OlxAdRepository {
   private delegate;
@@ -8,33 +9,59 @@ export class OlxAdRepository {
     this.delegate = prisma.olxAd;
   }
 
-  async getById(id: number) {
+  getById(id: number) {
     return this.delegate.findUniqueOrThrow({
       where: { id },
-      include: { category: true },
+      select: {
+        ...merge(this.selectAd(), this.selectProduct()),
+      },
     });
   }
 
-  async getAll() {
+  getAll() {
     return this.delegate.findMany();
   }
 
-  async getAllWithoutProductAd() {
+  getAllWithoutProductAd() {
     return this.delegate.findMany({
       where: {
         productAd: null,
       },
-      include: {
-        productAd: true,
-      },
     });
   }
 
-  async create(data: Prisma.OlxAdCreateInput) {
+  create(data: Prisma.OlxAdCreateInput) {
     return this.delegate.create({ data });
   }
 
-  async delete(id: number) {
+  delete(id: number) {
     return this.delegate.delete({ where: { id } });
+  }
+
+  private selectAd() {
+    return {
+      id: true,
+      olxId: true,
+      name: true,
+      price: true,
+      url: true,
+      categoryId: true,
+      createdAt: true,
+    };
+  }
+
+  private selectProduct() {
+    return {
+      productAd: {
+        select: {
+          product: {
+            select: {
+              brand: true,
+              model: true,
+            },
+          },
+        },
+      },
+    };
   }
 }

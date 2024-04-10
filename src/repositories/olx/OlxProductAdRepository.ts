@@ -8,17 +8,17 @@ export class OlxProductAdRepository {
     this.delegate = prisma.olxProductAd;
   }
 
-  async getById(id: number) {
+  getById(id: number) {
     return this.delegate.findUniqueOrThrow({
       where: { id },
     });
   }
 
-  async create(data: Prisma.OlxProductAdCreateInput) {
+  create(data: Prisma.OlxProductAdCreateInput) {
     return this.delegate.create({ data });
   }
 
-  async delete(id: number) {
+  delete(id: number) {
     return this.delegate.delete({ where: { id } });
   }
 }

@@ -27,7 +27,7 @@ export class AiChatService {
     adName = adName.replaceAll("&", "");
 
     const response = await this.ask(
-      `From ${adName} extract the product brand and model. Return these information in object with keys 'brand' and 'model'. Exclude Polish words.`
+      `From ${adName} extract the product brand and model. Return these information in the JSON format with keys 'brand' and 'model'. Return only JSON. Exclude Polish words.`
     );
 
     if (!(response && response.reply)) return;

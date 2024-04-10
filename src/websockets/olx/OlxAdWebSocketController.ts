@@ -1,14 +1,21 @@
 import { OlxAdService } from "@/services/olx/OlxAdService";
+import { OlxProductService } from "@/services/olx/OlxProductService";
 import { WebSocketController } from "@/websockets/WebSocketController";
 import { Server } from "http";
 import { WebSocket } from "ws";
 
 export class OlxAdWebSocketController extends WebSocketController {
-  service;
+  adService;
+  productService;
 
-  constructor(server: Server, service = new OlxAdService()) {
+  constructor(
+    server: Server,
+    adService = new OlxAdService(),
+    productService = new OlxProductService()
+  ) {
     super(server, "/olx/ads");
-    this.service = service;
+    this.adService = adService;
+    this.productService = productService;
   }
 
   init() {
@@ -30,7 +37,11 @@ export class OlxAdWebSocketController extends WebSocketController {
   }
 
   private async onMessage(adId: number, ws: WebSocket) {
-    const ad = await this.service.selectable.getById(adId);
-    ws.send(JSON.stringify({ ad }));
+    const ad = await this.adService.selectable.getById(adId);
+    const products = await this.productService.getRelated(
+      ad.productAd?.product.brand,
+      ad.productAd?.product.model
+    );
+    ws.send(JSON.stringify({ ad, products }));
   }
 }
