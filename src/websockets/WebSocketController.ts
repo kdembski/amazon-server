@@ -1,12 +1,13 @@
 import { parse } from "url";
 import { WebSocketServer } from "ws";
 import { Server } from "http";
+import { WebSocket } from "ws";
 
 export class WebSocketController {
-  protected webSocketServer: WebSocketServer;
+  protected webSocketServer?: WebSocketServer;
   private keepAliveInterval?: ReturnType<typeof setInterval>;
 
-  constructor(server: Server, route: string) {
+  init(server: Server, route: string) {
     const webSocketServer = new WebSocketServer({ noServer: true });
     this.webSocketServer = webSocketServer;
 
@@ -21,15 +22,35 @@ export class WebSocketController {
         webSocketServer.emit("connection", ws, request);
       });
     });
+
+    this.initKeepAlive();
   }
 
-  init() {
+  private initKeepAlive() {
+    if (!this.webSocketServer) return this.throwUndefinedServer();
+
     this.webSocketServer.on("connection", (ws) => {
       ws.on("error", (data) => console.error(data));
 
       this.keepAliveInterval = setInterval(() => {
-        ws.send("");
+        ws.send("ping");
       }, 40000);
     });
+  }
+
+  sendToAll(data: string) {
+    if (!this.webSocketServer) return this.throwUndefinedServer();
+
+    this.webSocketServer.clients.forEach((client) => {
+      if (client.readyState !== WebSocket.OPEN) {
+        return;
+      }
+
+      client.send(data);
+    });
+  }
+
+  protected throwUndefinedServer() {
+    throw Error("Web socket server is `undefined`. Run `init` method first");
   }
 }

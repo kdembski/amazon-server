@@ -17,6 +17,8 @@ export class CreatableController<CreateDto, Model>
 
       const results = await this.service.create(data);
       response.json(results);
+
+      return results;
     } catch (error: any) {
       response.status(500).send(error?.message);
     }

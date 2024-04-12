@@ -2,43 +2,53 @@ import { OlxAdService } from "@/services/olx/OlxAdService";
 import { OlxProductService } from "@/services/olx/OlxProductService";
 import { WebSocketController } from "@/websockets/WebSocketController";
 import { Server } from "http";
-import { WebSocket } from "ws";
 
 export class OlxAdWebSocketController extends WebSocketController {
-  adService;
-  productService;
+  private static instance: OlxAdWebSocketController;
+  private static adService: OlxAdService;
+  private static productService: OlxProductService;
 
-  constructor(
-    server: Server,
+  public static getInstance(
     adService = new OlxAdService(),
     productService = new OlxProductService()
   ) {
-    super(server, "/olx/ads");
     this.adService = adService;
     this.productService = productService;
+
+    if (!this.instance) {
+      this.instance = new OlxAdWebSocketController();
+    }
+
+    return this.instance;
   }
 
-  init() {
-    super.init();
+  private constructor() {
+    super();
+  }
+
+  init(server: Server) {
+    super.init(server, "/olx/ads");
+
+    if (!this.webSocketServer) return this.throwUndefinedServer();
 
     this.webSocketServer.on("connection", (ws) => {
-      ws.on("message", (data) => {
+      ws.on("message", async (data) => {
         const adId = JSON.parse(data.toString());
-
-        this.webSocketServer.clients.forEach((client) => {
-          if (client.readyState !== WebSocket.OPEN) {
-            return;
-          }
-
-          this.onMessage(adId, client);
-        });
+        this.sendAdToAll(adId);
       });
     });
   }
 
-  private async onMessage(adId: number, ws: WebSocket) {
-    const ad = await this.adService.selectable.getById(adId);
-    const products = await this.productService.getRelated(
+  async sendAdToAll(adId: number) {
+    const messageData = await this.getAd(adId);
+    this.sendToAll(messageData);
+  }
+
+  private async getAd(adId: number) {
+    const ad = await OlxAdWebSocketController.adService.selectable.getById(
+      adId
+    );
+    const products = await OlxAdWebSocketController.productService.getRelated(
       ad.productAd?.product.brand,
       ad.productAd?.product.model
     );
@@ -49,6 +59,6 @@ export class OlxAdWebSocketController extends WebSocketController {
       });
     });
 
-    ws.send(JSON.stringify({ ad, products }));
+    return JSON.stringify({ ad, products });
   }
 }

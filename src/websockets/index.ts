@@ -1,10 +1,8 @@
+import { OlxAdCategoryWebSocketController } from "@/websockets/olx/OlxAdCategoryWebSocketController";
 import { OlxAdWebSocketController } from "@/websockets/olx/OlxAdWebSocketController";
 import { Server } from "http";
 
 export function useWebSockets(server: Server) {
-  const init = () => {
-    new OlxAdWebSocketController(server).init();
-  };
-
-  return { init };
+  OlxAdWebSocketController.getInstance().init(server);
+  OlxAdCategoryWebSocketController.getInstance().init(server);
 }

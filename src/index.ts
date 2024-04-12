@@ -16,8 +16,7 @@ const server = app.listen(process.env.PORT || 5001, () =>
   console.log("OLX Server is running...")
 );
 
-const { init } = useWebSockets(server);
-init();
+useWebSockets(server);
 
 cron.schedule("0 0 2 * * *", async () => {
   const avgPriceManager = new OlxProductAvgPriceManager();
