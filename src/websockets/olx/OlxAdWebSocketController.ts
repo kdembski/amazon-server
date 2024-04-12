@@ -48,7 +48,7 @@ export class OlxAdWebSocketController extends WebSocketController {
     const ad = await OlxAdWebSocketController.adService.selectable.getById(
       adId
     );
-    const products = await OlxAdWebSocketController.productService.getRelated(
+    let products = await OlxAdWebSocketController.productService.getRelated(
       ad.productAd?.product.brand,
       ad.productAd?.product.model
     );
@@ -58,6 +58,7 @@ export class OlxAdWebSocketController extends WebSocketController {
         return productAd.ad.id !== adId;
       });
     });
+    products = products.filter((product) => product.productAds.length > 1);
 
     return JSON.stringify({ ad, products });
   }
