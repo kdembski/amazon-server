@@ -18,6 +18,7 @@ model OlxAdCategory {
 model OlxAd {
   id         Int           @id @default(autoincrement())
   olxId      String        @unique(map: "olx_id_UNIQUE") @db.VarChar(63)
+  olxUserId  String?       @db.VarChar(63)
   name       String        @db.VarChar(255)
   price      Int
   url        String        @db.VarChar(255)
