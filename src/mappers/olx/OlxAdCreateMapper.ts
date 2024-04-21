@@ -8,6 +8,7 @@ export class OlxAdCreateMapper
   toCreateInput(dto: OlxAdCreateDto) {
     return {
       olxId: dto.olxId,
+      olxUserId: dto.olxUserId,
       name: dto.name,
       price: dto.price,
       url: dto.url,
