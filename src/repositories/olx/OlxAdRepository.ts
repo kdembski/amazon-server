@@ -42,6 +42,7 @@ export class OlxAdRepository {
     return {
       id: true,
       olxId: true,
+      olxUserId: true,
       name: true,
       price: true,
       url: true,
