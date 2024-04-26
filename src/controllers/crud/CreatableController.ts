@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { CreatableServiceI } from "@/interfaces/crud/CRUDService";
 import { CreatableControllerI } from "@/interfaces/crud/CRUDController";
+import { ResponseErrorService } from "@/services/ResponseErrorService";
 
 export class CreatableController<CreateDto, Model>
   implements CreatableControllerI<CreateDto>
@@ -20,7 +21,7 @@ export class CreatableController<CreateDto, Model>
 
       return results;
     } catch (error: any) {
-      response.status(500).send(error?.message);
+      new ResponseErrorService(response).send(error);
     }
   }
 }

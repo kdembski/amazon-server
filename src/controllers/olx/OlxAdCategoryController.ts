@@ -4,6 +4,7 @@ import { OlxAdCategoryWebSocketController } from "@/websockets/olx/OlxAdCategory
 import { CreatableController } from "@/controllers/crud/CreatableController";
 import { DeletableController } from "@/controllers/crud/DeletableController";
 import { OlxAdCategoryCreateDto } from "@/dtos/olx/OlxAdCategoryDtos";
+import { ResponseErrorService } from "@/services/ResponseErrorService";
 
 export class OlxAdCategoryController {
   private service;
@@ -30,7 +31,7 @@ export class OlxAdCategoryController {
       const results = await this.service.getAll();
       response.json(results);
     } catch (error: any) {
-      response.status(500).send(error?.message);
+      new ResponseErrorService(response).send(error);
     }
   }
 

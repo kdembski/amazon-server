@@ -4,6 +4,7 @@ import { DeletableController } from "@/controllers/crud/DeletableController";
 import { SelectableController } from "@/controllers/crud/SelectableController";
 import { UpdatableController } from "@/controllers/crud/UpdatableController";
 import { OlxProductService } from "@/services/olx/OlxProductService";
+import { ResponseErrorService } from "@/services/ResponseErrorService";
 
 export class OlxProductController {
   private service;
@@ -31,7 +32,7 @@ export class OlxProductController {
       const results = await this.service.getAll();
       response.json(results);
     } catch (error: any) {
-      response.status(500).send(error?.message);
+      new ResponseErrorService(response).send(error);
     }
   }
 }

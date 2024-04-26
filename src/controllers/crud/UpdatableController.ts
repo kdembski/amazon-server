@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { UpdatableServiceI } from "@/interfaces/crud/CRUDService";
 import { UpdatableControllerI } from "@/interfaces/crud/CRUDController";
+import { ResponseErrorService } from "@/services/ResponseErrorService";
 
 export class UpdatableController<UpdateInput, Model>
   implements UpdatableControllerI<UpdateInput>
@@ -22,7 +23,7 @@ export class UpdatableController<UpdateInput, Model>
       const results = await this.service.update(id, data);
       response.json(results);
     } catch (error: any) {
-      response.status(500).send(error?.message);
+      new ResponseErrorService(response).send(error);
     }
   }
 }

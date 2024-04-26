@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { DeletableServiceI } from "@/interfaces/crud/CRUDService";
 import { DeletableControllerI } from "@/interfaces/crud/CRUDController";
+import { ResponseErrorService } from "@/services/ResponseErrorService";
 
 export class DeletableController<Model> implements DeletableControllerI {
   private service;
@@ -16,7 +17,7 @@ export class DeletableController<Model> implements DeletableControllerI {
       const results = await this.service.delete(id);
       response.json(results);
     } catch (error: any) {
-      response.status(500).send(error?.message);
+      new ResponseErrorService(response).send(error);
     }
   }
 }

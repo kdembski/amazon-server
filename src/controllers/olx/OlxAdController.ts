@@ -5,6 +5,7 @@ import { SelectableController } from "@/controllers/crud/SelectableController";
 import { OlxAdService } from "@/services/olx/OlxAdService";
 import { OlxAdWebSocketController } from "@/websockets/olx/OlxAdWebSocketController";
 import { OlxAdCreateDto } from "@/dtos/olx/OlxAdDtos";
+import { ResponseErrorService } from "@/services/ResponseErrorService";
 
 export class OlxAdController {
   private service;
@@ -32,7 +33,7 @@ export class OlxAdController {
       const results = await this.service.getAll();
       response.json(results);
     } catch (error: any) {
-      response.status(500).send(error?.message);
+      new ResponseErrorService(response).send(error);
     }
   }
 

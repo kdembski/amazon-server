@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { SelectableServiceI } from "@/interfaces/crud/CRUDService";
 import { SelectableControllerI } from "@/interfaces/crud/CRUDController";
+import { ResponseErrorService } from "@/services/ResponseErrorService";
 
 export class SelectableController<SelectResult>
   implements SelectableControllerI
@@ -18,7 +19,7 @@ export class SelectableController<SelectResult>
       const item = await this.service.getById(id);
       response.json(item);
     } catch (error: any) {
-      response.status(500).send(error?.message);
+      new ResponseErrorService(response).send(error);
     }
   }
 }
