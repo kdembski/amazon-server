@@ -15,8 +15,10 @@ export class ResponseErrorService {
     switch (error?.code) {
       case "P2002":
         return `Unique constraint failed on the '${error?.meta?.target}'`;
+      case "P1001":
+        return `Can't reach database server`;
       default:
-        return `Unknown error code: ${error?.code}`;
+        return error?.message;
     }
   }
 
@@ -24,6 +26,8 @@ export class ResponseErrorService {
     switch (error?.code) {
       case "P2002":
         return 422;
+      case "P1001":
+        return 503;
       default:
         return 500;
     }

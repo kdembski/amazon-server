@@ -2,6 +2,7 @@ import { OlxAdCreateDto } from "@/dtos/olx/OlxAdDtos";
 import { OlxAdCreateMapper } from "@/mappers/olx/OlxAdCreateMapper";
 import { OlxAdRepository } from "@/repositories/olx/OlxAdRepository";
 import { AiChatService } from "@/services/AiChatService";
+import { RequestQueueService } from "@/services/RequestQueueService";
 import { CreatableService } from "@/services/crud/CreatableService";
 import { DeletableService } from "@/services/crud/DeletableService";
 import { SelectableService } from "@/services/crud/SelectableService";
@@ -14,6 +15,7 @@ export class OlxAdService {
   private productAdService;
   private productService;
   private aiChatService;
+  private requestQueueService;
   selectable;
   deletable;
   creatable;
@@ -25,7 +27,8 @@ export class OlxAdService {
     creatable = new CreatableService(repository, new OlxAdCreateMapper()),
     productAdService = new OlxProductAdService(),
     productService = new OlxProductService(),
-    aiChatService = new AiChatService()
+    aiChatService = new AiChatService(),
+    requestQueueService = new RequestQueueService(5000)
   ) {
     this.repository = repository;
     this.productAdService = productAdService;
@@ -34,6 +37,7 @@ export class OlxAdService {
     this.selectable = selectable;
     this.deletable = deletable;
     this.creatable = creatable;
+    this.requestQueueService = requestQueueService;
   }
 
   getAll() {
@@ -50,7 +54,11 @@ export class OlxAdService {
     }
 
     const ad = await this.creatable.create(dto);
-    await this.linkAdWithProduct(ad);
+
+    const promise = this.requestQueueService.push(() =>
+      this.linkAdWithProduct(ad)
+    );
+    await promise;
 
     return ad;
   }
@@ -59,11 +67,14 @@ export class OlxAdService {
     const productInfo = await this.aiChatService.getProductInfo(ad.name);
 
     if (!productInfo) {
-      setTimeout(() => this.linkAdWithProduct(ad), 5000);
+      const promise = this.requestQueueService.push(() =>
+        this.linkAdWithProduct(ad)
+      );
+      await promise;
       return;
     }
 
-    return this.productAdService.creatable.create({
+    await this.productAdService.creatable.create({
       productBrand: productInfo.brand,
       productModel: productInfo.model,
       adId: ad.id,
