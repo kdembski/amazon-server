@@ -28,7 +28,7 @@ export class OlxAdService {
     productAdService = new OlxProductAdService(),
     productService = new OlxProductService(),
     aiChatService = new AiChatService(),
-    requestQueueService = new RequestQueueService(5000)
+    requestQueueService = new RequestQueueService(3000)
   ) {
     this.repository = repository;
     this.productAdService = productAdService;
