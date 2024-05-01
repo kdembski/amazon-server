@@ -55,10 +55,7 @@ export class OlxAdService {
 
     const ad = await this.creatable.create(dto);
 
-    const promise = this.requestQueueService.push(() =>
-      this.linkAdWithProduct(ad)
-    );
-    await promise;
+    await this.requestQueueService.push(() => this.linkAdWithProduct(ad));
 
     return ad;
   }
@@ -67,10 +64,7 @@ export class OlxAdService {
     const productInfo = await this.aiChatService.getProductInfo(ad.name);
 
     if (!productInfo) {
-      const promise = this.requestQueueService.push(() =>
-        this.linkAdWithProduct(ad)
-      );
-      await promise;
+      await this.requestQueueService.push(() => this.linkAdWithProduct(ad));
       return;
     }
 

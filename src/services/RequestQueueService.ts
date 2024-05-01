@@ -26,6 +26,7 @@ export class RequestQueueService {
       const item = this.queue.shift();
       if (!item) {
         clearInterval(this.interval);
+        this.interval = undefined;
         return;
       }
 
