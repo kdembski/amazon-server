@@ -21,14 +21,14 @@ export class OlxProductRepository {
     });
   }
 
-  getRelated(brand: string, model: string) {
-    const firstDegree = this.getFirstDegreeRelated(brand, model);
-    if (firstDegree) return firstDegree;
+  async getRelated(brand: string, model: string) {
+    const firstDegree = await this.getFirstDegreeRelated(brand, model);
+    if (firstDegree.length) return firstDegree;
 
-    const secondDegree = this.getSecondDegreeRelated(brand, model);
-    if (secondDegree) return secondDegree;
+    const secondDegree = await this.getSecondDegreeRelated(brand, model);
+    if (secondDegree.length) return secondDegree;
 
-    const thirdDegree = this.getThirdDegreeRelated(brand, model);
+    const thirdDegree = await this.getThirdDegreeRelated(brand, model);
     return thirdDegree;
   }
 
