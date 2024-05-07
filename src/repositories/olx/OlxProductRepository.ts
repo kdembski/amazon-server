@@ -1,14 +1,12 @@
 import { Prisma } from "@prisma/client";
 import { PrismaClient } from "@@prisma/PrismaClient";
-import { first, merge } from "lodash";
+import { merge } from "lodash";
 
 export class OlxProductRepository {
   private delegate;
-  private prisma;
 
   constructor(prisma = PrismaClient.getInstance()) {
     this.delegate = prisma.olxProduct;
-    this.prisma = prisma;
   }
 
   getAll() {
@@ -22,43 +20,62 @@ export class OlxProductRepository {
   }
 
   async getRelated(brand: string, model: string) {
-    const firstDegree = await this.getFirstDegreeRelated(brand, model);
+    const product = await this.getByBrandAndModel({ brand, model });
+    const avgPrice = product?.avgPrice || null;
+
+    const firstDegree = await this.getFirstDegreeRelated(
+      brand,
+      model,
+      avgPrice
+    );
     if (firstDegree.length) return firstDegree;
 
-    const secondDegree = await this.getSecondDegreeRelated(brand, model);
+    const secondDegree = await this.getSecondDegreeRelated(
+      brand,
+      model,
+      avgPrice
+    );
     if (secondDegree.length) return secondDegree;
 
-    const thirdDegree = await this.getThirdDegreeRelated(brand, model);
+    const thirdDegree = await this.getThirdDegreeRelated(
+      brand,
+      model,
+      avgPrice
+    );
     return thirdDegree;
   }
 
-  getFirstDegreeRelated(brand: string, model: string) {
+  getFirstDegreeRelated(brand: string, model: string, avgPrice: number | null) {
     return this.delegate.findMany({
       where: {
         brand: { contains: brand },
         model: { equals: model },
       },
-      select: this.selectRelated(),
+      select: this.selectRelated(avgPrice),
     });
   }
 
-  getSecondDegreeRelated(brand: string, model: string) {
+  getSecondDegreeRelated(
+    brand: string,
+    model: string,
+    avgPrice: number | null
+  ) {
     return this.delegate.findMany({
       where: {
         brand: { contains: brand },
         model: { contains: model },
       },
-      select: this.selectRelated(),
+      select: this.selectRelated(avgPrice),
     });
   }
 
-  getThirdDegreeRelated(brand: string, model: string) {
+  getThirdDegreeRelated(brand: string, model: string, avgPrice: number | null) {
     return this.delegate.findMany({
       where: {
         brand: { contains: brand },
         model: { in: model.split(" ") },
       },
-      select: this.selectRelated(),
+      select: this.selectRelated(avgPrice),
     });
   }
 
@@ -154,7 +171,7 @@ export class OlxProductRepository {
     };
   }
 
-  private selectRelated() {
+  private selectRelated(avgPrice: number | null) {
     return {
       ...merge(
         {
@@ -163,12 +180,8 @@ export class OlxProductRepository {
             where: {
               ad: {
                 price: {
-                  gt:
-                    (this.prisma.olxProduct.fields
-                      .avgPrice as unknown as number) * 0.7,
-                  lt:
-                    (this.prisma.olxProduct.fields
-                      .avgPrice as unknown as number) * 1.3,
+                  gt: (avgPrice || 0) * 0.7,
+                  lt: (avgPrice || 0) * 1.3,
                 },
               },
             },
