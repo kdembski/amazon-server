@@ -180,8 +180,8 @@ export class OlxProductRepository {
             where: {
               ad: {
                 price: {
-                  gt: (avgPrice || 0) * 0.7,
-                  lt: (avgPrice || 0) * 1.3,
+                  gt: (avgPrice || 0) * 0.5,
+                  lt: (avgPrice || 0) * 1.5,
                 },
               },
             },
