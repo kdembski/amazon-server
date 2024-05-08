@@ -63,7 +63,7 @@ export class OlxProductRepository {
     return this.delegate.findMany({
       where: {
         brand: { contains: brand },
-        model: { contains: model },
+        model: { startsWith: model },
       },
       select: this.selectRelated(avgPrice),
     });
@@ -73,7 +73,8 @@ export class OlxProductRepository {
     return this.delegate.findMany({
       where: {
         brand: { contains: brand },
-        model: { in: model.split(" ") },
+        OR: (() =>
+          model.split(" ").map((word) => ({ model: { contains: word } })))(),
       },
       select: this.selectRelated(avgPrice),
     });
