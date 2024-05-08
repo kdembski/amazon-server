@@ -28,7 +28,11 @@ export class OlxProductRepository {
       model,
       avgPrice
     );
-    if (firstDegree.length) return firstDegree;
+    if (
+      firstDegree.length &&
+      firstDegree.some((el) => el._count.productAds > 1)
+    )
+      return firstDegree;
 
     const secondDegree = await this.getSecondDegreeRelated(
       brand,
@@ -178,14 +182,16 @@ export class OlxProductRepository {
         {
           _count: { select: { productAds: true } },
           productAds: {
-            where: {
-              ad: {
-                price: {
-                  gt: (avgPrice || 0) * 0.5,
-                  lt: (avgPrice || 0) * 1.5,
+            ...(avgPrice && {
+              where: {
+                ad: {
+                  price: {
+                    gt: (avgPrice || 0) * 0.5,
+                    lt: (avgPrice || 0) * 1.5,
+                  },
                 },
               },
-            },
+            }),
             orderBy: {
               ad: {
                 createdAt: "desc",
