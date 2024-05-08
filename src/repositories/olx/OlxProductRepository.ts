@@ -19,6 +19,12 @@ export class OlxProductRepository {
     });
   }
 
+  getByBrandAndModel(data: { model: string; brand: string }) {
+    return this.delegate.findUnique({
+      where: { brand_model: data },
+    });
+  }
+
   async getRelated(brand: string, model: string) {
     const product = await this.getByBrandAndModel({ brand, model });
     const avgPrice = product?.avgPrice || null;
@@ -39,7 +45,11 @@ export class OlxProductRepository {
       model,
       avgPrice
     );
-    if (secondDegree.length) return secondDegree;
+    if (
+      secondDegree.length &&
+      secondDegree.some((el) => el._count.productAds > 1)
+    )
+      return secondDegree;
 
     const thirdDegree = await this.getThirdDegreeRelated(
       brand,
@@ -81,12 +91,6 @@ export class OlxProductRepository {
           model.split(" ").map((word) => ({ model: { contains: word } })))(),
       },
       select: this.selectRelated(avgPrice),
-    });
-  }
-
-  getByBrandAndModel(data: { model: string; brand: string }) {
-    return this.delegate.findUnique({
-      where: { brand_model: data },
     });
   }
 
