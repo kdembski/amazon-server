@@ -90,6 +90,7 @@ export class OlxProductRepository {
         OR: (() =>
           model.split(" ").map((word) => ({ model: { contains: word } })))(),
       },
+      take: 10,
       select: this.selectRelated(avgPrice),
     });
   }
