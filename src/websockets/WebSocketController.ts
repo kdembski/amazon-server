@@ -39,11 +39,9 @@ export class WebSocketController {
   }
 
   sendToAll(data: string) {
-    console.log({ data });
     if (!this.webSocketServer) return this.throwUndefinedServer();
 
     this.webSocketServer.clients.forEach((client) => {
-      console.log("Client ready state: " + client.readyState);
       if (client.readyState !== WebSocket.OPEN) {
         return;
       }

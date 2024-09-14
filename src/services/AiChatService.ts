@@ -30,9 +30,8 @@ export class AiChatService {
       `From ${adName} extract the product brand and model. Return these information in the JSON format with keys 'brand' and 'model'. Return only JSON with single object. Exclude Polish words.`
     );
 
+    console.log(response);
     if (!(response && response.reply)) return;
-
-    console.log(response.reply);
 
     const info: { brand?: string; model?: string } = JSON.parse(
       response.reply

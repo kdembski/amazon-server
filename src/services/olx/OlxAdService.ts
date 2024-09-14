@@ -55,7 +55,7 @@ export class OlxAdService {
 
     const ad = await this.creatable.create(dto);
 
-    await this.requestQueueService.push(() => this.linkAdWithProduct(ad));
+    //await this.requestQueueService.push(() => this.linkAdWithProduct(ad));
 
     return ad;
   }
