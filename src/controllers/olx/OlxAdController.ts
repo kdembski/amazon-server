@@ -39,6 +39,7 @@ export class OlxAdController {
 
   async create(request: Request<{}, {}, OlxAdCreateDto>, response: Response) {
     const ad = await this.creatable.create(request, response);
+    console.log("Created ad id: " + ad?.id);
     if (ad) this.adWsController.sendAdToAll(ad.id);
   }
 }

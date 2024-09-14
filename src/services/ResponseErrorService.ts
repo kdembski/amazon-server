@@ -18,7 +18,7 @@ export class ResponseErrorService {
       case "P1001":
         return `Can't reach database server`;
       case undefined:
-        return error?.message;
+        return error?.message.split(/\r?\n/).pop();
       default:
         return error?.code + "::\n\n" + JSON.stringify(error?.meta, null, 2);
     }
