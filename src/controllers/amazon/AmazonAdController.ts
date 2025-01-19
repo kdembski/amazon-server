@@ -1,29 +1,25 @@
-import { Response } from "express";
+import { Response, Request } from "express";
 import { CreatableController } from "@/controllers/crud/CreatableController";
 import { DeletableController } from "@/controllers/crud/DeletableController";
 import { SelectableController } from "@/controllers/crud/SelectableController";
-import { UpdatableController } from "@/controllers/crud/UpdatableController";
-import { OlxProductService } from "@/services/olx/OlxProductService";
 import { ResponseErrorService } from "@/services/ResponseErrorService";
+import { AmazonAdService } from "@/services/amazon/AmazonAdService";
 
-export class OlxProductController {
+export class AmazonAdController {
   private service;
-  selectable;
   creatable;
-  updatable;
+  selectable;
   deletable;
 
   constructor(
-    service = new OlxProductService(),
+    service = new AmazonAdService(),
     selectable = new SelectableController(service.selectable),
     creatable = new CreatableController(service.creatable),
-    updatable = new UpdatableController(service.updatable),
     deletable = new DeletableController(service.deletable)
   ) {
     this.service = service;
     this.selectable = selectable;
     this.creatable = creatable;
-    this.updatable = updatable;
     this.deletable = deletable;
   }
 

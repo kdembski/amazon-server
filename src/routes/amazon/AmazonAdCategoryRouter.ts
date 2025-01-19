@@ -1,20 +1,20 @@
-import { OlxAdCategoryController } from "@/controllers/olx/OlxAdCategoryController";
+import { AmazonAdCategoryController } from "@/controllers/amazon/AmazonAdCategoryController";
 import { SubRouterI } from "@/interfaces/SubRouterI";
 import { CreatableRouter } from "@/routes/crud/CreatableRouter";
 import { DeletableRouter } from "@/routes/crud/DeletableRouter";
 import { UpdatableRouter } from "@/routes/crud/UpdatableRouter";
 import { Router } from "express";
 
-export class OlxAdCategoryRouter implements SubRouterI {
+export class AmazonAdCategoryRouter implements SubRouterI {
   private controller;
   private creatable;
   private deletable;
   private updatable;
   private _router;
-  readonly path = "/olx/ads/categories";
+  readonly path = "/amazon/ads/categories";
 
   constructor(
-    controller = new OlxAdCategoryController(),
+    controller = new AmazonAdCategoryController(),
     creatable = new CreatableRouter(controller),
     updatable = new UpdatableRouter(controller),
     deletable = new DeletableRouter(controller),

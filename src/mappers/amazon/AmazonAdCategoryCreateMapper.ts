@@ -1,15 +1,15 @@
-import { OlxAdCategoryCreateDto } from "@/dtos/olx/OlxAdCategoryDtos";
+import { AmazonAdCategoryCreateDto } from "@/dtos/amazon/AmazonAdCategoryDtos";
 import { ToCreateInputMapperI } from "@/interfaces/crud/CRUDMapper";
 import { Prisma } from "@prisma/client";
 
-export class OlxAdCategoryCreateMapper
+export class AmazonAdCategoryCreateMapper
   implements
     ToCreateInputMapperI<
-      OlxAdCategoryCreateDto,
-      Prisma.OlxAdCategoryCreateInput
+      AmazonAdCategoryCreateDto,
+      Prisma.AmazonAdCategoryCreateInput
     >
 {
-  toCreateInput(dto: OlxAdCategoryCreateDto) {
+  toCreateInput(dto: AmazonAdCategoryCreateDto) {
     return {
       name: dto.name,
       createdAt: new Date(Date.now()),

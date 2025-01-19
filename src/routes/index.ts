@@ -1,13 +1,13 @@
-import { OlxAdCategoryRouter } from "@/routes/olx/OlxAdCategoryRouter";
-import { OlxAdRouter } from "@/routes/olx/OlxAdRouter";
-import { OlxProductRouter } from "@/routes/olx/OlxProductRouter";
+import { AmazonAdCategoryRouter } from "@/routes/amazon/AmazonAdCategoryRouter";
+import { AmazonAdRouter } from "@/routes/amazon/AmazonAdRouter";
+import { AmazonProductRouter } from "@/routes/amazon/AmazonProductRouter";
 import { Router } from "express";
 
 export function useRouter() {
   const subRouters = [
-    new OlxAdCategoryRouter(),
-    new OlxAdRouter(),
-    new OlxProductRouter(),
+    new AmazonAdCategoryRouter(),
+    new AmazonAdRouter(),
+    new AmazonProductRouter(),
   ];
   const router = Router();
 

@@ -1,22 +1,22 @@
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { Prisma } from "@prisma/client";
 
-export class OlxAdCategoryRepository {
+export class AmazonAdCategoryRepository {
   private delegate;
 
   constructor(prisma = PrismaClient.getInstance()) {
-    this.delegate = prisma.olxAdCategory;
+    this.delegate = prisma.amazonAdCategory;
   }
 
   getAll() {
     return this.delegate.findMany();
   }
 
-  create(data: Prisma.OlxAdCategoryCreateInput) {
+  create(data: Prisma.AmazonAdCategoryCreateInput) {
     return this.delegate.create({ data });
   }
 
-  update(id: number, data: Prisma.OlxAdCategoryUpdateInput) {
+  update(id: number, data: Prisma.AmazonAdCategoryUpdateInput) {
     return this.delegate.update({ where: { id }, data });
   }
 

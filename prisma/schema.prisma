@@ -7,51 +7,31 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model OlxAdCategory {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique(map: "name_UNIQUE") @db.VarChar(63)
-  createdAt DateTime @db.Timestamp(2)
-  updatedAt DateTime @db.Timestamp(2)
-  ads       OlxAd[]
-}
-
-model OlxAd {
-  id         Int           @id @default(autoincrement())
-  olxId      String        @unique(map: "olx_id_UNIQUE") @db.VarChar(63)
-  olxUserId  String?       @db.VarChar(63)
-  name       String        @db.VarChar(255)
-  price      Int
-  url        String        @db.VarChar(255)
-  categoryId Int
-  createdAt  DateTime      @db.Timestamp(2)
-  updatedAt  DateTime      @db.Timestamp(2)
-  category   OlxAdCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "olx_ad_category_id_fk")
-  productAd  OlxProductAd?
-
-  @@index([categoryId], map: "olx_ad_category_id_fk_idx")
-}
-
-model OlxProductAd {
+model AmazonAdCategory {
   id        Int        @id @default(autoincrement())
-  productId Int
-  adId      Int        @unique(map: "ad_id_UNIQUE")
+  name      String     @unique(map: "name_UNIQUE") @db.VarChar(63)
   createdAt DateTime   @db.Timestamp(2)
   updatedAt DateTime   @db.Timestamp(2)
-  ad        OlxAd      @relation(fields: [adId], references: [id], onDelete: Cascade, map: "olx_product_ad_ad_id_fk")
-  product   OlxProduct @relation(fields: [productId], references: [id], onDelete: Cascade, map: "olx_product_ad_product_id_fk")
-
-  @@index([adId], map: "olx_product_ad_ad_id_fk_idx")
-  @@index([productId], map: "olx_product_ad_product_id_fk_idx")
+  ads       AmazonAd[]
 }
 
-model OlxProduct {
-  id         Int            @id @default(autoincrement())
-  brand      String         @db.VarChar(63)
-  model      String         @db.VarChar(63)
-  avgPrice   Int?
-  createdAt  DateTime       @db.Timestamp(2)
-  updatedAt  DateTime       @db.Timestamp(2)
-  productAds OlxProductAd[]
+model AmazonAd {
+  id         Int              @id @default(autoincrement())
+  asin       String           @unique(map: "asin_UNIQUE") @db.VarChar(63)
+  price      Int?
+  categoryId Int
+  createdAt  DateTime         @db.Timestamp(2)
+  updatedAt  DateTime         @db.Timestamp(2)
+  category   AmazonAdCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "amazon_ad_category_id_fk")
 
-  @@unique([brand, model], map: "unique_product_idx")
+  @@index([categoryId], map: "amazon_ad_category_id_fk_idx")
+}
+
+model ExchangeRate {
+  id        Int      @id @default(autoincrement())
+  source    String   @db.VarChar(63)
+  target    String   @db.VarChar(63)
+  rate      Decimal  @db.Decimal(9, 2)
+  createdAt DateTime @db.Timestamp(2)
+  updatedAt DateTime @db.Timestamp(2)
 }
