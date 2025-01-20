@@ -14,7 +14,6 @@ export class AmazonAdRepository {
       select: {
         id: true,
         asin: true,
-        price: true,
         categoryId: true,
         createdAt: true,
         updatedAt: true,

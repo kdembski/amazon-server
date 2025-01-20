@@ -4,6 +4,7 @@ export interface SelectableServiceI<SelectResult> {
 
 export interface CreatableServiceI<CreateDto, Model> {
   create: (data: CreateDto) => Promise<Model>;
+  createMany: (data: CreateDto[]) => Promise<Model>[];
 }
 
 export interface UpdatableServiceI<UpdateDto, Model> {

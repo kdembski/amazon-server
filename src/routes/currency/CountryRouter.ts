@@ -1,20 +1,20 @@
-import { AmazonAdCategoryController } from "@/controllers/amazon/AmazonAdCategoryController";
+import { CountryController } from "@/controllers/currency/CountryController";
 import { SubRouterI } from "@/interfaces/SubRouterI";
 import { CreatableRouter } from "@/routes/crud/CreatableRouter";
 import { DeletableRouter } from "@/routes/crud/DeletableRouter";
 import { UpdatableRouter } from "@/routes/crud/UpdatableRouter";
 import { Router } from "express";
 
-export class AmazonAdCategoryRouter implements SubRouterI {
+export class CountryRouter implements SubRouterI {
   private controller;
   private creatable;
   private deletable;
   private updatable;
   private _router;
-  readonly path = "/amazon/ads/categories";
+  readonly path = "/countries";
 
   constructor(
-    controller = new AmazonAdCategoryController(),
+    controller = new CountryController(),
     creatable = new CreatableRouter(controller.creatable),
     updatable = new UpdatableRouter(controller.updatable),
     deletable = new DeletableRouter(controller.deletable),

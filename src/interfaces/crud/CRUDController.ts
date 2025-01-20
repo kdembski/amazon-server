@@ -5,7 +5,10 @@ export interface SelectableControllerI {
 }
 
 export interface CreatableControllerI<CreateDto> {
-  create: (request: Request<{}, {}, CreateDto>, response: Response) => void;
+  create: (
+    request: Request<{}, {}, CreateDto | CreateDto[]>,
+    response: Response
+  ) => void;
 }
 
 export interface UpdatableControllerI<UpdateInput> {

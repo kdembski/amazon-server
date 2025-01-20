@@ -9,7 +9,6 @@ export class AmazonAdCreateMapper
   toCreateInput(dto: AmazonAdCreateDto) {
     return {
       asin: dto.asin,
-      price: dto.price,
       createdAt: new Date(Date.now()),
       updatedAt: new Date(Date.now()),
       category: {

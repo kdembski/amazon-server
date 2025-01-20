@@ -16,7 +16,7 @@ export class AmazonAdRouter implements SubRouterI {
   constructor(
     controller = new AmazonAdController(),
     selectable = new SelectableRouter(controller.selectable),
-    creatable = new CreatableRouter(controller),
+    creatable = new CreatableRouter(controller.creatable),
     deletable = new DeletableRouter(controller.deletable),
     router = Router()
   ) {

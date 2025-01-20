@@ -1,26 +1,24 @@
-import { AmazonAdCategoryController } from "@/controllers/amazon/AmazonAdCategoryController";
+import { CurrencyExchangeRateController } from "@/controllers/currency/CurrencyExchangeRateController";
 import { SubRouterI } from "@/interfaces/SubRouterI";
 import { CreatableRouter } from "@/routes/crud/CreatableRouter";
 import { DeletableRouter } from "@/routes/crud/DeletableRouter";
 import { UpdatableRouter } from "@/routes/crud/UpdatableRouter";
 import { Router } from "express";
 
-export class AmazonAdCategoryRouter implements SubRouterI {
-  private controller;
+export class CurrencyExchangeRateRouter implements SubRouterI {
   private creatable;
   private deletable;
   private updatable;
   private _router;
-  readonly path = "/amazon/ads/categories";
+  readonly path = "/currencies/rates";
 
   constructor(
-    controller = new AmazonAdCategoryController(),
+    controller = new CurrencyExchangeRateController(),
     creatable = new CreatableRouter(controller.creatable),
     updatable = new UpdatableRouter(controller.updatable),
     deletable = new DeletableRouter(controller.deletable),
     router = Router()
   ) {
-    this.controller = controller;
     this.creatable = creatable;
     this.updatable = updatable;
     this.deletable = deletable;
@@ -28,7 +26,6 @@ export class AmazonAdCategoryRouter implements SubRouterI {
   }
 
   build() {
-    this.router.get("/", (req, res) => this.controller.getAll(res));
     this.router.use(this.creatable.build().router);
     this.router.use(this.updatable.build().router);
     this.router.use(this.deletable.build().router);

@@ -20,4 +20,8 @@ export class CreatableService<CreateDto, CreateInput, Model>
     const input = this.mapper.toCreateInput(dto);
     return this.repository.create(input);
   }
+
+  createMany(dtos: CreateDto[]) {
+    return dtos.map((dto) => this.create(dto));
+  }
 }

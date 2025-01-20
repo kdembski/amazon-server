@@ -16,22 +16,61 @@ model AmazonAdCategory {
 }
 
 model AmazonAd {
-  id         Int              @id @default(autoincrement())
-  asin       String           @unique(map: "asin_UNIQUE") @db.VarChar(63)
-  price      Int?
-  categoryId Int
-  createdAt  DateTime         @db.Timestamp(2)
-  updatedAt  DateTime         @db.Timestamp(2)
-  category   AmazonAdCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "amazon_ad_category_id_fk")
+  id            Int              @id @default(autoincrement())
+  asin          String           @unique(map: "asin_UNIQUE") @db.VarChar(63)
+  categoryId    Int
+  createdAt     DateTime         @db.Timestamp(2)
+  updatedAt     DateTime         @db.Timestamp(2)
+  category      AmazonAdCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "amazon_ad_category_id_fk")
+  AmazonAdPrice AmazonAdPrice[]
 
   @@index([categoryId], map: "amazon_ad_category_id_fk_idx")
 }
 
-model ExchangeRate {
+model AmazonAdPrice {
+  id         Int      @id @default(autoincrement())
+  adId       Int
+  currencyId Int
+  value      Int
+  createdAt  DateTime @db.Timestamp(2)
+  updatedAt  DateTime @db.Timestamp(2)
+  ad         AmazonAd @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_ad_price_ad_id_fk")
+  currency   Currency @relation(fields: [currencyId], references: [id], onDelete: Cascade, map: "amazon_ad_price_currency_id_fk")
+
+  @@unique([adId, currencyId], map: "unique_amazon_ad_price_idx")
+}
+
+model Country {
+  id         Int      @id @default(autoincrement())
+  name       String   @db.VarChar(63)
+  code       String   @db.VarChar(63)
+  currencyId Int
+  createdAt  DateTime @db.Timestamp(2)
+  updatedAt  DateTime @db.Timestamp(2)
+  currency   Currency @relation(fields: [currencyId], references: [id], onDelete: Cascade, map: "country_currency_id_fk")
+}
+
+model Currency {
+  id                 Int                    @id @default(autoincrement())
+  name               String                 @db.VarChar(63)
+  code               String                 @db.VarChar(63)
+  createdAt          DateTime               @db.Timestamp(2)
+  updatedAt          DateTime               @db.Timestamp(2)
+  country            Country[]
+  exchangeRateSource CurrencyExchangeRate[] @relation("ExchangeRateSource")
+  exchangeRateTarget CurrencyExchangeRate[] @relation("ExchangeRateTarget")
+  AmazonAdPrice      AmazonAdPrice[]
+}
+
+model CurrencyExchangeRate {
   id        Int      @id @default(autoincrement())
-  source    String   @db.VarChar(63)
-  target    String   @db.VarChar(63)
+  sourceId  Int
+  targetId  Int
   rate      Decimal  @db.Decimal(9, 2)
   createdAt DateTime @db.Timestamp(2)
   updatedAt DateTime @db.Timestamp(2)
+  source    Currency @relation("ExchangeRateSource", fields: [sourceId], references: [id], onDelete: Cascade, map: "currency_exchange_rate_source_id_fk")
+  target    Currency @relation("ExchangeRateTarget", fields: [targetId], references: [id], onDelete: Cascade, map: "currency_exchange_rate_target_id_fk")
+
+  @@unique([sourceId, targetId], map: "unique_exchange_rate_idx")
 }
