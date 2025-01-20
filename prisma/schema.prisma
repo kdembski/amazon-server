@@ -54,6 +54,7 @@ model Currency {
   id                 Int                    @id @default(autoincrement())
   name               String                 @db.VarChar(63)
   code               String                 @db.VarChar(63)
+  symbol             String                 @db.VarChar(63)
   createdAt          DateTime               @db.Timestamp(2)
   updatedAt          DateTime               @db.Timestamp(2)
   country            Country[]

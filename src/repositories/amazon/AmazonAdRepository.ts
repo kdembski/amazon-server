@@ -29,6 +29,10 @@ export class AmazonAdRepository {
     return this.delegate.create({ data });
   }
 
+  update(id: number, data: Prisma.AmazonAdUpdateInput) {
+    return this.delegate.update({ where: { id }, data });
+  }
+
   delete(id: number) {
     return this.delegate.delete({ where: { id } });
   }

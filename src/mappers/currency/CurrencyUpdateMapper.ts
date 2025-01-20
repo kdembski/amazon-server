@@ -10,6 +10,7 @@ export class CurrencyUpdateMapper
     return {
       name: dto.name,
       code: dto.code,
+      symbol: dto.symbol,
       updatedAt: new Date(Date.now()),
     };
   }
