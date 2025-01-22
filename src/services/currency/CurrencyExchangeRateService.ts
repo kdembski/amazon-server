@@ -6,6 +6,7 @@ import { DeletableService } from "@/services/crud/DeletableService";
 import { UpdatableService } from "@/services/crud/UpdatableService";
 
 export class CurrencyExchangeRateService {
+  private repository;
   deletable;
   creatable;
   updatable;
@@ -22,8 +23,17 @@ export class CurrencyExchangeRateService {
       new CurrencyExchangeRateUpdateMapper()
     )
   ) {
+    this.repository = repository;
     this.deletable = deletable;
     this.creatable = creatable;
     this.updatable = updatable;
+  }
+
+  getBySourceAndTarget(data: { sourceId: number; targetId: number }) {
+    return this.repository.getBySourceAndTarget(data);
+  }
+
+  getByTarget(targetId: number) {
+    return this.repository.getByTarget(targetId);
   }
 }

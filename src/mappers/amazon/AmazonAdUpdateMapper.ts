@@ -8,11 +8,8 @@ export class AmazonAdUpdateMapper
 {
   toUpdateInput(dto: AmazonAdUpdateDto) {
     return {
-      category: {
-        connect: {
-          id: dto.categoryId,
-        },
-      },
+      name: dto.name,
+      image: dto.image,
       updatedAt: new Date(Date.now()),
     };
   }

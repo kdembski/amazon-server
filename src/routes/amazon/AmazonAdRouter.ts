@@ -29,6 +29,10 @@ export class AmazonAdRouter implements SubRouterI {
 
   build() {
     this.router.get("/", (req, res) => this.controller.getAll(res));
+    this.router.get("/scrap", (req, res) =>
+      this.controller.getForScraping(res)
+    );
+    this.router.put("/:id", (req, res) => this.controller.update(req, res));
     this.router.use(this.selectable.build().router);
     this.router.use(this.creatable.build().router);
     this.router.use(this.deletable.build().router);

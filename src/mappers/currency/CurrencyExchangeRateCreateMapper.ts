@@ -11,7 +11,7 @@ export class CurrencyExchangeRateCreateMapper
 {
   toCreateInput(dto: CurrencyExchangeRateCreateDto) {
     return {
-      rate: dto.rate,
+      value: dto.value,
       source: { connect: { id: dto.sourceId } },
       target: { connect: { id: dto.targetId } },
       createdAt: new Date(Date.now()),

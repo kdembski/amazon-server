@@ -1,11 +1,11 @@
 export interface CurrencyExchangeRateCreateDto {
-  rate: number;
+  value: number;
   sourceId: number;
   targetId: number;
 }
 
 export interface CurrencyExchangeRateUpdateDto {
-  rate: number;
+  value: number;
   sourceId: number;
   targetId: number;
 }

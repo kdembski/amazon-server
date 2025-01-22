@@ -18,9 +18,12 @@ model AmazonAdCategory {
 model AmazonAd {
   id            Int              @id @default(autoincrement())
   asin          String           @unique(map: "asin_UNIQUE") @db.VarChar(63)
+  name          String           @db.VarChar(255)
+  image         String           @db.VarChar(255)
   categoryId    Int
   createdAt     DateTime         @db.Timestamp(2)
   updatedAt     DateTime         @db.Timestamp(2)
+  scrapedAt     DateTime?        @db.Timestamp(2)
   category      AmazonAdCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "amazon_ad_category_id_fk")
   AmazonAdPrice AmazonAdPrice[]
 
@@ -31,7 +34,7 @@ model AmazonAdPrice {
   id         Int      @id @default(autoincrement())
   adId       Int
   currencyId Int
-  value      Int
+  value      Decimal  @db.Decimal(9, 2)
   createdAt  DateTime @db.Timestamp(2)
   updatedAt  DateTime @db.Timestamp(2)
   ad         AmazonAd @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_ad_price_ad_id_fk")
@@ -53,7 +56,7 @@ model Country {
 model Currency {
   id                 Int                    @id @default(autoincrement())
   name               String                 @db.VarChar(63)
-  code               String                 @db.VarChar(63)
+  code               String                 @unique(map: "currency_code_UNIQUE") @db.VarChar(63)
   symbol             String                 @db.VarChar(63)
   createdAt          DateTime               @db.Timestamp(2)
   updatedAt          DateTime               @db.Timestamp(2)
@@ -67,7 +70,7 @@ model CurrencyExchangeRate {
   id        Int      @id @default(autoincrement())
   sourceId  Int
   targetId  Int
-  rate      Decimal  @db.Decimal(9, 2)
+  value     Decimal  @db.Decimal(9, 2)
   createdAt DateTime @db.Timestamp(2)
   updatedAt DateTime @db.Timestamp(2)
   source    Currency @relation("ExchangeRateSource", fields: [sourceId], references: [id], onDelete: Cascade, map: "currency_exchange_rate_source_id_fk")

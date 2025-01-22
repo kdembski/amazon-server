@@ -13,10 +13,21 @@ export class AmazonAdRepository {
       where: { id },
       select: {
         id: true,
+        name: true,
+        image: true,
         asin: true,
         categoryId: true,
         createdAt: true,
         updatedAt: true,
+      },
+    });
+  }
+
+  getForScraping() {
+    return this.delegate.findMany({
+      take: 50,
+      orderBy: {
+        scrapedAt: { sort: "asc", nulls: "first" },
       },
     });
   }
