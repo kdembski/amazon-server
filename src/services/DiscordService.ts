@@ -51,6 +51,6 @@ export class DiscordService {
       ],
     };
 
-    this.send({ username: "some-username", embeds: [embed] });
+    this.send({ embeds: [embed] });
   }
 }

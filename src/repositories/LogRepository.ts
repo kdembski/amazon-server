@@ -8,8 +8,16 @@ export class LogRepository {
     this.delegate = prisma.log;
   }
 
-  getByEvent(event: string) {
-    return this.delegate.findMany({ where: { event } });
+  getByEvent(event: string, from?: Date, to?: Date) {
+    return this.delegate.findMany({
+      where: {
+        event,
+        createdAt: {
+          lte: to,
+          gte: from,
+        },
+      },
+    });
   }
 
   create(data: Prisma.LogCreateInput) {

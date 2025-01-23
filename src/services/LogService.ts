@@ -18,7 +18,7 @@ export class LogService {
     this.creatable = creatable;
   }
 
-  getByEvent(event: string) {
-    return this.repository.getByEvent(event);
+  getByEvent(event: string, from?: Date, to?: Date) {
+    return this.repository.getByEvent(event, from, to);
   }
 }

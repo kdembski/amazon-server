@@ -4,7 +4,7 @@
     "noImplicitAny": true,
     "outDir": "dist",
     "baseUrl": ".",
-    "module": "commonjs",
+    "module": "es2022",
     "moduleResolution": "node",
     "esModuleInterop": true,
     "target": "ES2022",
