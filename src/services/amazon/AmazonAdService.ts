@@ -9,13 +9,15 @@ import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
 import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
 import { DiscordService } from "@/services/DiscordService";
+import { LogService } from "@/services/LogService";
 
 export class AmazonAdService {
   private repository;
   private updateMapper;
   private priceService;
-  private currencyExchangeRateService;
   private discordService;
+  private logService;
+  private currencyExchangeRateService;
   selectable;
   deletable;
   creatable;
@@ -24,8 +26,9 @@ export class AmazonAdService {
     repository = new AmazonAdRepository(),
     updateMapper = new AmazonAdUpdateMapper(),
     priceService = new AmazonAdPriceService(),
-    currencyExchangeRateService = new CurrencyExchangeRateService(),
     discordService = new DiscordService(),
+    logService = new LogService(),
+    currencyExchangeRateService = new CurrencyExchangeRateService(),
     selectable = new SelectableService(repository),
     deletable = new DeletableService(repository),
     creatable = new CreatableService(repository, new AmazonAdCreateMapper())
@@ -33,8 +36,9 @@ export class AmazonAdService {
     this.repository = repository;
     this.updateMapper = updateMapper;
     this.priceService = priceService;
-    this.currencyExchangeRateService = currencyExchangeRateService;
     this.discordService = discordService;
+    this.logService = logService;
+    this.currencyExchangeRateService = currencyExchangeRateService;
     this.selectable = selectable;
     this.deletable = deletable;
     this.creatable = creatable;
@@ -52,6 +56,7 @@ export class AmazonAdService {
       this.priceService.updateOrCreate(price)
     );
     await Promise.all(promises);
+    await this.logService.creatable.create({ event: "ad_scraped" });
 
     this.sendDiscordMessage(id, [...prices]);
 
@@ -87,6 +92,10 @@ export class AmazonAdService {
     const shouldSend = prices[0].value <= prices[1].value * 0.6;
 
     if (shouldSend) {
+      await this.logService.creatable.create({
+        event: "ad_sent",
+        data: JSON.stringify(prices),
+      });
       this.discordService.sendAd(ad, prices);
     }
   }

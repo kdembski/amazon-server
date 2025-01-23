@@ -21,7 +21,14 @@ export class CreatableService<CreateDto, CreateInput, Model>
     return this.repository.create(input);
   }
 
-  createMany(dtos: CreateDto[]) {
-    return dtos.map((dto) => this.create(dto));
+  async createMany(dtos: CreateDto[]) {
+    const models: Model[] = [];
+
+    for (const dto of dtos) {
+      const model = await this.create(dto);
+      models.push(model);
+    }
+
+    return models;
   }
 }

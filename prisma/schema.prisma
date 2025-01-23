@@ -78,3 +78,10 @@ model CurrencyExchangeRate {
 
   @@unique([sourceId, targetId], map: "unique_exchange_rate_idx")
 }
+
+model Log {
+  id        Int      @id @default(autoincrement())
+  event     String   @db.VarChar(63)
+  data      String?  @db.VarChar(1023)
+  createdAt DateTime @db.Timestamp(2)
+}

@@ -21,8 +21,7 @@ export class CreatableController<CreateDto, Model>
       const data = request.body;
 
       if (isArray(data)) {
-        const results = this.service.createMany(data);
-        await Promise.all(results);
+        const results = await this.service.createMany(data);
         response.json(results);
         return;
       }
