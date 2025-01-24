@@ -77,6 +77,7 @@ export class AmazonAdService {
 
   async sendDiscordMessage(adId: number, prices: AmazonAdPriceCreateDto[]) {
     const plnId = 3;
+    const germanyCode = "de";
     const rates = await this.currencyExchangeRateService.getByTarget(plnId);
     const ad = await this.selectable.getById(adId);
 
@@ -90,7 +91,9 @@ export class AmazonAdService {
     prices = prices.filter((price) => !!price.value);
     prices.sort((a, b) => a.value - b.value);
 
-    const shouldSend = prices[0]?.value <= prices[1]?.value * 0.6;
+    const shouldSend =
+      prices[0]?.country.code !== germanyCode &&
+      prices[0]?.value <= prices[1]?.value * 0.6;
 
     if (shouldSend) {
       await this.logService.creatable.create({
