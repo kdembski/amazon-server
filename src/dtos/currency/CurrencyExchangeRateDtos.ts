@@ -6,6 +6,4 @@ export interface CurrencyExchangeRateCreateDto {
 
 export interface CurrencyExchangeRateUpdateDto {
   value: number;
-  sourceId: number;
-  targetId: number;
 }

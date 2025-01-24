@@ -1,10 +1,8 @@
 import {
-  EmbedBuilder,
   MessagePayload,
   WebhookClient,
   WebhookMessageCreateOptions,
 } from "discord.js";
-import { Prisma } from "@prisma/client";
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 
 export class DiscordService {

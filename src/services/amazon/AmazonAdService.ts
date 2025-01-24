@@ -10,6 +10,7 @@ import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchang
 import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
 import { DiscordService } from "@/services/DiscordService";
 import { LogService } from "@/services/LogService";
+import { roundToTwoDecimals } from "@/helpers/number";
 
 export class AmazonAdService {
   private repository;
@@ -83,7 +84,7 @@ export class AmazonAdService {
       const rate = rates.find((rate) => rate.sourceId === price.currencyId);
       if (!rate) return;
 
-      price.value = Math.round(price.value * rate.value.toNumber() * 100) / 100;
+      price.value = roundToTwoDecimals(price.value * rate.value.toNumber());
     });
 
     prices = prices.filter((price) => !!price.value);

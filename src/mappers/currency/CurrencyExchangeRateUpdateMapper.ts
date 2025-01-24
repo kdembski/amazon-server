@@ -12,8 +12,6 @@ export class CurrencyExchangeRateUpdateMapper
   toUpdateInput(dto: CurrencyExchangeRateUpdateDto) {
     return {
       value: dto.value,
-      source: { connect: { id: dto.sourceId } },
-      target: { connect: { id: dto.targetId } },
       updatedAt: new Date(Date.now()),
     };
   }

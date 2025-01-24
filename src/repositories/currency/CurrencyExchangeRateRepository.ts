@@ -24,6 +24,13 @@ export class CurrencyExchangeRateRepository {
     return this.delegate.update({ where: { id }, data });
   }
 
+  updateBySourceAndTarget(
+    ids: { sourceId: number; targetId: number },
+    data: Prisma.CurrencyExchangeRateUpdateInput
+  ) {
+    return this.delegate.update({ where: { sourceId_targetId: ids }, data });
+  }
+
   delete(id: number) {
     return this.delegate.delete({ where: { id } });
   }

@@ -1,3 +1,4 @@
+import { CurrencyExchangeRateUpdateDto } from "@/dtos/currency/CurrencyExchangeRateDtos";
 import { CurrencyExchangeRateCreateMapper } from "@/mappers/currency/CurrencyExchangeRateCreateMapper";
 import { CurrencyExchangeRateUpdateMapper } from "@/mappers/currency/CurrencyExchangeRateUpdateMapper";
 import { CurrencyExchangeRateRepository } from "@/repositories/currency/CurrencyExchangeRateRepository";
@@ -10,6 +11,7 @@ export class CurrencyExchangeRateService {
   deletable;
   creatable;
   updatable;
+  updateMapper;
 
   constructor(
     repository = new CurrencyExchangeRateRepository(),
@@ -18,15 +20,14 @@ export class CurrencyExchangeRateService {
       repository,
       new CurrencyExchangeRateCreateMapper()
     ),
-    updatable = new UpdatableService(
-      repository,
-      new CurrencyExchangeRateUpdateMapper()
-    )
+    updateMapper = new CurrencyExchangeRateUpdateMapper(),
+    updatable = new UpdatableService(repository, updateMapper)
   ) {
     this.repository = repository;
     this.deletable = deletable;
     this.creatable = creatable;
     this.updatable = updatable;
+    this.updateMapper = updateMapper;
   }
 
   getBySourceAndTarget(data: { sourceId: number; targetId: number }) {
@@ -35,5 +36,13 @@ export class CurrencyExchangeRateService {
 
   getByTarget(targetId: number) {
     return this.repository.getByTarget(targetId);
+  }
+
+  updateBySourceAndTarget(
+    ids: { sourceId: number; targetId: number },
+    dto: CurrencyExchangeRateUpdateDto
+  ) {
+    const input = this.updateMapper.toUpdateInput(dto);
+    return this.repository.updateBySourceAndTarget(ids, input);
   }
 }

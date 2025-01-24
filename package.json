@@ -9,6 +9,7 @@
   },
   "license": "ISC",
   "dependencies": {
+    "@everapi/freecurrencyapi-js": "^1.0.1",
     "@prisma/client": "^6.2.1",
     "cors": "^2.8.5",
     "discord.js": "^14.17.3",
