@@ -90,7 +90,7 @@ export class AmazonAdService {
     prices = prices.filter((price) => !!price.value);
     prices.sort((a, b) => a.value - b.value);
 
-    const shouldSend = prices[0].value <= prices[1].value * 0.6;
+    const shouldSend = prices[0]?.value <= prices[1]?.value * 0.6;
 
     if (shouldSend) {
       await this.logService.creatable.create({
