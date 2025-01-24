@@ -16,7 +16,7 @@ app.listen(process.env.PORT || 5001, () =>
 );
 
 process.on("uncaughtException", (err) => {
-  console.log(`Uncaught Exception: ${err}`);
+  console.error(err);
 });
 
 new CurrencyExchangeRateCronService().schedule();
