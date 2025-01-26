@@ -17,7 +17,7 @@ export class CurrencyExchangeRateCronService {
     currencyExchangeRateService = new CurrencyExchangeRateService(),
     currencyService = new CurrencyService(),
     discordService = new DiscordService(),
-    currencyApi = new CurencyApi()
+    currencyApi = new CurencyApi(process.env.CURRENCY_API_KEY)
   ) {
     this.currencyExchangeRateService = currencyExchangeRateService;
     this.currencyService = currencyService;
@@ -66,9 +66,9 @@ export class CurrencyExchangeRateCronService {
           },
           { value }
         );
-
-        this.sendSuccessMessageToDiscord(rates, targetCurrency, sources);
       });
+
+      this.sendSuccessMessageToDiscord(rates, targetCurrency, sources);
     });
   }
 
