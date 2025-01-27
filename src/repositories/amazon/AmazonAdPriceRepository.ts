@@ -9,7 +9,9 @@ export class AmazonAdPriceRepository {
   }
 
   getByAdAndCurrency(data: { adId: number; currencyId: number }) {
-    return this.delegate.findUnique({ where: { adId_currencyId: data } });
+    return this.delegate.findMany({
+      where: { adId: data.adId, currencyId: data.currencyId },
+    });
   }
 
   create(data: Prisma.AmazonAdPriceCreateInput) {

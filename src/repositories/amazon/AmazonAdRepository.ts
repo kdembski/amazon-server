@@ -9,18 +9,7 @@ export class AmazonAdRepository {
   }
 
   getById(id: number) {
-    return this.delegate.findUniqueOrThrow({
-      where: { id },
-      select: {
-        id: true,
-        name: true,
-        image: true,
-        asin: true,
-        categoryId: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    return this.delegate.findUniqueOrThrow({ where: { id } });
   }
 
   getForScraping() {

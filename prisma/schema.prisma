@@ -39,8 +39,6 @@ model AmazonAdPrice {
   updatedAt  DateTime @db.Timestamp(2)
   ad         AmazonAd @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_ad_price_ad_id_fk")
   currency   Currency @relation(fields: [currencyId], references: [id], onDelete: Cascade, map: "amazon_ad_price_currency_id_fk")
-
-  @@unique([adId, currencyId], map: "unique_amazon_ad_price_idx")
 }
 
 model Country {

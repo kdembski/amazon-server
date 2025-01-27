@@ -54,7 +54,7 @@ export class AmazonAdService {
     const prices = dto.prices;
 
     const promises = prices.map((price) =>
-      this.priceService.updateOrCreate(price)
+      this.priceService.creatable.create(price)
     );
     await Promise.all(promises);
     await this.logService.creatable.create({ event: "ad_scraped" });

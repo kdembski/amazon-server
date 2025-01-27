@@ -33,15 +33,4 @@ export class AmazonAdPriceService {
   getByAdAndCurrency(data: { adId: number; currencyId: number }) {
     return this.repository.getByAdAndCurrency(data);
   }
-
-  async updateOrCreate(dto: AmazonAdPriceCreateDto) {
-    const { adId, currencyId } = dto;
-    const price = await this.getByAdAndCurrency({ adId, currencyId });
-
-    if (price) {
-      return this.updatable.update(price.id, dto);
-    }
-
-    return this.creatable.create(dto);
-  }
 }
