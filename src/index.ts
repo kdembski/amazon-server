@@ -14,7 +14,7 @@ app.use(router);
 const server = app.listen(process.env.PORT || 5001, () =>
   console.log("Amazon Server is running...")
 );
-server.setTimeout(20000);
+server.requestTimeout = 20 * 1000;
 
 process.on("uncaughtException", (err) => {
   console.error(err);
