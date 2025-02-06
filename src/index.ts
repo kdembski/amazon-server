@@ -11,9 +11,10 @@ app.use(cors());
 const { router } = useRouter();
 app.use(router);
 
-app.listen(process.env.PORT || 5001, () =>
+const server = app.listen(process.env.PORT || 5001, () =>
   console.log("Amazon Server is running...")
 );
+server.setTimeout(20000);
 
 process.on("uncaughtException", (err) => {
   console.error(err);

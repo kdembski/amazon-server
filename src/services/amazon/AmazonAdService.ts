@@ -56,7 +56,7 @@ export class AmazonAdService {
     const promises = prices.map((price) =>
       this.priceService.creatable.create(price)
     );
-    await Promise.all(promises);
+    await Promise.allSettled(promises);
     await this.logService.creatable.create({ event: "ad_scraped" });
 
     this.sendDiscordMessage(id, [...prices]);
