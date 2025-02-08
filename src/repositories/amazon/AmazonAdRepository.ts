@@ -12,9 +12,9 @@ export class AmazonAdRepository {
     return this.delegate.findUniqueOrThrow({ where: { id } });
   }
 
-  getForScraping() {
+  getForScraping(count: number) {
     return this.delegate.findMany({
-      take: 50,
+      take: count,
       orderBy: {
         scrapedAt: { sort: "asc", nulls: "first" },
       },

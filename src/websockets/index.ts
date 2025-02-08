@@ -2,7 +2,5 @@ import { AmazonAdWebSocketController } from "@/websockets/amazon/AmazonAdWebScok
 import { Server } from "http";
 
 export function useWebSockets(server: Server) {
-  const amazonAdWebSocketController = AmazonAdWebSocketController.getInstance();
-  amazonAdWebSocketController.init(server);
-  amazonAdWebSocketController.initScrap(server);
+  AmazonAdWebSocketController.getInstance().init(server);
 }

@@ -64,8 +64,8 @@ export class AmazonAdService {
     return this.repository.update(id, input);
   }
 
-  async getForScraping() {
-    const ads = await this.repository.getForScraping();
+  async getForScraping(count: number) {
+    const ads = await this.repository.getForScraping(count);
 
     const promises = ads.map((ad) =>
       this.repository.update(ad.id, { scrapedAt: new Date(Date.now()) })

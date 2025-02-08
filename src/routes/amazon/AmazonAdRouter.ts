@@ -1,9 +1,9 @@
+import { Router, Request } from "express";
 import { AmazonAdController } from "@/controllers/amazon/AmazonAdController";
 import { SubRouterI } from "@/interfaces/SubRouterI";
 import { CreatableRouter } from "@/routes/crud/CreatableRouter";
 import { DeletableRouter } from "@/routes/crud/DeletableRouter";
 import { SelectableRouter } from "@/routes/crud/SelectableRouter";
-import { Router } from "express";
 
 export class AmazonAdRouter implements SubRouterI {
   private controller;
@@ -29,8 +29,10 @@ export class AmazonAdRouter implements SubRouterI {
 
   build() {
     this.router.get("/", (req, res) => this.controller.getAll(res));
-    this.router.get("/scrap", (req, res) =>
-      this.controller.getForScraping(res)
+    this.router.get(
+      "/scrap",
+      (req: Request<{}, {}, {}, { count: string }>, res) =>
+        this.controller.getForScraping(req, res)
     );
     this.router.put("/:id", (req, res) => this.controller.update(req, res));
     this.router.use(this.selectable.build().router);

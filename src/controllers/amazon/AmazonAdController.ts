@@ -33,9 +33,13 @@ export class AmazonAdController {
     }
   }
 
-  async getForScraping(response: Response) {
+  async getForScraping(
+    request: Request<{}, {}, {}, { count: string }>,
+    response: Response
+  ) {
     try {
-      const results = await this.service.getForScraping();
+      const count = parseInt(request.query.count) || 50;
+      const results = await this.service.getForScraping(count);
       response.json(results);
     } catch (error: any) {
       new ResponseErrorService(response).send(error);
