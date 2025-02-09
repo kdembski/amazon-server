@@ -104,9 +104,9 @@ export class AmazonAdService {
     const polandCode = "pl";
 
     if (prices[0]?.country.code === polandCode) {
-      return prices[0]?.value <= prices[1]?.value * 0.4;
+      return prices[0]?.value <= prices[1]?.value * 0.6;
     }
 
-    return prices[0]?.value <= prices[1]?.value * 0.6;
+    return prices[0]?.value <= prices[1]?.value * 0.7;
   }
 }
