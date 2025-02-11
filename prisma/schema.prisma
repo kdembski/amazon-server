@@ -31,24 +31,25 @@ model AmazonAd {
 }
 
 model AmazonAdPrice {
-  id         Int      @id @default(autoincrement())
-  adId       Int
-  currencyId Int
-  value      Decimal  @db.Decimal(9, 2)
-  createdAt  DateTime @db.Timestamp(2)
-  updatedAt  DateTime @db.Timestamp(2)
-  ad         AmazonAd @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_ad_price_ad_id_fk")
-  currency   Currency @relation(fields: [currencyId], references: [id], onDelete: Cascade, map: "amazon_ad_price_currency_id_fk")
+  id        Int      @id @default(autoincrement())
+  adId      Int
+  countryId Int
+  value     Decimal  @db.Decimal(9, 2)
+  createdAt DateTime @db.Timestamp(2)
+  updatedAt DateTime @db.Timestamp(2)
+  ad        AmazonAd @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_ad_price_ad_id_fk")
+  country   Country  @relation(fields: [countryId], references: [id], onDelete: Cascade, map: "amazon_ad_price_country_id_fk")
 }
 
 model Country {
-  id         Int      @id @default(autoincrement())
-  name       String   @db.VarChar(63)
-  code       String   @db.VarChar(63)
-  currencyId Int
-  createdAt  DateTime @db.Timestamp(2)
-  updatedAt  DateTime @db.Timestamp(2)
-  currency   Currency @relation(fields: [currencyId], references: [id], onDelete: Cascade, map: "country_currency_id_fk")
+  id            Int             @id @default(autoincrement())
+  name          String          @db.VarChar(63)
+  code          String          @db.VarChar(63)
+  currencyId    Int
+  createdAt     DateTime        @db.Timestamp(2)
+  updatedAt     DateTime        @db.Timestamp(2)
+  currency      Currency        @relation(fields: [currencyId], references: [id], onDelete: Cascade, map: "country_currency_id_fk")
+  AmazonAdPrice AmazonAdPrice[]
 }
 
 model Currency {
@@ -61,7 +62,6 @@ model Currency {
   country            Country[]
   exchangeRateSource CurrencyExchangeRate[] @relation("ExchangeRateSource")
   exchangeRateTarget CurrencyExchangeRate[] @relation("ExchangeRateTarget")
-  AmazonAdPrice      AmazonAdPrice[]
 }
 
 model CurrencyExchangeRate {

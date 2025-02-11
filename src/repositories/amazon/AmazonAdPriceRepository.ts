@@ -14,27 +14,27 @@ export class AmazonAdPriceRepository {
       select: {
         id: true,
         adId: true,
-        currencyId: true,
+        countryId: true,
         value: true,
         createdAt: true,
         updatedAt: true,
-        currency: true,
+        country: true,
       },
     });
   }
 
-  getByAdAndCurrency(data: { adId: number; currencyId: number }) {
+  getByAdAndCountry(data: { adId: number; countryId: number }) {
     return this.delegate.findMany({
-      where: { adId: data.adId, currencyId: data.currencyId },
+      where: { adId: data.adId, countryId: data.countryId },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
         adId: true,
-        currencyId: true,
+        countryId: true,
         value: true,
         createdAt: true,
         updatedAt: true,
-        currency: true,
+        country: true,
       },
     });
   }

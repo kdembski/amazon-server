@@ -31,7 +31,9 @@ export class AmazonAdConversionErrorManager {
     const rates = await this.currencyExchangeRateService.getByTarget(pln.id);
 
     prices.forEach((price) => {
-      const rate = rates.find((rate) => rate.sourceId === price.currencyId);
+      const rate = rates.find(
+        (rate) => rate.sourceId === price.country.currencyId
+      );
       if (!rate) return;
 
       price.value = roundToTwoDecimals(price.value * rate.value.toNumber());

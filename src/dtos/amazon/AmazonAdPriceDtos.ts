@@ -3,14 +3,14 @@ import { AmazonAdPriceRepository } from "@/repositories/amazon/AmazonAdPriceRepo
 
 export interface AmazonAdPriceCreateDto {
   value: number;
-  currencyId: number;
   adId: number;
+  countryId: number;
   country: CountrySelectDto;
 }
 
 export interface AmazonAdPriceUpdateDto {
   value: number;
-  currencyId: number;
+  countryId: number;
   adId: number;
 }
 

@@ -24,9 +24,9 @@ export class AmazonAdPricingErrorManager {
 
   async verify(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
     const promises = prices.map((price) =>
-      this.adPriceService.getByAdAndCurrency({
+      this.adPriceService.getByAdAndCountry({
         adId: ad.id,
-        currencyId: price.currencyId,
+        countryId: price.countryId,
       })
     );
 

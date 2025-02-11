@@ -30,7 +30,7 @@ export class AmazonAdPriceService {
     this.updatable = updatable;
   }
 
-  getByAdAndCurrency(data: { adId: number; currencyId: number }) {
-    return this.repository.getByAdAndCurrency(data);
+  getByAdAndCountry(data: { adId: number; countryId: number }) {
+    return this.repository.getByAdAndCountry(data);
   }
 }

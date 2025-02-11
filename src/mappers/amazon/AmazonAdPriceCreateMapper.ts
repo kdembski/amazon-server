@@ -12,8 +12,8 @@ export class AmazonAdPriceCreateMapper
   toCreateInput(dto: AmazonAdPriceCreateDto) {
     return {
       value: dto.value,
-      currency: {
-        connect: { id: dto.currencyId },
+      country: {
+        connect: { id: dto.countryId },
       },
       ad: {
         connect: { id: dto.adId },
