@@ -5,20 +5,18 @@ import { AmazonAdRepository } from "@/repositories/amazon/AmazonAdRepository";
 import { CreatableService } from "@/services/crud/CreatableService";
 import { DeletableService } from "@/services/crud/DeletableService";
 import { SelectableService } from "@/services/crud/SelectableService";
-import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
-import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
 import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
-import { DiscordService } from "@/services/DiscordService";
 import { LogService } from "@/services/LogService";
-import { roundToTwoDecimals } from "@/helpers/number";
+import { AmazonAdConversionErrorManager } from "@/managers/amazon/AmazonAdConversionErrorManager";
+import { AmazonAdPricingErrorManager } from "@/managers/amazon/AmazonAdPricingErrorManager";
 
 export class AmazonAdService {
   private repository;
   private updateMapper;
   private priceService;
-  private discordService;
   private logService;
-  private currencyExchangeRateService;
+  private amazonAdConversionErrorManager;
+  private amazonAdPricingErrorManager;
   selectable;
   deletable;
   creatable;
@@ -27,9 +25,9 @@ export class AmazonAdService {
     repository = new AmazonAdRepository(),
     updateMapper = new AmazonAdUpdateMapper(),
     priceService = new AmazonAdPriceService(),
-    discordService = new DiscordService(),
     logService = new LogService(),
-    currencyExchangeRateService = new CurrencyExchangeRateService(),
+    amazonAdConversionErrorManager = new AmazonAdConversionErrorManager(),
+    amazonAdPricingErrorManager = new AmazonAdPricingErrorManager(),
     selectable = new SelectableService(repository),
     deletable = new DeletableService(repository),
     creatable = new CreatableService(repository, new AmazonAdCreateMapper())
@@ -37,9 +35,9 @@ export class AmazonAdService {
     this.repository = repository;
     this.updateMapper = updateMapper;
     this.priceService = priceService;
-    this.discordService = discordService;
     this.logService = logService;
-    this.currencyExchangeRateService = currencyExchangeRateService;
+    this.amazonAdConversionErrorManager = amazonAdConversionErrorManager;
+    this.amazonAdPricingErrorManager = amazonAdPricingErrorManager;
     this.selectable = selectable;
     this.deletable = deletable;
     this.creatable = creatable;
@@ -59,7 +57,9 @@ export class AmazonAdService {
     await Promise.allSettled(promises);
     await this.logService.creatable.create({ event: "ad_scraped" });
 
-    this.sendDiscordMessage(id, [...prices]);
+    const ad = await this.selectable.getById(id);
+    this.amazonAdConversionErrorManager.verify(ad, [...prices]);
+    this.amazonAdPricingErrorManager.verify(ad, [...prices]);
 
     return this.repository.update(id, input);
   }
@@ -73,40 +73,5 @@ export class AmazonAdService {
 
     await Promise.all(promises);
     return ads;
-  }
-
-  async sendDiscordMessage(adId: number, prices: AmazonAdPriceCreateDto[]) {
-    const plnId = 3;
-
-    const rates = await this.currencyExchangeRateService.getByTarget(plnId);
-    const ad = await this.selectable.getById(adId);
-
-    prices.forEach((price) => {
-      const rate = rates.find((rate) => rate.sourceId === price.currencyId);
-      if (!rate) return;
-
-      price.value = roundToTwoDecimals(price.value * rate.value.toNumber());
-    });
-
-    prices = prices.filter((price) => !!price.value);
-    prices.sort((a, b) => a.value - b.value);
-
-    if (this.shouldSend(prices)) {
-      await this.logService.creatable.create({
-        event: "ad_sent",
-        data: JSON.stringify(prices),
-      });
-      this.discordService.sendAd(ad, prices);
-    }
-  }
-
-  private shouldSend(prices: AmazonAdPriceCreateDto[]) {
-    const polandCode = "pl";
-
-    if (prices[0]?.country.code === polandCode) {
-      return prices[0]?.value <= prices[1]?.value * 0.3;
-    }
-
-    return prices[0]?.value <= prices[1]?.value * 0.5;
   }
 }

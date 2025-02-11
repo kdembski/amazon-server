@@ -8,6 +8,10 @@ export class CountryRepository {
     this.delegate = prisma.country;
   }
 
+  getById(id: number) {
+    return this.delegate.findUnique({ where: { id } });
+  }
+
   getAll() {
     return this.delegate.findMany();
   }

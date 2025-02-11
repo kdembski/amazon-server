@@ -1,13 +1,11 @@
-import { Prisma } from "@prisma/client";
+import { CountrySelectDto } from "@/dtos/currency/CountryDtos";
+import { AmazonAdPriceRepository } from "@/repositories/amazon/AmazonAdPriceRepository";
 
 export interface AmazonAdPriceCreateDto {
   value: number;
   currencyId: number;
   adId: number;
-  country: {
-    name: string;
-    code: string;
-  };
+  country: CountrySelectDto;
 }
 
 export interface AmazonAdPriceUpdateDto {
@@ -15,3 +13,7 @@ export interface AmazonAdPriceUpdateDto {
   currencyId: number;
   adId: number;
 }
+
+export type AmazonAdPriceSelectDto = NonNullable<
+  Awaited<ReturnType<AmazonAdPriceRepository["getById"]>>
+>;

@@ -1,3 +1,4 @@
+import { AmazonAdRepository } from "@/repositories/amazon/AmazonAdRepository";
 import { AmazonAdPriceCreateDto } from "./AmazonAdPriceDtos";
 
 export interface AmazonAdCreateDto {
@@ -12,3 +13,7 @@ export interface AmazonAdUpdateDto {
   image: string;
   prices: AmazonAdPriceCreateDto[];
 }
+
+export type AmazonAdSelectDto = NonNullable<
+  Awaited<ReturnType<AmazonAdRepository["getById"]>>
+>;

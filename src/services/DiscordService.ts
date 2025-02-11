@@ -3,7 +3,13 @@ import {
   WebhookClient,
   WebhookMessageCreateOptions,
 } from "discord.js";
-import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
+import { format } from "date-fns";
+import {
+  AmazonAdPriceCreateDto,
+  AmazonAdPriceSelectDto,
+} from "@/dtos/amazon/AmazonAdPriceDtos";
+import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
+import { CountrySelectDto } from "@/dtos/currency/CountryDtos";
 
 export class DiscordService {
   private client: WebhookClient;
@@ -24,29 +30,68 @@ export class DiscordService {
     }
   }
 
-  sendAd(
-    ad: {
-      id: number;
-      name: string;
-      asin: string;
-      image: string;
-    },
-    prices: AmazonAdPriceCreateDto[]
-  ) {
+  sendConversionError(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
     const embed = {
       title: ad.name,
       description: ad.asin,
       image: {
         url: ad.image,
+        height: 200,
       },
       fields: [
         ...prices.map((price) => {
           return {
             name: price.country.name,
-            value: `[${price.value} PLN](https://www.amazon.${price.country.code}/dp/${ad.asin})`,
+            value: `[${price.value.toFixed(2)} PLN](https://www.amazon.${
+              price.country.code
+            }/dp/${ad.asin})`,
           };
         }),
       ],
+    };
+
+    this.send({ embeds: [embed] });
+  }
+
+  sendPricingError(
+    ad: AmazonAdSelectDto,
+    prices: AmazonAdPriceSelectDto[],
+    country: CountrySelectDto
+  ) {
+    const fields = prices
+      .slice(0, 5)
+      .map((price, i) => {
+        const link = `https://www.amazon.${country.code}/dp/${ad.asin}`;
+        const name = format(price.createdAt, "d MMM HH:mm");
+        const previousValue = prices[i + 1]?.value.toNumber();
+        const value = price.value.toNumber();
+        const difference = Math.round(
+          ((value - previousValue) * 100) / previousValue
+        );
+
+        const text = difference
+          ? `${value.toFixed(2)} ${price.currency.code} *(${difference}%)*`
+          : `${value.toFixed(2)} ${price.currency.code}`;
+
+        if (i === 0) {
+          return {
+            name: "Teraz",
+            value: `[${text}](${link})`,
+          };
+        }
+
+        return { name, value: text };
+      })
+      .reverse();
+
+    const embed = {
+      title: ad.name,
+      description: country.name,
+      image: {
+        url: ad.image,
+        height: 200,
+      },
+      fields,
     };
 
     this.send({ embeds: [embed] });

@@ -8,9 +8,34 @@ export class AmazonAdPriceRepository {
     this.delegate = prisma.amazonAdPrice;
   }
 
+  getById(id: number) {
+    return this.delegate.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        adId: true,
+        currencyId: true,
+        value: true,
+        createdAt: true,
+        updatedAt: true,
+        currency: true,
+      },
+    });
+  }
+
   getByAdAndCurrency(data: { adId: number; currencyId: number }) {
     return this.delegate.findMany({
       where: { adId: data.adId, currencyId: data.currencyId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        adId: true,
+        currencyId: true,
+        value: true,
+        createdAt: true,
+        updatedAt: true,
+        currency: true,
+      },
     });
   }
 

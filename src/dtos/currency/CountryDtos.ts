@@ -1,3 +1,5 @@
+import { CountryRepository } from "@/repositories/currency/CountryRepository";
+
 export interface CountryCreateDto {
   name: string;
   code: string;
@@ -9,3 +11,7 @@ export interface CountryUpdateDto {
   code: string;
   currencyId: number;
 }
+
+export type CountrySelectDto = NonNullable<
+  Awaited<ReturnType<CountryRepository["getById"]>>
+>;

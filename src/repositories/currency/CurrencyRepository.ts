@@ -8,6 +8,10 @@ export class CurrencyRepository {
     this.delegate = prisma.currency;
   }
 
+  getById(id: number) {
+    return this.delegate.findUnique({ where: { id } });
+  }
+
   getAll() {
     return this.delegate.findMany();
   }
