@@ -7,8 +7,8 @@ import { DeletableService } from "@/services/crud/DeletableService";
 import { SelectableService } from "@/services/crud/SelectableService";
 import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
 import { LogService } from "@/services/LogService";
-import { AmazonAdConversionErrorManager } from "@/managers/amazon/AmazonAdConversionErrorManager";
-import { AmazonAdPricingErrorManager } from "@/managers/amazon/AmazonAdPricingErrorManager";
+import { AmazonAdConversionErrorManager } from "@/managers/AmazonAdConversionErrorManager";
+import { AmazonAdPricingErrorManager } from "@/managers/AmazonAdPricingErrorManager";
 
 export class AmazonAdService {
   private repository;

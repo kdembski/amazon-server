@@ -9,7 +9,7 @@ export class RequestQueueService {
 
   push<T>(callback: () => Promise<T>) {
     let resolve, reject;
-    const promise = new Promise((res, rej) => {
+    const promise = new Promise<T>((res, rej) => {
       resolve = res;
       reject = rej;
     });

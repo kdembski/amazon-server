@@ -7,7 +7,9 @@ export class PrismaClient {
 
   public static getInstance(): OriginalPrismaClient {
     if (!PrismaClient.instance) {
-      PrismaClient.instance = new OriginalPrismaClient();
+      PrismaClient.instance = new OriginalPrismaClient({
+        log: ["info"],
+      });
     }
 
     return PrismaClient.instance;

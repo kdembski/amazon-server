@@ -16,10 +16,12 @@
     "discord.js": "^14.17.3",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "hercai": "^12.4.0",
     "lodash": "^4.17.21",
     "mysql2": "^3.12.0",
     "node-cron": "^3.0.3",
     "prisma": "^6.2.1",
+    "puppeteer-real-browser": "^1.4.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {

@@ -3,6 +3,7 @@ import {
   AmazonAdPriceCreateDto,
   AmazonAdPriceSelectDto,
 } from "@/dtos/amazon/AmazonAdPriceDtos";
+import { AiChatService } from "@/services/AiChatService";
 import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
 import { DiscordService } from "@/services/DiscordService";
 import { LogService } from "@/services/LogService";
@@ -11,15 +12,18 @@ export class AmazonAdPricingErrorManager {
   private adPriceService;
   private discordService;
   private logService;
+  private aiChatService;
 
   constructor(
     adPriceService = new AmazonAdPriceService(),
     discordService = new DiscordService(),
-    logService = new LogService()
+    logService = new LogService(),
+    aiChatService = new AiChatService()
   ) {
     this.adPriceService = adPriceService;
     this.discordService = discordService;
     this.logService = logService;
+    this.aiChatService = aiChatService;
   }
 
   async verify(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
@@ -32,6 +36,7 @@ export class AmazonAdPricingErrorManager {
 
     await Promise.all(promises).then((results) => {
       const toSend = results.filter((result) => this.shouldSend(result));
+      if (toSend.length) this.discordService.sendPricingError(ad, toSend);
     });
   }
 

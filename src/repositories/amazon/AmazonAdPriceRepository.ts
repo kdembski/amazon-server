@@ -3,6 +3,23 @@ import { Prisma } from "@prisma/client";
 
 export class AmazonAdPriceRepository {
   private delegate;
+  private structure = {
+    id: true,
+    adId: true,
+    countryId: true,
+    value: true,
+    createdAt: true,
+    updatedAt: true,
+    country: {
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        currencyId: true,
+        currency: true,
+      },
+    },
+  };
 
   constructor(prisma = PrismaClient.getInstance()) {
     this.delegate = prisma.amazonAdPrice;
@@ -11,15 +28,7 @@ export class AmazonAdPriceRepository {
   getById(id: number) {
     return this.delegate.findUnique({
       where: { id },
-      select: {
-        id: true,
-        adId: true,
-        countryId: true,
-        value: true,
-        createdAt: true,
-        updatedAt: true,
-        country: true,
-      },
+      select: this.structure,
     });
   }
 
@@ -27,15 +36,7 @@ export class AmazonAdPriceRepository {
     return this.delegate.findMany({
       where: { adId: data.adId, countryId: data.countryId },
       orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        adId: true,
-        countryId: true,
-        value: true,
-        createdAt: true,
-        updatedAt: true,
-        country: true,
-      },
+      select: this.structure,
     });
   }
 

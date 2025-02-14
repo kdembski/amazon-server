@@ -1,6 +1,8 @@
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { roundToTwoDecimals } from "@/helpers/number";
+import { AllegroScraper } from "@/scrapers/AllegroScraper";
+import { AiChatService } from "@/services/AiChatService";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
 import { CurrencyService } from "@/services/currency/CurrencyService";
 import { DiscordService } from "@/services/DiscordService";
@@ -11,17 +13,20 @@ export class AmazonAdConversionErrorManager {
   private logService;
   private currencyService;
   private currencyExchangeRateService;
+  private aiChatService;
 
   constructor(
     discordService = new DiscordService(),
     logService = new LogService(),
     currencyService = new CurrencyService(),
-    currencyExchangeRateService = new CurrencyExchangeRateService()
+    currencyExchangeRateService = new CurrencyExchangeRateService(),
+    aiChatService = new AiChatService()
   ) {
     this.discordService = discordService;
     this.logService = logService;
     this.currencyService = currencyService;
     this.currencyExchangeRateService = currencyExchangeRateService;
+    this.aiChatService = aiChatService;
   }
 
   async verify(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
@@ -42,6 +47,9 @@ export class AmazonAdConversionErrorManager {
     prices.sort((a, b) => a.value - b.value);
 
     if (this.shouldSend(prices)) {
+      const productName = await this.aiChatService.getProductName(ad.name);
+      //await this.allegroScraper.scrapPlp(productName);
+
       await this.logService.creatable.create({
         event: "ad_sent",
         data: JSON.stringify(prices),

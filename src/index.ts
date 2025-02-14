@@ -4,6 +4,7 @@ import { useRouter } from "@/routes";
 import { CurrencyExchangeRateCronService } from "@/services/cron/CurrencyExchangeRateCronService";
 import { HourlyStatsCronService } from "@/services/cron/HourlyStatsCronService";
 import { useWebSockets } from "@/websockets";
+import { AllegroScraper } from "@/scrapers/AllegroScraper";
 
 const app = express();
 app.use(express.json());
@@ -20,6 +21,8 @@ useWebSockets(server);
 
 new CurrencyExchangeRateCronService().schedule();
 new HourlyStatsCronService().schedule();
+
+new AllegroScraper();
 
 process.on("uncaughtException", (err) => {
   console.error(err);
