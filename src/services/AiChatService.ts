@@ -2,15 +2,28 @@ import { RequestQueueService } from "@/services/RequestQueueService";
 import { Hercai, QuestionData } from "hercai";
 
 export class AiChatService {
+  private static instance: AiChatService;
   private herc;
   private requestQueueService;
 
-  constructor(
+  private constructor(
     herc = new Hercai(),
-    requestQueueService = new RequestQueueService(30000)
+    requestQueueService = new RequestQueueService(10000)
   ) {
     this.herc = herc;
     this.requestQueueService = requestQueueService;
+
+    setInterval(() => {
+      console.log(`queue: ${this.requestQueueService.queue.length}`);
+    }, 2000);
+  }
+
+  public static getInstance(): AiChatService {
+    if (!AiChatService.instance) {
+      AiChatService.instance = new AiChatService();
+    }
+
+    return AiChatService.instance;
   }
 
   ask(content: string) {
@@ -25,7 +38,8 @@ export class AiChatService {
             .then((response) => {
               resolve(response);
             })
-            .catch(() => {
+            .catch((e) => {
+              console.error(e.status, e.message);
               resolve(undefined);
             });
         })
@@ -36,7 +50,7 @@ export class AiChatService {
     const response = await this.ask(
       `Give me the name of a product listed under that ad: "${adName}". The name should contain brand and model name if possible. The name should be in polish`
     );
-    console.log(response);
+
     if (!(response && response.reply)) return;
     if (response.reply === "Question Error!") return;
 

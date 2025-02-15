@@ -1,7 +1,7 @@
 export class RequestQueueService {
   private timeout;
   private interval?: ReturnType<typeof setInterval>;
-  private queue: RequestQueueItem<any>[] = [];
+  queue: RequestQueueItem<any>[] = [];
 
   constructor(timeout: number) {
     this.timeout = timeout;

@@ -1,9 +1,10 @@
-import { connect } from "puppeteer-real-browser";
+import { addExtra } from "puppeteer-extra";
+import stealth from "puppeteer-extra-plugin-stealth";
+import rebrowserPuppeteer from "rebrowser-puppeteer";
+import UserAgent from "user-agents";
 
 export class AllegroScraper {
-  constructor() {
-    this.scrapPlp("lenovo");
-  }
+  constructor() {}
 
   private getPlpLink(search: string) {
     return `https://allegro.pl/listing?string=${search.replaceAll(
@@ -14,19 +15,17 @@ export class AllegroScraper {
 
   async scrapPlp(search?: string) {
     if (!search) return;
+    const puppeteer = addExtra(rebrowserPuppeteer);
+    puppeteer.use(stealth());
 
-    const { browser, page } = await connect({
-      headless: false,
-      args: [],
-      customConfig: {},
-      turnstile: true,
-      connectOption: {},
-      disableXvfb: false,
-      ignoreAllFlags: false,
-    });
+    const browser = await puppeteer.launch({ headless: false });
+    const page = await browser.newPage();
+    const userAgent = new UserAgent().toString();
 
-    page.setExtraHTTPHeaders({ Referer: "https://allegro.pl/" });
-    await page.goto(this.getPlpLink("lenovo"), {
+    await page.setUserAgent(userAgent);
+    await page.setExtraHTTPHeaders({ Referer: "https://allegro.pl/" });
+
+    await page.goto(this.getPlpLink(search), {
       waitUntil: "domcontentloaded",
     });
     await new Promise((r) => setTimeout(r, 3000));
@@ -34,17 +33,17 @@ export class AllegroScraper {
     const prices = await page.evaluate(() => {
       const listing = document.querySelector(".opbox-listing");
       const items = listing?.querySelectorAll("article");
+
       if (!items) return;
+
       const prices = [...items].map((item) => {
         const el = item.querySelector(`[tabindex="0"]`);
-        console.log(el);
         return el?.getAttribute("aria-label");
       });
-      console.log(items);
+
       return prices;
     });
-    console.log(prices?.length);
 
-    browser.close();
+    //browser.close();
   }
 }

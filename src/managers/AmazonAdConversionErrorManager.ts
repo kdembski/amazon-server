@@ -1,11 +1,10 @@
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { roundToTwoDecimals } from "@/helpers/number";
-import { AllegroScraper } from "@/scrapers/AllegroScraper";
 import { AiChatService } from "@/services/AiChatService";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
 import { CurrencyService } from "@/services/currency/CurrencyService";
-import { DiscordService } from "@/services/DiscordService";
+import { DiscordConversionErrorService } from "@/services/discord/DiscordConversionErrorService";
 import { LogService } from "@/services/LogService";
 
 export class AmazonAdConversionErrorManager {
@@ -16,11 +15,11 @@ export class AmazonAdConversionErrorManager {
   private aiChatService;
 
   constructor(
-    discordService = new DiscordService(),
+    discordService = new DiscordConversionErrorService(),
     logService = new LogService(),
     currencyService = new CurrencyService(),
     currencyExchangeRateService = new CurrencyExchangeRateService(),
-    aiChatService = new AiChatService()
+    aiChatService = AiChatService.getInstance()
   ) {
     this.discordService = discordService;
     this.logService = logService;
@@ -48,13 +47,12 @@ export class AmazonAdConversionErrorManager {
 
     if (this.shouldSend(prices)) {
       const productName = await this.aiChatService.getProductName(ad.name);
-      //await this.allegroScraper.scrapPlp(productName);
 
       await this.logService.creatable.create({
         event: "ad_sent",
         data: JSON.stringify(prices),
       });
-      this.discordService.sendConversionError(ad, prices);
+      this.discordService.send(ad, prices, productName);
     }
   }
 

@@ -1,9 +1,9 @@
 import cron from "node-cron";
 import CurencyApi from "@everapi/freecurrencyapi-js";
-import { DiscordService } from "@/services/DiscordService";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
 import { CurrencyService } from "@/services/currency/CurrencyService";
 import { roundToTwoDecimals } from "@/helpers/number";
+import { DiscordLogService } from "@/services/discord/DiscordLogService";
 
 export class CurrencyExchangeRateCronService {
   private currencyExchangeRateService;
@@ -16,7 +16,7 @@ export class CurrencyExchangeRateCronService {
   constructor(
     currencyExchangeRateService = new CurrencyExchangeRateService(),
     currencyService = new CurrencyService(),
-    discordService = new DiscordService(),
+    discordService = new DiscordLogService(),
     currencyApi = new CurencyApi(process.env.CURRENCY_API_KEY)
   ) {
     this.currencyExchangeRateService = currencyExchangeRateService;

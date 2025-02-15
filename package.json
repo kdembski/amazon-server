@@ -21,7 +21,10 @@
     "mysql2": "^3.12.0",
     "node-cron": "^3.0.3",
     "prisma": "^6.2.1",
-    "puppeteer-real-browser": "^1.4.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "rebrowser-puppeteer": "^23.10.3",
+    "user-agents": "^1.1.450",
     "ws": "^8.18.0"
   },
   "devDependencies": {
@@ -30,6 +33,7 @@
     "@types/lodash": "^4.17.14",
     "@types/node": "^22.10.7",
     "@types/node-cron": "^3.0.11",
+    "@types/user-agents": "^1.0.4",
     "@types/ws": "^8.5.13",
     "typescript": "^5.7.3",
     "vite-node": "^3.0.2"

@@ -1,13 +1,13 @@
 import cron from "node-cron";
-import { DiscordService } from "@/services/DiscordService";
 import { LogService } from "@/services/LogService";
+import { DiscordLogService } from "@/services/discord/DiscordLogService";
 
 export class HourlyStatsCronService {
   private discordService;
   private logService;
 
   constructor(
-    discordService = new DiscordService(),
+    discordService = new DiscordLogService(),
     logService = new LogService()
   ) {
     this.discordService = discordService;
