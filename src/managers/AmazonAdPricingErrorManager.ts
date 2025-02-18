@@ -27,12 +27,14 @@ export class AmazonAdPricingErrorManager {
     );
 
     await Promise.all(promises).then((results) => {
-      const toSend = results.filter((result) => this.shouldSend(result));
+      const toSend = results.filter((result) =>
+        this.isOverPercentageDifference(result)
+      );
       if (toSend.length) this.discordService.send(ad, toSend);
     });
   }
 
-  private shouldSend(prices: AmazonAdPriceSelectDto[]) {
+  private isOverPercentageDifference(prices: AmazonAdPriceSelectDto[]) {
     const first = prices[0]?.value?.toNumber();
     const second = prices[1]?.value.toNumber();
 

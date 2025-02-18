@@ -12,10 +12,6 @@ export class AiChatService {
   ) {
     this.herc = herc;
     this.requestQueueService = requestQueueService;
-
-    setInterval(() => {
-      console.log(`queue: ${this.requestQueueService.queue.length}`);
-    }, 2000);
   }
 
   public static getInstance(): AiChatService {

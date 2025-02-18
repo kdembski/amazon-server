@@ -3,29 +3,20 @@ import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { DiscordService } from "@/services/discord/DiscordService";
 
 export class DiscordConversionErrorService {
-  private service;
+  private _service;
 
   constructor(service = new DiscordService()) {
-    const token = process.env.DISCORD_CONVERSION_ERROR_TOKEN;
-
-    if (!token)
-      throw Error("DISCORD_CONVERSION_ERROR_TOKEN env variable is missing");
-
-    service.init(token);
-    this.service = service;
+    this._service = service;
   }
 
-  send(
-    ad: AmazonAdSelectDto,
-    prices: AmazonAdPriceCreateDto[],
-    productName?: string
-  ) {
-    const allegroSearch = productName?.replaceAll(" ", "%20");
-    const allegroLink = `https://allegro.pl/listing?string=${allegroSearch}&stan=nowe`;
+  set service(type: string) {
+    this._service.client = `DISCORD_CONVERSION_ERROR_${type}_TOKEN`;
+  }
 
+  send(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
     const embed = {
       title: ad.name,
-      description: ad.asin + (productName ? ` [Allegro](${allegroLink})` : ""),
+      description: ad.asin,
       image: {
         url: ad.image,
         height: 200,
@@ -42,6 +33,6 @@ export class DiscordConversionErrorService {
       ],
     };
 
-    this.service.send({ embeds: [embed] });
+    this._service.send({ embeds: [embed] });
   }
 }

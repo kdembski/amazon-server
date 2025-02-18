@@ -55,9 +55,10 @@ export class AmazonAdService {
       this.priceService.creatable.create(price)
     );
     await Promise.allSettled(promises);
-    await this.logService.creatable.create({ event: "ad_scraped" });
 
+    await this.logService.creatable.create({ event: "ad_scraped" });
     const ad = await this.selectable.getById(id);
+
     this.amazonAdConversionErrorManager.verify(ad, [...prices]);
     this.amazonAdPricingErrorManager.verify(ad, [...prices]);
 

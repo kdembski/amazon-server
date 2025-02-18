@@ -6,13 +6,7 @@ import { DiscordService } from "@/services/discord/DiscordService";
 export class DiscordPricingErrorService {
   private service;
 
-  constructor(service = new DiscordService()) {
-    const token = process.env.DISCORD_PRICING_ERROR_TOKEN;
-
-    if (!token)
-      throw Error("DISCORD_PRICING_ERROR_TOKEN env variable is missing");
-
-    service.init(token);
+  constructor(service = new DiscordService("DISCORD_PRICING_ERROR_TOKEN")) {
     this.service = service;
   }
 
