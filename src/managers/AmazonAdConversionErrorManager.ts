@@ -3,29 +3,29 @@ import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { roundToTwoDecimals } from "@/helpers/number";
 import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
-import { CurrencyService } from "@/services/currency/CurrencyService";
 import { DiscordConversionErrorService } from "@/services/discord/DiscordConversionErrorService";
 import { LogService } from "@/services/LogService";
+import { StorageService } from "@/services/StorageService";
 
 export class AmazonAdConversionErrorManager {
   private logService;
-  private currencyService;
   private currencyExchangeRateService;
   private adPriceService;
   private discordService;
+  private storageService;
 
   constructor(
     logService = new LogService(),
-    currencyService = new CurrencyService(),
     currencyExchangeRateService = new CurrencyExchangeRateService(),
     adPriceService = new AmazonAdPriceService(),
-    discordService = new DiscordConversionErrorService()
+    discordService = new DiscordConversionErrorService(),
+    storageService = StorageService.getInstance()
   ) {
     this.logService = logService;
-    this.currencyService = currencyService;
     this.currencyExchangeRateService = currencyExchangeRateService;
     this.adPriceService = adPriceService;
     this.discordService = discordService;
+    this.storageService = storageService;
   }
 
   async verify(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
@@ -109,10 +109,7 @@ export class AmazonAdConversionErrorManager {
   }
 
   private async unifyCurrencies(prices: AmazonAdPriceCreateDto[]) {
-    const pln = await this.currencyService.getByCode("PLN");
-    if (!pln) return;
-
-    const rates = await this.currencyExchangeRateService.getByTarget(pln.id);
+    const rates = await this.getPlnExchangeRates();
 
     prices.forEach((price) => {
       const rate = rates.find(
@@ -122,6 +119,19 @@ export class AmazonAdConversionErrorManager {
 
       price.value = roundToTwoDecimals(price.value * rate.value.toNumber());
     });
+  }
+
+  private async getPlnExchangeRates() {
+    const storedRates = this.storageService.state.plnExchangeRates;
+
+    if (!storedRates) {
+      const rates = await this.currencyExchangeRateService.getByTargetCode(
+        "PLN"
+      );
+      return rates;
+    }
+
+    return storedRates;
   }
 
   private sortPrices(prices: AmazonAdPriceCreateDto[]) {

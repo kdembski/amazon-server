@@ -38,6 +38,10 @@ export class CurrencyExchangeRateService {
     return this.repository.getByTarget(targetId);
   }
 
+  getByTargetCode(targetCode: string) {
+    return this.repository.getByTargetCode(targetCode);
+  }
+
   updateBySourceAndTarget(
     ids: { sourceId: number; targetId: number },
     dto: CurrencyExchangeRateUpdateDto

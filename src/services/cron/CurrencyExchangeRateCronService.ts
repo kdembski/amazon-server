@@ -4,12 +4,14 @@ import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchang
 import { CurrencyService } from "@/services/currency/CurrencyService";
 import { roundToTwoDecimals } from "@/helpers/number";
 import { DiscordLogService } from "@/services/discord/DiscordLogService";
+import { StorageService } from "@/services/StorageService";
 
 export class CurrencyExchangeRateCronService {
   private currencyExchangeRateService;
   private currencyService;
   private discordService;
   private currencyApi;
+  private storageService;
   private targetCode = "PLN";
   private sourceCodes = ["EUR", "SEK"];
 
@@ -17,12 +19,14 @@ export class CurrencyExchangeRateCronService {
     currencyExchangeRateService = new CurrencyExchangeRateService(),
     currencyService = new CurrencyService(),
     discordService = new DiscordLogService(),
+    storageService = StorageService.getInstance(),
     currencyApi = new CurencyApi(process.env.CURRENCY_API_KEY)
   ) {
     this.currencyExchangeRateService = currencyExchangeRateService;
     this.currencyService = currencyService;
     this.discordService = discordService;
     this.currencyApi = currencyApi;
+    this.storageService = storageService;
   }
 
   async schedule() {
@@ -33,7 +37,8 @@ export class CurrencyExchangeRateCronService {
           currencies: this.sourceCodes.join(","),
         })
         .then(async (response: any) => {
-          this.updateCurrencyExchangeRates(response.data);
+          await this.updateCurrencyExchangeRates(response.data);
+          await this.updateStoredPlnExchangeRates();
         })
         .catch((e: any) => {
           this.discordService.send(
@@ -41,6 +46,11 @@ export class CurrencyExchangeRateCronService {
           );
         });
     });
+  }
+
+  private async updateStoredPlnExchangeRates() {
+    const rates = await this.currencyExchangeRateService.getByTargetCode("PLN");
+    this.storageService.state.plnExchangeRates = rates;
   }
 
   private async updateCurrencyExchangeRates(rates: Record<string, number>) {

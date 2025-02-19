@@ -8,12 +8,20 @@ export class CurrencyExchangeRateRepository {
     this.delegate = prisma.currencyExchangeRate;
   }
 
+  getById(id: number) {
+    return this.delegate.findUnique({ where: { id } });
+  }
+
   getBySourceAndTarget(data: { sourceId: number; targetId: number }) {
     return this.delegate.findUnique({ where: { sourceId_targetId: data } });
   }
 
   getByTarget(targetId: number) {
     return this.delegate.findMany({ where: { targetId } });
+  }
+
+  getByTargetCode(targetCode: string) {
+    return this.delegate.findMany({ where: { target: { code: targetCode } } });
   }
 
   create(data: Prisma.CurrencyExchangeRateCreateInput) {
