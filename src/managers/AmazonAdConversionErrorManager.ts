@@ -60,12 +60,6 @@ export class AmazonAdConversionErrorManager {
       this.discordService.send(ad, prices);
       return;
     }
-
-    if (this.isOverPercentageDifference(prices, 40)) {
-      this.discordService.service = "40";
-      this.discordService.send(ad, prices);
-      return;
-    }
   }
 
   verifyByRange(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
