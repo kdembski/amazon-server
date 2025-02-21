@@ -7,7 +7,7 @@ import { DeletableService } from "@/services/crud/DeletableService";
 import { SelectableService } from "@/services/crud/SelectableService";
 import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
 import { LogService } from "@/services/LogService";
-import { AmazonAdConversionErrorManager } from "@/managers/AmazonAdConversionErrorManager";
+import { AmazonAdConversionErrorManager } from "@/managers/conversion-error/AmazonAdConversionErrorManager";
 import { AmazonAdPricingErrorManager } from "@/managers/AmazonAdPricingErrorManager";
 
 export class AmazonAdService {
@@ -59,8 +59,8 @@ export class AmazonAdService {
     await this.logService.creatable.create({ event: "ad_scraped" });
     const ad = await this.selectable.getById(id);
 
-    this.amazonAdConversionErrorManager.verify(ad, [...prices]);
-    this.amazonAdPricingErrorManager.verify(ad, [...prices]);
+    this.amazonAdConversionErrorManager.check(ad, [...prices]);
+    this.amazonAdPricingErrorManager.check(ad, [...prices]);
 
     return this.repository.update(id, input);
   }

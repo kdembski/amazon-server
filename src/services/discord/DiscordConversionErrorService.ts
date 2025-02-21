@@ -9,10 +9,6 @@ export class DiscordConversionErrorService {
     this._service = service;
   }
 
-  set service(type: string) {
-    this._service.client = `DISCORD_CONVERSION_ERROR_${type}_TOKEN`;
-  }
-
   send(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
     const embed = {
       title: ad.name,
@@ -34,5 +30,9 @@ export class DiscordConversionErrorService {
     };
 
     this._service.send({ embeds: [embed] });
+  }
+
+  setChannel(channel: string) {
+    this._service.client = `DISCORD_CONVERSION_ERROR_${channel}_TOKEN`;
   }
 }
