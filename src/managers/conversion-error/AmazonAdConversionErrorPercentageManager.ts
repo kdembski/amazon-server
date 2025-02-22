@@ -1,12 +1,8 @@
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
-import { roundToTwoDecimals } from "@/helpers/number";
 import { AmazonAdConversionErrorEvaluator } from "@/managers/conversion-error/AmazonAdConversionErrorEvaluator";
-import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
-import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
 import { DiscordConversionErrorService } from "@/services/discord/DiscordConversionErrorService";
 import { LogService } from "@/services/LogService";
-import { StorageService } from "@/services/StorageService";
 
 export class AmazonAdConversionErrorPercentageManager {
   private evaluator;
@@ -25,8 +21,6 @@ export class AmazonAdConversionErrorPercentageManager {
 
   async check(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
     if (this.evaluator.isOverPercentageDifference(prices, 80)) {
-      if (await this.evaluator.isHigherThanPrevious(ad, prices)) return;
-
       await this.logService.creatable.create({
         event: "conversion_error_3_sent",
       });
@@ -37,8 +31,6 @@ export class AmazonAdConversionErrorPercentageManager {
     }
 
     if (this.evaluator.isOverPercentageDifference(prices, 60)) {
-      if (await this.evaluator.isHigherThanPrevious(ad, prices)) return;
-
       await this.logService.creatable.create({
         event: "conversion_error_2_sent",
       });
