@@ -34,7 +34,8 @@ export class AmazonAdPriceRepository {
 
   getByAdAndCountry(data: { adId: number; countryId: number }) {
     return this.delegate.findMany({
-      where: { adId: data.adId, countryId: data.countryId },
+      where: data,
+      take: 5,
       orderBy: { createdAt: "desc" },
       select: this.structure,
     });

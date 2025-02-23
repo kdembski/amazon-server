@@ -23,33 +23,38 @@ export class AmazonAdPricingErrorManager {
   }
 
   async check(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
-    const promises = prices.map((price) =>
-      this.adPriceService.getByAdAndCountry({
+    let marketplaces: AmazonAdPriceSelectDto[][] = [];
+
+    for (const price of prices) {
+      const result = await this.adPriceService.getByAdAndCountry({
         adId: ad.id,
         countryId: price.countryId,
-      })
+      });
+
+      marketplaces.push(result);
+    }
+
+    const marketplacesToSend = marketplaces.filter((prices) =>
+      this.isOverPercentageDifference(prices)
     );
 
-    await Promise.all(promises).then(async (results) => {
-      const toSend = results.filter((result) =>
-        this.isOverPercentageDifference(result)
-      );
+    if (!marketplacesToSend.length) return;
 
-      if (toSend.length) {
-        await this.logService.creatable.create({
-          event: "pricing_error_sent",
-        });
-        this.discordService.send(ad, toSend);
-      }
+    await this.logService.creatable.create({
+      event: "pricing_error_sent",
     });
+    this.discordService.send(ad, marketplacesToSend);
   }
 
   private isOverPercentageDifference(prices: AmazonAdPriceSelectDto[]) {
     const first = prices[0]?.value?.toNumber();
-    const second = prices[1]?.value.toNumber();
+    if (!first || prices.length < 2) return false;
 
-    if (!first || !second) return false;
-
-    return first <= second * 0.5;
+    return prices.every((price, i) => {
+      const number = price.value?.toNumber();
+      if (i === 0) return true;
+      if (i === 1) return first <= number * 0.5;
+      return first < number;
+    });
   }
 }
