@@ -21,4 +21,8 @@ export class LogService {
   getByEvent(event: string, from?: Date, to?: Date) {
     return this.repository.getByEvent(event, from, to);
   }
+
+  getCountByEvent(event: string, from?: Date, to?: Date) {
+    return this.repository.getCountByEvent(event, from, to);
+  }
 }

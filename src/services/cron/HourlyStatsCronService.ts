@@ -16,16 +16,19 @@ export class HourlyStatsCronService {
 
   schedule() {
     cron.schedule("00 00 */1 * * * *", async () => {
-      const scraped = await this.getLogCount("ad_scraped");
-      const conversion2 = await this.getLogCount("conversion_error_2_sent");
-      const conversion3 = await this.getLogCount("conversion_error_3_sent");
-      const conversion4 = await this.getLogCount("conversion_error_4_sent");
-      const conversion5 = await this.getLogCount("conversion_error_5_sent");
-      const conversion6 = await this.getLogCount("conversion_error_6_sent");
-      const pricing = await this.getLogCount("pricing_error_sent");
+      const logs = [
+        this.getLogCount("ad_scraped"),
+        this.getLogCount("conversion_error_2_sent"),
+        this.getLogCount("conversion_error_3_sent"),
+        this.getLogCount("conversion_error_4_sent"),
+        this.getLogCount("conversion_error_5_sent"),
+        this.getLogCount("conversion_error_6_sent"),
+        this.getLogCount("pricing_error_sent"),
+      ];
+      await Promise.all(logs);
 
       this.discordService.send(
-        `scraped: ${scraped} | 60%: ${conversion2} | 80%: ${conversion3} | 0-50: ${conversion4} | 50-200: ${conversion5} | 200-*: ${conversion6} | hist: ${pricing}`
+        `scraped: ${logs[0]} | 60%: ${logs[1]} | 80%: ${logs[2]} | 0-50: ${logs[3]} | 50-200: ${logs[4]} | 200-*: ${logs[5]} | hist: ${logs[6]}`
       );
     });
   }
@@ -35,6 +38,6 @@ export class HourlyStatsCronService {
     const hoursBefore = new Date();
     hoursBefore.setHours(hoursBefore.getHours() - 1);
 
-    return (await this.logService.getByEvent(event, hoursBefore, now)).length;
+    return await this.logService.getCountByEvent(event, hoursBefore, now);
   }
 }

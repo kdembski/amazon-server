@@ -20,6 +20,18 @@ export class LogRepository {
     });
   }
 
+  getCountByEvent(event: string, from?: Date, to?: Date) {
+    return this.delegate.count({
+      where: {
+        event,
+        createdAt: {
+          lte: to,
+          gte: from,
+        },
+      },
+    });
+  }
+
   create(data: Prisma.LogCreateInput) {
     return this.delegate.create({ data });
   }
