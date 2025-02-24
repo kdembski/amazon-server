@@ -20,7 +20,7 @@ export class AmazonAdConversionErrorPercentageManager {
   }
 
   async check(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
-    if (this.evaluator.isOverPercentageDifference(prices, 80)) {
+    if (this.evaluator.isOverPercentageDifference(prices, 90)) {
       await this.logService.creatable.create({
         event: "conversion_error_3_sent",
       });
@@ -30,7 +30,7 @@ export class AmazonAdConversionErrorPercentageManager {
       return;
     }
 
-    if (this.evaluator.isOverPercentageDifference(prices, 60)) {
+    if (this.evaluator.isOverPercentageDifference(prices, 70)) {
       await this.logService.creatable.create({
         event: "conversion_error_2_sent",
       });

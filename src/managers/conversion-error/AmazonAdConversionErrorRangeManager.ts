@@ -20,7 +20,7 @@ export class AmazonAdConversionErrorRangeManager {
   }
 
   async check(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
-    if (!this.evaluator.isOverPercentageDifference(prices, 60)) return;
+    if (!this.evaluator.isOverPercentageDifference(prices, 75)) return;
 
     if (this.evaluator.isInRange(prices, 0, 50)) {
       await this.logService.creatable.create({
