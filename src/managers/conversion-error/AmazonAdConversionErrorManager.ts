@@ -29,6 +29,8 @@ export class AmazonAdConversionErrorManager {
   }
 
   async check(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
+    if (prices.length < 3) return;
+
     await this.unifyCurrencies(prices);
     this.sortPrices(prices);
 
