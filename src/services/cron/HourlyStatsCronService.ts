@@ -25,10 +25,9 @@ export class HourlyStatsCronService {
         this.getLogCount("conversion_error_6_sent"),
         this.getLogCount("pricing_error_sent"),
       ];
+
       await Promise.all(logs).then((logs) => {
-        this.discordService.send(
-          `scraped: ${logs[0]} | 60%: ${logs[1]} | 80%: ${logs[2]} | 0-50: ${logs[3]} | 50-200: ${logs[4]} | 200-*: ${logs[5]} | hist: ${logs[6]}`
-        );
+        this.discordService.sendHourly(logs);
       });
     });
   }

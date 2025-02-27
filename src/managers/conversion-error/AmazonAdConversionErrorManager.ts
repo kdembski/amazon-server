@@ -1,13 +1,9 @@
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { roundToTwoDecimals } from "@/helpers/number";
-import { AmazonAdConversionErrorEvaluator } from "@/managers/conversion-error/AmazonAdConversionErrorEvaluator";
 import { AmazonAdConversionErrorPercentageManager } from "@/managers/conversion-error/AmazonAdConversionErrorPercentageManager";
 import { AmazonAdConversionErrorRangeManager } from "@/managers/conversion-error/AmazonAdConversionErrorRangeManager";
-import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
-import { DiscordConversionErrorService } from "@/services/discord/DiscordConversionErrorService";
-import { LogService } from "@/services/LogService";
 import { StorageService } from "@/services/StorageService";
 
 export class AmazonAdConversionErrorManager {

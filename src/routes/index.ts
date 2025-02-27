@@ -5,6 +5,7 @@ import { AmazonAdPriceRouter } from "./amazon/AmazonAdPriceRouter";
 import { CountryRouter } from "./currency/CountryRouter";
 import { CurrencyRouter } from "./currency/CurrencyRouter";
 import { CurrencyExchangeRateRouter } from "./currency/CurrencyExchangeRateRouter";
+import { ScrapersStatusRouter } from "@/routes/ScrapersStatusRouter";
 
 export function useRouter() {
   const subRouters = [
@@ -14,6 +15,7 @@ export function useRouter() {
     new CountryRouter(),
     new CurrencyRouter(),
     new CurrencyExchangeRateRouter(),
+    new ScrapersStatusRouter(),
   ];
   const router = Router();
 
