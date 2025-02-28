@@ -51,9 +51,9 @@ export class DiscordLogService {
   }
 
   getSpeedIcon(speed: number) {
-    if (speed === 0) return "🔴";
-    if (speed === 1) return "🟡";
-    return "🟢";
+    if (speed === 0) return "<:red:1345009441191362613>";
+    if (speed === 1) return "<:yellow:1345009442579681291>";
+    return "<:green:1345009439916294154>";
   }
 
   getSpacing() {
