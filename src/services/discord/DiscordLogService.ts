@@ -19,13 +19,44 @@ export class DiscordLogService {
   }
 
   sendHourly(logs: number[]) {
-    this.service.send(
-      `scraped: ${logs[0]} | 60%: ${logs[1]} | 80%: ${logs[2]} | 0-50: ${logs[3]} | 50-200: ${logs[4]} | 200-*: ${logs[5]} | hist: ${logs[6]}`
-    );
-    this.service.send(
-      Object.entries(this.scrapersStatusService.speeds)
-        .map(([name, speed]) => `${name}: ${speed}/s`)
-        .join(" | ")
-    );
+    const embed = {
+      title: "Hourly status",
+      description: `Scraped: **${logs[0]}**`,
+      fields: [
+        {
+          name: "Channels",
+          value: [
+            `70%: **${logs[1]}**`,
+            `90%: **${logs[2]}**`,
+            `0-50: **${logs[3]}**`,
+            `50-200: **${logs[4]}**`,
+            `200+: **${logs[5]}**`,
+            `hist: **${logs[6]}**`,
+          ].join(this.getSpacing()),
+        },
+        {
+          name: "Scrapers",
+          value: Object.entries(this.scrapersStatusService.speeds)
+            .sort()
+            .map(
+              ([name, speed]) =>
+                `${this.getSpeedIcon(speed)} ${name} **(${speed}/s)**`
+            )
+            .join(this.getSpacing()),
+        },
+      ],
+    };
+
+    this.service.send({ embeds: [embed] });
+  }
+
+  getSpeedIcon(speed: number) {
+    if (speed === 0) return "🔴";
+    if (speed === 1) return "🟡";
+    return "🟢";
+  }
+
+  getSpacing() {
+    return "‎ ‎ ‎ ‎";
   }
 }
