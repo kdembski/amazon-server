@@ -1,11 +1,14 @@
 {
   "name": "amazon-server",
-  "version": "1.0.2",
+  "version": "1.0.0",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "start": "vite-node src/index.ts",
-    "watch": "vite-node --watch src/index.ts"
+    "watch": "vite-node --watch src/index.ts",
+    "build": "pkgroll"
   },
   "license": "ISC",
   "dependencies": {
@@ -20,6 +23,7 @@
     "lodash": "^4.17.21",
     "mysql2": "^3.12.0",
     "node-cron": "^3.0.3",
+    "pkgroll": "^2.11.2",
     "prisma": "^6.2.1",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
