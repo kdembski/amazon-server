@@ -34,8 +34,10 @@ export class AmazonAdPricingErrorManager {
       marketplaces.push(result);
     }
 
-    const marketplacesToSend = marketplaces.filter((prices) =>
-      this.isOverPercentageDifference(prices)
+    const marketplacesToSend = marketplaces.filter(
+      (prices) =>
+        this.isOverPercentageDifference(prices) &&
+        ["pl", "se"].includes(prices[0].country.code)
     );
 
     if (!marketplacesToSend.length) return;
