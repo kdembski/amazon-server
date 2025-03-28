@@ -12,6 +12,7 @@ model AmazonAdCategory {
   name      String     @unique(map: "name_UNIQUE") @db.VarChar(63)
   createdAt DateTime   @db.Timestamp(2)
   updatedAt DateTime   @db.Timestamp(2)
+  scrapedAt DateTime?  @db.Timestamp(2)
   ads       AmazonAd[]
 }
 

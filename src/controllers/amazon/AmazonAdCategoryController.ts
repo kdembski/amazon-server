@@ -31,4 +31,13 @@ export class AmazonAdCategoryController {
       new ResponseErrorService(response).send(error);
     }
   }
+
+  async getForScraping(response: Response) {
+    try {
+      const results = await this.service.getForScraping();
+      response.json(results);
+    } catch (error: any) {
+      new ResponseErrorService(response).send(error);
+    }
+  }
 }

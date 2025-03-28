@@ -1,4 +1,8 @@
-import { AmazonAdUpdateDto } from "@/dtos/amazon/AmazonAdDtos";
+import { styleText } from "node:util";
+import {
+  AmazonAdSelectDto,
+  AmazonAdUpdateDto,
+} from "@/dtos/amazon/AmazonAdDtos";
 import { AmazonAdCreateMapper } from "@/mappers/amazon/AmazonAdCreateMapper";
 import { AmazonAdUpdateMapper } from "@/mappers/amazon/AmazonAdUpdateMapper";
 import { AmazonAdRepository } from "@/repositories/amazon/AmazonAdRepository";
@@ -17,6 +21,7 @@ export class AmazonAdService {
   private logService;
   private amazonAdConversionErrorManager;
   private amazonAdPricingErrorManager;
+  private static isGetting = false;
   selectable;
   deletable;
   creatable;
@@ -58,6 +63,12 @@ export class AmazonAdService {
 
     await this.logService.creatable.create({ event: "ad_scraped" });
     const ad = await this.selectable.getById(id);
+    console.log(
+      `${styleText("dim", "Scraped")} ${ad.asin} ${styleText(
+        "dim",
+        "from"
+      )} ${prices.map((p) => p.country.code).join(", ")} (${prices.length})`
+    );
 
     this.amazonAdConversionErrorManager.check(ad, [...prices]);
     this.amazonAdPricingErrorManager.check(ad, [...prices]);
@@ -66,6 +77,21 @@ export class AmazonAdService {
   }
 
   async getForScraping(count: number) {
+    return new Promise<AmazonAdSelectDto[]>((resolve) => {
+      if (AmazonAdService.isGetting) {
+        setTimeout(() => this._getForScraping(count, resolve), 1000);
+        return;
+      }
+
+      AmazonAdService.isGetting = true;
+      this._getForScraping(count, resolve);
+    });
+  }
+
+  private async _getForScraping(
+    count: number,
+    resolve: (v: AmazonAdSelectDto[]) => void
+  ) {
     const ads = await this.repository.getForScraping(count);
 
     const promises = ads.map((ad) =>
@@ -73,6 +99,7 @@ export class AmazonAdService {
     );
 
     await Promise.all(promises);
-    return ads;
+    AmazonAdService.isGetting = false;
+    resolve(ads);
   }
 }

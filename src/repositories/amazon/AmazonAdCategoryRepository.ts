@@ -8,8 +8,20 @@ export class AmazonAdCategoryRepository {
     this.delegate = prisma.amazonAdCategory;
   }
 
+  getById(id: number) {
+    return this.delegate.findUniqueOrThrow({ where: { id } });
+  }
+
   getAll() {
     return this.delegate.findMany();
+  }
+
+  getForScraping() {
+    return this.delegate.findFirstOrThrow({
+      orderBy: {
+        scrapedAt: { sort: "asc", nulls: "first" },
+      },
+    });
   }
 
   create(data: Prisma.AmazonAdCategoryCreateInput) {
