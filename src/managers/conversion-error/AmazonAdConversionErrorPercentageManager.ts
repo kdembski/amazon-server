@@ -39,5 +39,15 @@ export class AmazonAdConversionErrorPercentageManager {
       this.discordService.send(ad, prices);
       return;
     }
+
+    if (this.evaluator.isOverPercentageDifference(prices, 50)) {
+      await this.logService.creatable.create({
+        event: "conversion_error_1_sent",
+      });
+
+      this.discordService.setChannel("1");
+      this.discordService.send(ad, prices);
+      return;
+    }
   }
 }
