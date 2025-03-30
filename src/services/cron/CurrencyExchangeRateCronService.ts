@@ -2,12 +2,11 @@ import cron from "node-cron";
 import CurencyApi from "@everapi/freecurrencyapi-js";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
 import { CurrencyService } from "@/services/currency/CurrencyService";
-import { roundToTwoDecimals } from "@/helpers/number";
 import { DiscordLogService } from "@/services/discord/DiscordLogService";
 import { StorageService } from "@/services/StorageService";
 
 export class CurrencyExchangeRateCronService {
-  private currencyExchangeRateService;
+  private exchangeRateService;
   private currencyService;
   private discordService;
   private currencyApi;
@@ -16,13 +15,13 @@ export class CurrencyExchangeRateCronService {
   private sourceCodes = ["EUR", "SEK"];
 
   constructor(
-    currencyExchangeRateService = new CurrencyExchangeRateService(),
+    exchangeRateService = new CurrencyExchangeRateService(),
     currencyService = new CurrencyService(),
     discordService = new DiscordLogService(),
     storageService = StorageService.getInstance(),
     currencyApi = new CurencyApi(process.env.CURRENCY_API_KEY)
   ) {
-    this.currencyExchangeRateService = currencyExchangeRateService;
+    this.exchangeRateService = exchangeRateService;
     this.currencyService = currencyService;
     this.discordService = discordService;
     this.currencyApi = currencyApi;
@@ -49,7 +48,7 @@ export class CurrencyExchangeRateCronService {
   }
 
   private async updateStoredPlnExchangeRates() {
-    const rates = await this.currencyExchangeRateService.getByTargetCode("PLN");
+    const rates = await this.exchangeRateService.getByTargetCode("PLN");
     this.storageService.state.plnExchangeRates = rates;
   }
 
@@ -68,37 +67,9 @@ export class CurrencyExchangeRateCronService {
         if (!source) return;
 
         const value = 1 / rates[source.code];
-
-        await this.currencyExchangeRateService.updateBySourceAndTarget(
-          {
-            sourceId: source.id,
-            targetId: targetCurrency.id,
-          },
-          { value }
-        );
+        const ids = { sourceId: source.id, targetId: targetCurrency.id };
+        await this.exchangeRateService.updateBySourceAndTarget(ids, { value });
       });
-
-      this.sendSuccessMessageToDiscord(rates, targetCurrency, sources);
     });
-  }
-
-  private sendSuccessMessageToDiscord(
-    rates: Record<string, number>,
-    target: Awaited<ReturnType<typeof this.currencyService.getByCode>>,
-    sources: Awaited<ReturnType<typeof this.currencyService.getByCode>>[]
-  ) {
-    if (!sources || !target) return;
-
-    const message = sources.reduce((accum, source) => {
-      if (!source) return accum;
-
-      accum += `${source.code} -> ${target.code}:  ${roundToTwoDecimals(
-        1 / rates[source.code]
-      )}\n`;
-
-      return accum;
-    }, "Updated currency exchange rates:\n");
-
-    this.discordService.send(message);
   }
 }

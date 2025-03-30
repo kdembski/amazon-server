@@ -25,6 +25,17 @@ export class AmazonAdRepository {
     return this.delegate.findMany();
   }
 
+  getCount(from?: Date, to?: Date) {
+    return this.delegate.count({
+      where: {
+        createdAt: {
+          lte: to,
+          gte: from,
+        },
+      },
+    });
+  }
+
   create(data: Prisma.AmazonAdCreateInput) {
     return this.delegate.create({ data });
   }

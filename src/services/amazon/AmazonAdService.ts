@@ -1,4 +1,3 @@
-import { styleText } from "node:util";
 import {
   AmazonAdSelectDto,
   AmazonAdUpdateDto,
@@ -13,6 +12,7 @@ import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
 import { LogService } from "@/services/LogService";
 import { AmazonAdConversionErrorManager } from "@/managers/conversion-error/AmazonAdConversionErrorManager";
 import { AmazonAdPricingErrorManager } from "@/managers/AmazonAdPricingErrorManager";
+import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 
 export class AmazonAdService {
   private repository;
@@ -52,6 +52,10 @@ export class AmazonAdService {
     return this.repository.getAll();
   }
 
+  getCount(from?: Date, to?: Date) {
+    return this.repository.getCount(from, to);
+  }
+
   async update(id: number, dto: AmazonAdUpdateDto) {
     const input = this.updateMapper.toUpdateInput(dto);
     const prices = dto.prices;
@@ -63,17 +67,25 @@ export class AmazonAdService {
 
     await this.logService.creatable.create({ event: "ad_scraped" });
     const ad = await this.selectable.getById(id);
-    console.log(
-      `${styleText("dim", "Scraped")} ${ad.asin} ${styleText(
-        "dim",
-        "from"
-      )} ${prices.map((p) => p.country.code).join(", ")} (${prices.length})`
-    );
+
+    this.logScraped(ad, prices);
 
     this.amazonAdConversionErrorManager.check(ad, [...prices]);
     this.amazonAdPricingErrorManager.check(ad, [...prices]);
 
     return this.repository.update(id, input);
+  }
+
+  private logScraped(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
+    const parts = [
+      "Scraped",
+      ad.asin,
+      "from",
+      prices.map((p) => p.country.code).join(", "),
+      `(${prices.length})`,
+    ].filter((v) => !!v);
+
+    console.log(parts.join(" "));
   }
 
   async getForScraping(count: number) {

@@ -1,3 +1,5 @@
+import { CurrencyExchangeRateSelectDto } from "@/dtos/currency/CurrencyExchangeRateDtos";
+import { addSeparators } from "@/helpers/number";
 import { DiscordService } from "@/services/discord/DiscordService";
 import { ScrapersStatusService } from "@/services/ScrapersStatusService";
 import { MessagePayload, WebhookMessageCreateOptions } from "discord.js";
@@ -50,13 +52,44 @@ export class DiscordLogService {
     this.service.send({ embeds: [embed] });
   }
 
-  getSpeedIcon(speed: number) {
+  sendDaily(
+    adsCount: { total: number; today: number },
+    rates: CurrencyExchangeRateSelectDto[],
+    scraped: number
+  ) {
+    const embed = {
+      title: "Daily status",
+      description: `Scraped: **${scraped}**`,
+      fields: [
+        {
+          name: "Collected asins",
+          value: [
+            `Total: **${addSeparators(adsCount.total)}**`,
+            `Last 24h: **${addSeparators(adsCount.today)}**`,
+          ].join(this.getSpacing()),
+        },
+        {
+          name: "Exchange rates",
+          value: rates
+            .map(
+              (rate) =>
+                `${rate.source.code} -> ${rate.target.code}: **${rate.value}**`
+            )
+            .join(this.getSpacing()),
+        },
+      ],
+    };
+
+    this.service.send({ embeds: [embed] });
+  }
+
+  private getSpeedIcon(speed: number) {
     if (speed === 0) return "<:red:1345009441191362613>";
     if (speed === 1) return "<:yellow:1345009442579681291>";
     return "<:green:1345009439916294154>";
   }
 
-  getSpacing() {
+  private getSpacing() {
     return "‎ ‎ ‎ ‎";
   }
 }

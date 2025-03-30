@@ -1,3 +1,5 @@
+import { CurrencyExchangeRateRepository } from "@/repositories/currency/CurrencyExchangeRateRepository";
+
 export interface CurrencyExchangeRateCreateDto {
   value: number;
   sourceId: number;
@@ -7,3 +9,7 @@ export interface CurrencyExchangeRateCreateDto {
 export interface CurrencyExchangeRateUpdateDto {
   value: number;
 }
+
+export type CurrencyExchangeRateSelectDto = NonNullable<
+  Awaited<ReturnType<CurrencyExchangeRateRepository["getById"]>>
+>;

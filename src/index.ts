@@ -1,9 +1,10 @@
 import express from "express";
 import cors from "cors";
 import { useRouter } from "@/routes";
+import { useWebSockets } from "@/websockets";
 import { CurrencyExchangeRateCronService } from "@/services/cron/CurrencyExchangeRateCronService";
 import { HourlyStatsCronService } from "@/services/cron/HourlyStatsCronService";
-import { useWebSockets } from "@/websockets";
+import { DailyStatsCronService } from "@/services/cron/DailyStatsCronService";
 
 const app = express();
 app.use(express.json());
@@ -20,6 +21,7 @@ useWebSockets(server);
 
 new CurrencyExchangeRateCronService().schedule();
 new HourlyStatsCronService().schedule();
+new DailyStatsCronService().schedule();
 
 process.on("uncaughtException", (err) => {
   console.error(err);
