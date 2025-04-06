@@ -43,7 +43,9 @@ export class DiscordLogService {
             .sort()
             .map(
               ([name, speed]) =>
-                `${this.getSpeedIcon(speed)} ${name} **(${speed}/s)**`
+                `${this.getSpeedIcon(speed)} ${name} **(${(
+                  Math.round(speed * 100) / 100
+                ).toFixed(2)}/s)**`
             )
             .join(this.getSpacing()),
         },
