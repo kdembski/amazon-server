@@ -17,6 +17,10 @@ const server = app.listen(process.env.PORT || 5001, () =>
   console.log("Amazon Server is running...")
 );
 
+setInterval(() => {
+  console.log("-");
+}, 1000);
+
 useWebSockets(server);
 
 new CurrencyExchangeRateCronService().schedule();
