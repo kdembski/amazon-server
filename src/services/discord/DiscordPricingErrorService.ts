@@ -22,8 +22,6 @@ export class DiscordPricingErrorService {
   }
 
   async send(ad: AmazonAdSelectDto, marketplaces: AmazonAdPriceSelectDto[][]) {
-    const productName = await this.aiChatService.getProductName(ad.name);
-
     const fields = marketplaces.map((prices) => {
       const { name, code, currency } = prices[0].country;
 
@@ -44,12 +42,6 @@ export class DiscordPricingErrorService {
           })
           .reverse()
           .join("\n"),
-        timestamp: new Date().toISOString(),
-        ...(productName && {
-          footer: {
-            text: `[Allegro](${this.allegroScraper.getPlpLink(productName)})`,
-          },
-        }),
       };
     });
 

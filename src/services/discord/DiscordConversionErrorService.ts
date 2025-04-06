@@ -20,8 +20,6 @@ export class DiscordConversionErrorService {
   }
 
   async send(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
-    const productName = await this.aiChatService.getProductName(ad.name);
-
     const embed = {
       title: ad.name,
       description: ad.asin,
@@ -39,12 +37,6 @@ export class DiscordConversionErrorService {
           };
         }),
       ],
-      timestamp: new Date().toISOString(),
-      ...(productName && {
-        footer: {
-          text: `[Allegro](${this.allegroScraper.getPlpLink(productName)})`,
-        },
-      }),
     };
 
     this.service.send({ embeds: [embed] });
