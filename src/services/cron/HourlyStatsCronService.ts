@@ -1,6 +1,6 @@
-import cron from "node-cron";
 import { LogService } from "@/services/LogService";
 import { DiscordLogService } from "@/services/discord/DiscordLogService";
+import { CronJob } from "cron";
 
 export class HourlyStatsCronService {
   private discordService;
@@ -15,7 +15,7 @@ export class HourlyStatsCronService {
   }
 
   schedule() {
-    cron.schedule("00 00 */1 * * * *", async () => {
+    new CronJob("00 00 */1 * * * *", async () => {
       const logs = [
         this.getLogCount("ad_scraped"),
         this.getLogCount("conversion_error_1_sent"),
@@ -30,7 +30,7 @@ export class HourlyStatsCronService {
       await Promise.all(logs).then((logs) => {
         this.discordService.sendHourly(logs);
       });
-    });
+    }).start();
   }
 
   getLogCount(event: string) {

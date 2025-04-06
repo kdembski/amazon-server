@@ -1,9 +1,9 @@
-import cron from "node-cron";
 import CurencyApi from "@everapi/freecurrencyapi-js";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
 import { CurrencyService } from "@/services/currency/CurrencyService";
 import { DiscordLogService } from "@/services/discord/DiscordLogService";
 import { StorageService } from "@/services/StorageService";
+import { CronJob } from "cron";
 
 export class CurrencyExchangeRateCronService {
   private exchangeRateService;
@@ -29,7 +29,7 @@ export class CurrencyExchangeRateCronService {
   }
 
   async schedule() {
-    cron.schedule("00 00 20 * * * *", async () => {
+    new CronJob("00 00 20 * * * *", async () => {
       this.currencyApi
         .latest({
           base_currency: this.targetCode,
@@ -44,7 +44,7 @@ export class CurrencyExchangeRateCronService {
             "Currency exchange rates error: " + e.message
           );
         });
-    });
+    }).start();
   }
 
   private async updateStoredPlnExchangeRates() {

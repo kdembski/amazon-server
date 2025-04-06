@@ -1,8 +1,8 @@
-import cron from "node-cron";
 import { LogService } from "@/services/LogService";
 import { DiscordLogService } from "@/services/discord/DiscordLogService";
 import { AmazonAdService } from "@/services/amazon/AmazonAdService";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
+import { CronJob } from "cron";
 
 export class DailyStatsCronService {
   private discordService;
@@ -23,13 +23,13 @@ export class DailyStatsCronService {
   }
 
   async schedule() {
-    cron.schedule("00 00 20 * * * *", async () => {
+    new CronJob("00 00 20 * * * *", async () => {
       const adsCount = await this.getAdsCount();
       const rates = await this.getRates();
       const scraped = await this.getScrapedCount();
 
       this.discordService.sendDaily(adsCount, rates, scraped);
-    });
+    }).start();
   }
 
   private async getAdsCount() {
