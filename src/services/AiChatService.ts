@@ -12,6 +12,9 @@ export class AiChatService {
   ) {
     this.herc = herc;
     this.requestQueueService = requestQueueService;
+    setInterval(() => {
+      console.log(`queue: ${requestQueueService.queue.length}`);
+    }, 1000);
   }
 
   public static getInstance(): AiChatService {
@@ -44,7 +47,7 @@ export class AiChatService {
 
   async getProductName(adName: string) {
     const response = await this.ask(
-      `Give me the name of a product listed under that ad: "${adName}". The name should contain brand and model name if possible. The name should be in polish`
+      `Give me the name of a product from this ad name: "${adName}". The name should contain brand and model name if possible. Keep it clean and simple. Give the answer in polish`
     );
 
     if (!(response && response.reply)) return;

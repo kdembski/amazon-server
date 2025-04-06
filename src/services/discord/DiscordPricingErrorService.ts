@@ -3,15 +3,27 @@ import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { DiscordService } from "@/services/discord/DiscordService";
 import { CurrencySelectDto } from "@/dtos/currency/CurrencyDtos";
+import { AllegroScraper } from "@/scrapers/AllegroScraper";
+import { AiChatService } from "@/services/AiChatService";
 
 export class DiscordPricingErrorService {
   private service;
+  private aiChatService;
+  private allegroScraper;
 
-  constructor(service = new DiscordService("DISCORD_PRICING_ERROR_TOKEN")) {
+  constructor(
+    service = new DiscordService("DISCORD_PRICING_ERROR_TOKEN"),
+    aiChatService = AiChatService.getInstance(),
+    allegroScraper = new AllegroScraper()
+  ) {
     this.service = service;
+    this.aiChatService = aiChatService;
+    this.allegroScraper = allegroScraper;
   }
 
-  send(ad: AmazonAdSelectDto, marketplaces: AmazonAdPriceSelectDto[][]) {
+  async send(ad: AmazonAdSelectDto, marketplaces: AmazonAdPriceSelectDto[][]) {
+    const productName = await this.aiChatService.getProductName(ad.name);
+
     const fields = marketplaces.map((prices) => {
       const { name, code, currency } = prices[0].country;
 
@@ -32,6 +44,12 @@ export class DiscordPricingErrorService {
           })
           .reverse()
           .join("\n"),
+        timestamp: new Date().toISOString(),
+        ...(productName && {
+          footer: {
+            text: `[Allegro](${this.allegroScraper.getPlpLink(productName)})`,
+          },
+        }),
       };
     });
 

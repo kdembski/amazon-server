@@ -6,7 +6,7 @@ import UserAgent from "user-agents";
 export class AllegroScraper {
   constructor() {}
 
-  private getPlpLink(search: string) {
+  getPlpLink(search: string) {
     return `https://allegro.pl/listing?string=${search.replaceAll(
       " ",
       "%20"

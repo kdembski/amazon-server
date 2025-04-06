@@ -23,17 +23,18 @@ export class DiscordLogService {
   sendHourly(logs: number[]) {
     const embed = {
       title: "Hourly status",
-      description: `Scraped: **${logs[0]}**`,
+      description: `Scraped: **${addSeparators(logs[0])}**`,
       fields: [
         {
           name: "Channels",
           value: [
-            `70%: **${logs[1]}**`,
-            `90%: **${logs[2]}**`,
-            `0-50: **${logs[3]}**`,
-            `50-200: **${logs[4]}**`,
-            `200+: **${logs[5]}**`,
-            `hist: **${logs[6]}**`,
+            `50%: **${logs[1]}**`,
+            `70%: **${logs[2]}**`,
+            `90%: **${logs[3]}**`,
+            `0-50: **${logs[4]}**`,
+            `50-200: **${logs[5]}**`,
+            `200+: **${logs[6]}**`,
+            `hist: **${logs[7]}**`,
           ].join(this.getSpacing()),
         },
         {
@@ -59,7 +60,7 @@ export class DiscordLogService {
   ) {
     const embed = {
       title: "Daily status",
-      description: `Scraped: **${scraped}**`,
+      description: `Scraped: **${addSeparators(scraped)}**`,
       fields: [
         {
           name: "Collected asins",

@@ -1,15 +1,27 @@
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { DiscordService } from "@/services/discord/DiscordService";
+import { AiChatService } from "@/services/AiChatService";
+import { AllegroScraper } from "@/scrapers/AllegroScraper";
 
 export class DiscordConversionErrorService {
-  private _service;
+  private service;
+  private aiChatService;
+  private allegroScraper;
 
-  constructor(service = new DiscordService()) {
-    this._service = service;
+  constructor(
+    service = new DiscordService(),
+    aiChatService = AiChatService.getInstance(),
+    allegroScraper = new AllegroScraper()
+  ) {
+    this.service = service;
+    this.aiChatService = aiChatService;
+    this.allegroScraper = allegroScraper;
   }
 
-  send(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
+  async send(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
+    const productName = await this.aiChatService.getProductName(ad.name);
+
     const embed = {
       title: ad.name,
       description: ad.asin,
@@ -27,12 +39,18 @@ export class DiscordConversionErrorService {
           };
         }),
       ],
+      timestamp: new Date().toISOString(),
+      ...(productName && {
+        footer: {
+          text: `[Allegro](${this.allegroScraper.getPlpLink(productName)})`,
+        },
+      }),
     };
 
-    this._service.send({ embeds: [embed] });
+    this.service.send({ embeds: [embed] });
   }
 
   setChannel(channel: string) {
-    this._service.client = `DISCORD_CONVERSION_ERROR_${channel}_TOKEN`;
+    this.service.client = `DISCORD_CONVERSION_ERROR_${channel}_TOKEN`;
   }
 }

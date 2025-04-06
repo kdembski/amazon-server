@@ -18,6 +18,7 @@ export class HourlyStatsCronService {
     cron.schedule("00 00 */1 * * * *", async () => {
       const logs = [
         this.getLogCount("ad_scraped"),
+        this.getLogCount("conversion_error_1_sent"),
         this.getLogCount("conversion_error_2_sent"),
         this.getLogCount("conversion_error_3_sent"),
         this.getLogCount("conversion_error_4_sent"),
