@@ -44,8 +44,8 @@ export class DiscordLogService {
             .map(
               ([name, speed]) =>
                 `${this.getSpeedIcon(speed)} ${name} **(${(
-                  Math.round(speed * 100) / 100
-                ).toFixed(2)}/s)**`
+                  Math.round(speed * 10) / 10
+                ).toFixed(1)}/s)**`
             )
             .join(this.getSpacing()),
         },
