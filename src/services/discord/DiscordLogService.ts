@@ -21,6 +21,7 @@ export class DiscordLogService {
   }
 
   sendHourly(logs: number[]) {
+    const speeds = this.getScraperSpeeds();
     const embed = {
       title: "Hourly status",
       description: `Scraped: **${addSeparators(logs[0])}**`,
@@ -37,18 +38,7 @@ export class DiscordLogService {
             `hist: **${logs[7]}**`,
           ].join(this.getSpacing()),
         },
-        {
-          name: "Scrapers",
-          value: Object.entries(this.scrapersStatusService.speeds)
-            .sort()
-            .map(
-              ([name, speed]) =>
-                `${this.getSpeedIcon(speed)} ${name} **(${(
-                  Math.round(speed * 10) / 10
-                ).toFixed(1)}/s)**`
-            )
-            .join(this.getSpacing()),
-        },
+        ...(speeds ? [{ name: "Scrapers", value: speeds }] : []),
       ],
     };
 
@@ -90,6 +80,30 @@ export class DiscordLogService {
     if (speed === 0) return "<:red:1345009441191362613>";
     if (speed === 1) return "<:yellow:1345009442579681291>";
     return "<:green:1345009439916294154>";
+  }
+
+  private getScraperSpeeds() {
+    const speeds = Object.entries(this.scrapersStatusService.speeds);
+    if (!speeds?.length) return;
+
+    speeds.sort();
+    const lines: string[] = [];
+
+    for (let i = 0; i < speeds.length; i += 4) {
+      const line = speeds
+        .slice(i, i + 4)
+        .map(
+          ([name, speed]) =>
+            `${this.getSpeedIcon(speed)} ${name} **(${(
+              Math.round(speed * 10) / 10
+            ).toFixed(1)}/s)**`
+        )
+        .join(this.getSpacing());
+
+      lines.push(line);
+    }
+
+    return lines.join("\n");
   }
 
   private getSpacing() {
