@@ -29,7 +29,7 @@ export class CurrencyExchangeRateCronService {
   }
 
   async schedule() {
-    new CronJob("00 00 20 * * * *", async () => {
+    new CronJob("00 00 20 * * *", async () => {
       this.currencyApi
         .latest({
           base_currency: this.targetCode,

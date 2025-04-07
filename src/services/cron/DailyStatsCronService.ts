@@ -23,7 +23,7 @@ export class DailyStatsCronService {
   }
 
   async schedule() {
-    new CronJob("00 00 20 * * * *", async () => {
+    new CronJob("00 00 20 * * *", async () => {
       const adsCount = await this.getAdsCount();
       const rates = await this.getRates();
       const scraped = await this.getScrapedCount();
