@@ -3,25 +3,32 @@ import { addSeparators } from "@/helpers/number";
 import { DiscordService } from "@/services/discord/DiscordService";
 import { ScrapersStatusService } from "@/services/ScrapersStatusService";
 import { MessagePayload, WebhookMessageCreateOptions } from "discord.js";
+import { SystemService } from "@/services/SystemService";
 
 export class DiscordLogService {
   private service;
   private scrapersStatusService;
+  private systemService;
 
   constructor(
     service = new DiscordService("DISCORD_LOGS_TOKEN"),
-    scrapersStatusService = ScrapersStatusService.getInstance()
+    scrapersStatusService = ScrapersStatusService.getInstance(),
+    systemService = SystemService.getInstance()
   ) {
     this.service = service;
     this.scrapersStatusService = scrapersStatusService;
+    this.systemService = systemService;
   }
 
   send(options: string | MessagePayload | WebhookMessageCreateOptions) {
     this.service.send(options);
   }
 
-  sendHourly(logs: number[]) {
+  async sendHourly(logs: number[]) {
     const speeds = this.getScraperSpeeds();
+    const cpu = await this.systemService.getCpuUsage();
+    const ram = await this.systemService.getMemoryUsage();
+
     const embed = {
       title: "Hourly status",
       description: `Scraped: **${addSeparators(logs[0])}**`,
@@ -39,6 +46,12 @@ export class DiscordLogService {
           ].join(this.getSpacing()),
         },
         ...(speeds ? [{ name: "Scrapers", value: speeds }] : []),
+        {
+          name: "System",
+          value: [`CPU: **${cpu}%**`, `RAM: **${ram}%**`].join(
+            this.getSpacing()
+          ),
+        },
       ],
     };
 
