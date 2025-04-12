@@ -7,7 +7,7 @@ export class SystemService {
   private constructor() {
     setInterval(async () => {
       const usage = await osu.cpu.usage();
-      const length = this.cpuUsageHistory.push(usage);
+      const length = this.cpuUsageHistory.unshift(usage);
       this.cpuUsageHistory.length = Math.min(length, 60 * 60);
     }, 1000);
   }
