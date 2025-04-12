@@ -88,7 +88,7 @@ export class DiscordLogService {
           ? [
               {
                 name: "Server",
-                value: `Disk space: **${disk.used}/${disk.total}Gb** *(${disk.percentage}%)*`,
+                value: `Disk space: **${disk.used}/${disk.total}** *(${disk.percentage}%)*`,
               },
             ]
           : []),
