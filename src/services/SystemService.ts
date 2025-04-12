@@ -9,6 +9,11 @@ export class SystemService {
       const usage = await osu.cpu.usage();
       const length = this.cpuUsageHistory.unshift(usage);
       this.cpuUsageHistory.length = Math.min(length, 60 * 60);
+
+      const disk = await this.getDiskSpace();
+      console.log(
+        `Disk space: **${disk?.used}/${disk?.total}Gb** *(${disk?.percentage}%)*`
+      );
     }, 1000);
   }
 
@@ -30,5 +35,24 @@ export class SystemService {
   async getMemoryUsage() {
     const { totalMemMb, usedMemMb } = await osu.mem.used();
     return Math.round((usedMemMb * 100) / totalMemMb);
+  }
+
+  async getDiskSpace() {
+    return new Promise<
+      { used: string; total: string; percentage: string } | undefined
+    >((resolve) => {
+      osu.drive
+        .info("/")
+        .then((disk) => {
+          resolve({
+            used: disk.usedGb,
+            total: disk.totalGb,
+            percentage: disk.usedPercentage,
+          });
+        })
+        .catch(() => {
+          resolve(undefined);
+        });
+    });
   }
 }

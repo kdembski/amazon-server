@@ -47,7 +47,7 @@ export class DiscordLogService {
         },
         ...(speeds ? [{ name: "Scrapers", value: speeds }] : []),
         {
-          name: "System",
+          name: "Server",
           value: [`CPU: **${cpu}%**`, `RAM: **${ram}%**`].join(
             this.getSpacing()
           ),
@@ -58,11 +58,12 @@ export class DiscordLogService {
     this.service.send({ embeds: [embed] });
   }
 
-  sendDaily(
+  async sendDaily(
     adsCount: { total: number; today: number },
     rates: CurrencyExchangeRateSelectDto[],
     scraped: number
   ) {
+    const disk = await this.systemService.getDiskSpace();
     const embed = {
       title: "Daily status",
       description: `Scraped: **${addSeparators(scraped)}**`,
@@ -83,6 +84,14 @@ export class DiscordLogService {
             )
             .join(this.getSpacing()),
         },
+        ...(disk
+          ? [
+              {
+                name: "Server",
+                value: `Disk space: **${disk.used}/${disk.total}Gb** *(${disk.percentage}%)*`,
+              },
+            ]
+          : []),
       ],
     };
 
