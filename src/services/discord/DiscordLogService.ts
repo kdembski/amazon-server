@@ -103,7 +103,7 @@ export class DiscordLogService {
     if (disk) {
       fields.push({
         name: "Server",
-        value: `Disk space: **${disk.used}/${disk.total}** *(${disk.percentage}%)*`,
+        value: `Disk space: **${disk.used}**/**${disk.total}** *(${disk.percentage}%)*`,
       });
     }
 
