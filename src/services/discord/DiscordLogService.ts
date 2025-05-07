@@ -123,15 +123,15 @@ export class DiscordLogService {
   }
 
   private getSpeedDiff(diff: number) {
-    if (diff >= 0.01) return `*(+${roundToTwoDecimals(diff)})*`;
-    if (diff <= -0.01) return `*(${roundToTwoDecimals(diff)})*`;
+    if (diff === 0) return "0.00";
+    if (diff > 0) return `*(+${roundToTwoDecimals(diff)})*`;
     return `*(${roundToTwoDecimals(diff)})*`;
   }
 
   private getSpeedDiffIcon(diff: number) {
-    if (diff >= 0.01) return "<:arrow_up:1369606030060945500>";
-    if (diff <= -0.01) return "<:arrow_down:1369606028655726592>";
-    return "<:dot:1369607414785245244>";
+    if (diff >= 0.02) return "<:arrow_up:1369710756358258748>";
+    if (diff <= -0.02) return "<:arrow_down:1369710758241374219>";
+    return "<:line:1369711891555025046>";
   }
 
   private getScrapersSpeedSum() {
@@ -148,7 +148,7 @@ export class DiscordLogService {
     const statuses = Object.values(this.scrapersStatusService.statuses);
     if (!statuses?.length) return;
 
-    statuses.sort();
+    statuses.sort((a, b) => (a.name > b.name ? 1 : -1));
 
     return statuses
       .map((status) => {
