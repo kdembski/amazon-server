@@ -1,6 +1,8 @@
+import { ScraperStatusDto } from "@/dtos/ScraperStatusDtos";
+
 export class ScrapersStatusService {
   private static instance: ScrapersStatusService;
-  speeds: Record<string, number> = {};
+  statuses: Record<string, ScraperStatusDto & { speedDiff: number }> = {};
 
   private constructor() {}
 
@@ -12,7 +14,10 @@ export class ScrapersStatusService {
     return ScrapersStatusService.instance;
   }
 
-  setSpeed(name: string, value: number) {
-    this.speeds[name] = value;
+  setStatus(dto: ScraperStatusDto) {
+    const { name } = dto;
+    const speedDiff = dto.speed - (this.statuses[name]?.speed || 0);
+
+    this.statuses[name] = { ...dto, speedDiff };
   }
 }

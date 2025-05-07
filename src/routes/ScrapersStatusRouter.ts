@@ -16,8 +16,8 @@ export class ScrapersStatusRouter implements SubRouterI {
   }
 
   build() {
-    this.router.post("/speed", (req, res) =>
-      this.controller.setSpeed(req, res)
+    this.router.post("/status", (req, res) =>
+      this.controller.setStatus(req, res)
     );
     return this;
   }
