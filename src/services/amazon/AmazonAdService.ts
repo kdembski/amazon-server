@@ -105,12 +105,9 @@ export class AmazonAdService {
     resolve: (v: AmazonAdSelectDto[]) => void
   ) {
     const ads = await this.repository.getForScraping(count);
+    const ids = ads.map((ad) => ad.id);
+    await this.repository.updateScrapedAt(ids);
 
-    const promises = ads.map((ad) =>
-      this.repository.update(ad.id, { scrapedAt: new Date(Date.now()) })
-    );
-
-    await Promise.all(promises);
     AmazonAdService.isGetting = false;
     resolve(ads);
   }

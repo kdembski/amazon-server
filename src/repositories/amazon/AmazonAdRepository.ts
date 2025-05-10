@@ -3,9 +3,11 @@ import { PrismaClient } from "@@prisma/PrismaClient";
 
 export class AmazonAdRepository {
   private delegate;
+  private prisma;
 
   constructor(prisma = PrismaClient.getInstance()) {
     this.delegate = prisma.amazonAd;
+    this.prisma = prisma;
   }
 
   getById(id: number) {
@@ -19,6 +21,13 @@ export class AmazonAdRepository {
         scrapedAt: { sort: "asc", nulls: "first" },
       },
     });
+  }
+
+  updateScrapedAt(ids: number[]) {
+    return this.prisma
+      .$executeRaw`UPDATE AmazonAd SET scrapedAt = NOW() WHERE id IN (${Prisma.join(
+      ids
+    )})`;
   }
 
   getAll() {

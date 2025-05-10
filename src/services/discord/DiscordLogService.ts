@@ -130,7 +130,7 @@ export class DiscordLogService {
   private getSpeedDiffIcon(diff: number) {
     if (diff >= 0.02) return "<:arrow_up:1369710756358258748>";
     if (diff <= -0.02) return "<:arrow_down:1369710758241374219>";
-    return `${this.getSpacing(1)}-${this.getSpacing(1)}`;
+    return `${this.getSpacing(3)}-${this.getSpacing(3)}`;
   }
 
   private getScrapersSpeedSum() {
