@@ -1,4 +1,4 @@
-import { CurrencyExchangeRateSelectDto } from "@/dtos/currency/CurrencyDtos";
+import { CurrencyExchangeRateSelectDto } from "@/dtos/currency/CurrencyExchangeRateDtos";
 
 export class StorageService {
   private static instance: StorageService;

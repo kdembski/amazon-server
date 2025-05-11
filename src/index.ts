@@ -5,6 +5,7 @@ import { useWebSockets } from "@/websockets";
 import { CurrencyExchangeRateCronService } from "@/services/cron/CurrencyExchangeRateCronService";
 import { HourlyStatsCronService } from "@/services/cron/HourlyStatsCronService";
 import { DailyStatsCronService } from "@/services/cron/DailyStatsCronService";
+import { DiscordCommandService } from "@/services/discord/DiscordCommandService";
 
 const app = express();
 app.use(express.json());
@@ -17,15 +18,13 @@ const server = app.listen(process.env.PORT || 5001, () =>
   console.log("Amazon Server is running...")
 );
 
-setInterval(() => {
-  console.log("-");
-}, 1000);
-
 useWebSockets(server);
 
 new CurrencyExchangeRateCronService().schedule();
 new HourlyStatsCronService().schedule();
 new DailyStatsCronService().schedule();
+
+//DiscordCommandService.getInstance().login();
 
 process.on("uncaughtException", (err) => {
   console.error(err);

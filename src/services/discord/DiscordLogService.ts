@@ -35,7 +35,7 @@ export class DiscordLogService {
   async sendHourly(logs: number[]) {
     const statuses = this.getScraperStatuses();
     const speedSum = this.getScrapersSpeedSum();
-    const cpu = await this.systemService.getCpuUsage();
+    const cpu = this.systemService.getCpuUsage();
     const ram = await this.systemService.getMemoryUsage();
 
     const fields: APIEmbedField[] = [];
@@ -130,7 +130,7 @@ export class DiscordLogService {
   private getSpeedDiffIcon(diff: number) {
     if (diff >= 0.02) return "<:arrow_up:1369710756358258748>";
     if (diff <= -0.02) return "<:arrow_down:1369710758241374219>";
-    return `${this.getSpacing(3)}-${this.getSpacing(3)}`;
+    return `${this.getSpacing(2)}-${this.getSpacing(2)}`;
   }
 
   private getScrapersSpeedSum() {

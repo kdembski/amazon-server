@@ -46,6 +46,7 @@ model Country {
   id            Int             @id @default(autoincrement())
   name          String          @db.VarChar(63)
   code          String          @db.VarChar(63)
+  active        Boolean         @default(false)
   currencyId    Int
   createdAt     DateTime        @db.Timestamp(2)
   updatedAt     DateTime        @db.Timestamp(2)

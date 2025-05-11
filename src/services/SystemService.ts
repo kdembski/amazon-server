@@ -1,14 +1,26 @@
+import { calculateAvg, roundToOneDecimal } from "@/helpers/number";
+import { ScrapersStatusService } from "@/services/ScrapersStatusService";
 import osu from "node-os-utils";
 
 export class SystemService {
   private static instance: SystemService;
+  private scrapersService;
   private cpuUsageHistory: number[] = [];
 
-  private constructor() {
+  private constructor(scrapersService = ScrapersStatusService.getInstance()) {
+    this.scrapersService = scrapersService;
+
     setInterval(async () => {
-      const usage = await osu.cpu.usage();
-      const length = this.cpuUsageHistory.unshift(usage);
-      this.cpuUsageHistory.length = Math.min(length, 60 * 60);
+      this.updateCpuUsage();
+
+      const logs = [
+        ...Object.entries(this.scrapersService.cpuHistory).map(
+          ([name, history]) =>
+            `${name}: ${roundToOneDecimal(calculateAvg(history))}%`
+        ),
+        `global: ${roundToOneDecimal(this.getCpuUsage())}%`,
+      ];
+      console.log(logs);
     }, 1000);
   }
 
@@ -20,11 +32,14 @@ export class SystemService {
     return SystemService.instance;
   }
 
-  async getCpuUsage() {
-    return Math.round(
-      this.cpuUsageHistory.reduce((sum, v) => sum + v, 0) /
-        this.cpuUsageHistory.length
-    );
+  getCpuUsage() {
+    return calculateAvg(this.cpuUsageHistory);
+  }
+
+  async updateCpuUsage() {
+    const usage = await osu.cpu.usage();
+    const length = this.cpuUsageHistory.unshift(usage);
+    this.cpuUsageHistory.length = Math.min(length, 60 * 60);
   }
 
   async getMemoryUsage() {
@@ -33,21 +48,12 @@ export class SystemService {
   }
 
   async getDiskSpace() {
-    return new Promise<
-      { used: string; total: string; percentage: string } | undefined
-    >((resolve) => {
-      osu.drive
-        .info("/")
-        .then((disk) => {
-          resolve({
-            used: disk.usedGb,
-            total: disk.totalGb,
-            percentage: disk.usedPercentage,
-          });
-        })
-        .catch(() => {
-          resolve(undefined);
-        });
-    });
+    const disk = await osu.drive.info("/");
+
+    return {
+      used: disk.usedGb,
+      total: disk.totalGb,
+      percentage: disk.usedPercentage,
+    };
   }
 }
