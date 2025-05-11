@@ -12,15 +12,7 @@ export class SystemService {
 
     setInterval(async () => {
       this.updateCpuUsage();
-
-      const logs = [
-        ...Object.entries(this.scrapersService.cpuHistory).map(
-          ([name, history]) =>
-            `${name}: ${roundToOneDecimal(calculateAvg(history))}%`
-        ),
-        `global: ${roundToOneDecimal(this.getCpuUsage())}%`,
-      ];
-      console.log(logs);
+      console.log(this.getLogs());
     }, 1000);
   }
 
@@ -55,5 +47,15 @@ export class SystemService {
       total: disk.totalGb,
       percentage: disk.usedPercentage,
     };
+  }
+
+  private getLogs() {
+    return [
+      ...Object.entries(this.scrapersService.cpuHistory).map(
+        ([name, history]) =>
+          `${name}: ${roundToOneDecimal(calculateAvg(history))}%`
+      ),
+      `global: ${roundToOneDecimal(this.getCpuUsage())}%`,
+    ].join(" | ");
   }
 }

@@ -55,7 +55,7 @@ export class DiscordLogService {
 
     if (statuses) {
       fields.push({
-        name: `Scrapers ${speedSum ? `*(${speedSum.toFixed(1)}/s)*` : ""}`,
+        name: `Scrapers ${speedSum ? `*(${speedSum}/s)*` : ""}`,
         value: statuses,
       });
     }
@@ -123,8 +123,8 @@ export class DiscordLogService {
   }
 
   private getSpeedDiff(diff: number) {
-    if (diff > 0) return `*(+${roundToTwoDecimals(diff).toFixed(2)})*`;
-    return `*(${roundToTwoDecimals(diff).toFixed(2)})*`;
+    if (diff > 0) return `*(+${roundToTwoDecimals(diff)})*`;
+    return `*(${roundToTwoDecimals(diff)})*`;
   }
 
   private getSpeedDiffIcon(diff: number) {
@@ -154,7 +154,7 @@ export class DiscordLogService {
         const { name, speed, pending, speedDiff, cpu } = status;
         const speedDiffValue = this.getSpeedDiff(speedDiff);
         const speedDiffIcon = this.getSpeedDiffIcon(speedDiff);
-        const speedValue = `**${roundToOneDecimal(speed).toFixed(1)}/s**`;
+        const speedValue = `**${roundToOneDecimal(speed)}/s**`;
 
         return [
           `${this.getSpeedIcon(speed)} ${name}`,

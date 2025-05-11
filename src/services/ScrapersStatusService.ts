@@ -1,5 +1,6 @@
 import pm2 from "pm2";
 import { ScraperStatusDto } from "@/dtos/ScraperStatusDtos";
+import { calculateAvg, roundToOneDecimal } from "@/helpers/number";
 
 export class ScrapersStatusService {
   private static instance: ScrapersStatusService;
@@ -18,11 +19,13 @@ export class ScrapersStatusService {
     return ScrapersStatusService.instance;
   }
 
-  setStatus(dto: ScraperStatusDto) {
-    const { name } = dto;
+  setStatus(name: string, dto: ScraperStatusDto) {
     const speedDiff = dto.speed - (this.statuses[name]?.speed || 0);
-
     this.statuses[name] = { ...dto, speedDiff };
+  }
+
+  getCpuUsage(name: string) {
+    return roundToOneDecimal(calculateAvg(this.cpuHistory[name]));
   }
 
   updateCpuUsage() {

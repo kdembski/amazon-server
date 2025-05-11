@@ -6,6 +6,7 @@ import { CountryRouter } from "./currency/CountryRouter";
 import { CurrencyRouter } from "./currency/CurrencyRouter";
 import { CurrencyExchangeRateRouter } from "./currency/CurrencyExchangeRateRouter";
 import { ScrapersStatusRouter } from "@/routes/ScrapersStatusRouter";
+import { SystemRouter } from "@/routes/SystemRouter";
 
 export function useRouter() {
   const subRouters = [
@@ -16,6 +17,7 @@ export function useRouter() {
     new CurrencyRouter(),
     new CurrencyExchangeRateRouter(),
     new ScrapersStatusRouter(),
+    new SystemRouter(),
   ];
   const router = Router();
 

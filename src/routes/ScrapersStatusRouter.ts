@@ -1,8 +1,5 @@
 import { ScrapersStatusController } from "@/controllers/ScrapersStatusController";
 import { SubRouterI } from "@/interfaces/SubRouterI";
-import { CreatableRouter } from "@/routes/crud/CreatableRouter";
-import { DeletableRouter } from "@/routes/crud/DeletableRouter";
-import { UpdatableRouter } from "@/routes/crud/UpdatableRouter";
 import { Router } from "express";
 
 export class ScrapersStatusRouter implements SubRouterI {
@@ -16,7 +13,10 @@ export class ScrapersStatusRouter implements SubRouterI {
   }
 
   build() {
-    this.router.post("/status", (req, res) =>
+    this.router.get("/:name/cpu", (req, res) =>
+      this.controller.getCpuUsage(req, res)
+    );
+    this.router.post("/:name/status", (req, res) =>
       this.controller.setStatus(req, res)
     );
     return this;
