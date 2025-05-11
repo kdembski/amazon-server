@@ -30,11 +30,11 @@ export class ScraperStatusService {
     return calculateAvg(this.cpuHistories[name]);
   }
 
-  getScrapersCount() {
+  getCount() {
     return this.scrapers.length;
   }
 
-  getScraperNames() {
+  getNames() {
     return this.scrapers
       .map((scraper) => scraper.name)
       .filter((name) => !!name) as string[];
@@ -44,7 +44,7 @@ export class ScraperStatusService {
     pm2.list((e, list) => {
       if (e) console.error(e);
 
-      const names = this.getScraperNames();
+      const names = this.getNames();
       names.forEach((name) => {
         const usage = list.find((scraper) => scraper.name === name)?.monit?.cpu;
         if (!usage) return;

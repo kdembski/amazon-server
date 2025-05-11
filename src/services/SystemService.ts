@@ -52,7 +52,7 @@ export class SystemService {
   private getLogs() {
     return [
       ...this.scrapersService
-        .getScraperNames()
+        .getNames()
         .map(
           (name) =>
             `${name}: ${roundToOneDecimal(

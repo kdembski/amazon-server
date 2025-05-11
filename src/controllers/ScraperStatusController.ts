@@ -34,9 +34,9 @@ export class ScraperStatusController {
     }
   }
 
-  async getScrapersCount(response: Response) {
+  async getCount(response: Response) {
     try {
-      const count = this.service.getScrapersCount();
+      const count = this.service.getCount();
       response.json(count);
     } catch (error: any) {
       new ResponseErrorService(response).send(error);

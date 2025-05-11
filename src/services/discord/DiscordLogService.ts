@@ -132,7 +132,7 @@ export class DiscordLogService {
   private getSpeedDiffIcon(diff: number) {
     if (diff >= 0.02) return "<:arrow_up:1369710756358258748>";
     if (diff <= -0.02) return "<:arrow_down:1369710758241374219>";
-    return `${this.getSpacing(3)}-${this.getSpacing(2)}`;
+    return `${this.getSpacing(3)}-${this.getSpacing(3)}`;
   }
 
   private getScrapersSpeedSum() {
@@ -146,14 +146,15 @@ export class DiscordLogService {
   }
 
   private getScraperStatuses() {
-    const statuses = Object.values(this.scrapersStatusService.statuses);
+    const statuses = Object.entries(this.scrapersStatusService.statuses);
     if (!statuses?.length) return;
 
-    statuses.sort((a, b) => (a.name > b.name ? 1 : -1));
+    statuses.sort((a, b) => (a[0] > b[0] ? 1 : -1));
 
     return statuses
-      .map((status) => {
-        const { name, speed, pending, speedDiff, cpu } = status;
+      .map(([name, status]) => {
+        const { speed, pending, speedDiff } = status;
+        const cpu = this.scrapersStatusService.getCpuUsage(name);
         const speedDiffValue = this.getSpeedDiff(speedDiff);
         const speedDiffIcon = this.getSpeedDiffIcon(speedDiff);
         const speedValue = `**${roundToOneDecimal(speed)}/s**`;
