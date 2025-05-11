@@ -13,7 +13,7 @@ export class SystemRouter implements SubRouterI {
   }
 
   build() {
-    this.router.get("/cpu", (req, res) => this.controller.getCpuUsage(res));
+    this.router.get("/cpu", (_, res) => this.controller.getCpuUsage(res));
     return this;
   }
 

@@ -51,10 +51,14 @@ export class SystemService {
 
   private getLogs() {
     return [
-      ...Object.entries(this.scrapersService.cpuHistory).map(
-        ([name, history]) =>
-          `${name}: ${roundToOneDecimal(calculateAvg(history))}%`
-      ),
+      ...this.scrapersService
+        .getScraperNames()
+        .map(
+          (name) =>
+            `${name}: ${roundToOneDecimal(
+              this.scrapersService.getCpuUsage(name)
+            )}%`
+        ),
       `global: ${roundToOneDecimal(this.getCpuUsage())}%`,
     ].join(" | ");
   }

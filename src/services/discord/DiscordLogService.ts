@@ -62,7 +62,9 @@ export class DiscordLogService {
 
     fields.push({
       name: "Server",
-      value: [`CPU: **${cpu}%**`, `RAM: **${ram}%**`].join(this.getSpacing(4)),
+      value: [`CPU: **${roundToOneDecimal(cpu)}%**`, `RAM: **${ram}%**`].join(
+        this.getSpacing(4)
+      ),
     });
 
     const embed = {
@@ -130,7 +132,7 @@ export class DiscordLogService {
   private getSpeedDiffIcon(diff: number) {
     if (diff >= 0.02) return "<:arrow_up:1369710756358258748>";
     if (diff <= -0.02) return "<:arrow_down:1369710758241374219>";
-    return `${this.getSpacing(2)}-${this.getSpacing(2)}`;
+    return `${this.getSpacing(3)}-${this.getSpacing(2)}`;
   }
 
   private getScrapersSpeedSum() {

@@ -33,4 +33,13 @@ export class ScrapersStatusController {
       new ResponseErrorService(response).send(error);
     }
   }
+
+  async getScrapersCount(response: Response) {
+    try {
+      const count = this.service.getScrapersCount();
+      response.json(count);
+    } catch (error: any) {
+      new ResponseErrorService(response).send(error);
+    }
+  }
 }

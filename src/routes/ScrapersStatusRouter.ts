@@ -13,6 +13,9 @@ export class ScrapersStatusRouter implements SubRouterI {
   }
 
   build() {
+    this.router.get("/count", (_, res) =>
+      this.controller.getScrapersCount(res)
+    );
     this.router.get("/:name/cpu", (req, res) =>
       this.controller.getCpuUsage(req, res)
     );
