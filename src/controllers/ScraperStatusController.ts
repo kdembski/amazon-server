@@ -1,12 +1,12 @@
 import { ScraperStatusDto } from "@/dtos/ScraperStatusDtos";
 import { ResponseErrorService } from "@/services/ResponseErrorService";
-import { ScrapersStatusService } from "@/services/ScrapersStatusService";
+import { ScraperStatusService } from "@/services/ScraperStatusService";
 import { Request, Response } from "express";
 
-export class ScrapersStatusController {
+export class ScraperStatusController {
   service;
 
-  constructor(service = ScrapersStatusService.getInstance()) {
+  constructor(service = ScraperStatusService.getInstance()) {
     this.service = service;
   }
 

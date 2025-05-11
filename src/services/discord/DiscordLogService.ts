@@ -5,7 +5,7 @@ import {
   roundToTwoDecimals,
 } from "@/helpers/number";
 import { DiscordService } from "@/services/discord/DiscordService";
-import { ScrapersStatusService } from "@/services/ScrapersStatusService";
+import { ScraperStatusService } from "@/services/ScraperStatusService";
 import {
   APIEmbedField,
   MessagePayload,
@@ -20,7 +20,7 @@ export class DiscordLogService {
 
   constructor(
     service = new DiscordService("DISCORD_LOGS_TOKEN"),
-    scrapersStatusService = ScrapersStatusService.getInstance(),
+    scrapersStatusService = ScraperStatusService.getInstance(),
     systemService = SystemService.getInstance()
   ) {
     this.service = service;

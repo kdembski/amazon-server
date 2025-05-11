@@ -1,5 +1,5 @@
 import { calculateAvg, roundToOneDecimal } from "@/helpers/number";
-import { ScrapersStatusService } from "@/services/ScrapersStatusService";
+import { ScraperStatusService } from "@/services/ScraperStatusService";
 import osu from "node-os-utils";
 
 export class SystemService {
@@ -7,7 +7,7 @@ export class SystemService {
   private scrapersService;
   private cpuUsageHistory: number[] = [];
 
-  private constructor(scrapersService = ScrapersStatusService.getInstance()) {
+  private constructor(scrapersService = ScraperStatusService.getInstance()) {
     this.scrapersService = scrapersService;
 
     setInterval(async () => {

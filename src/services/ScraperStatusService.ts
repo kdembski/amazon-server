@@ -2,8 +2,8 @@ import pm2 from "pm2";
 import { ScraperStatusDto } from "@/dtos/ScraperStatusDtos";
 import { calculateAvg } from "@/helpers/number";
 
-export class ScrapersStatusService {
-  private static instance: ScrapersStatusService;
+export class ScraperStatusService {
+  private static instance: ScraperStatusService;
   scrapers: pm2.ProcessDescription[] = [];
   statuses: Record<string, ScraperStatusDto & { speedDiff: number }> = {};
   cpuHistories: Record<string, number[]> = {};
@@ -13,12 +13,12 @@ export class ScrapersStatusService {
     setInterval(() => this.updateCpuUsage(), 1000);
   }
 
-  public static getInstance(): ScrapersStatusService {
-    if (!ScrapersStatusService.instance) {
-      ScrapersStatusService.instance = new ScrapersStatusService();
+  public static getInstance(): ScraperStatusService {
+    if (!ScraperStatusService.instance) {
+      ScraperStatusService.instance = new ScraperStatusService();
     }
 
-    return ScrapersStatusService.instance;
+    return ScraperStatusService.instance;
   }
 
   setStatus(name: string, dto: ScraperStatusDto) {
