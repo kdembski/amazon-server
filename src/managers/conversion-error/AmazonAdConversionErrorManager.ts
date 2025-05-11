@@ -44,7 +44,7 @@ export class AmazonAdConversionErrorManager {
       const rate = rates.find((rate) => rate.sourceId === currencyId);
       if (!rate) return;
 
-      price.value = roundToTwoDecimals(price.value * rate.value.toNumber());
+      price.value = price.value * rate.value.toNumber();
     });
   }
 

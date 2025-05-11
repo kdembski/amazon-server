@@ -5,6 +5,7 @@ import { DiscordService } from "@/services/discord/DiscordService";
 import { CurrencySelectDto } from "@/dtos/currency/CurrencyDtos";
 import { AllegroScraper } from "@/scrapers/AllegroScraper";
 import { AiChatService } from "@/services/AiChatService";
+import { roundToTwoDecimals } from "@/helpers/number";
 
 export class DiscordPricingErrorService {
   private service;
@@ -66,7 +67,7 @@ export class DiscordPricingErrorService {
   }
 
   getValueWithCurrency(value: number, currency: CurrencySelectDto) {
-    return `**${value.toFixed(2)} ${currency.code}**`;
+    return `**${roundToTwoDecimals(value)} ${currency.code}**`;
   }
 
   getFullText(withCurrency: string, difference?: number) {

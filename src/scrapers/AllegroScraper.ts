@@ -44,6 +44,6 @@ export class AllegroScraper {
       return prices;
     });
 
-    //browser.close();
+    browser.close();
   }
 }

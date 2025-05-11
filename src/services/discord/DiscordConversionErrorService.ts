@@ -3,6 +3,7 @@ import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { DiscordService } from "@/services/discord/DiscordService";
 import { AiChatService } from "@/services/AiChatService";
 import { AllegroScraper } from "@/scrapers/AllegroScraper";
+import { roundToTwoDecimals } from "@/helpers/number";
 
 export class DiscordConversionErrorService {
   private service;
@@ -31,9 +32,9 @@ export class DiscordConversionErrorService {
         ...prices.map((price) => {
           return {
             name: price.country.name,
-            value: `[${price.value.toFixed(2)} PLN](https://www.amazon.${
-              price.country.code
-            }/dp/${ad.asin})`,
+            value: `[${roundToTwoDecimals(
+              price.value
+            )} PLN](https://www.amazon.${price.country.code}/dp/${ad.asin})`,
           };
         }),
       ],
