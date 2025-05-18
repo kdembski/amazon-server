@@ -130,8 +130,8 @@ export class DiscordLogService {
   }
 
   private getSpeedDiffIcon(diff: number) {
-    if (diff >= 0.05) return "<:au:1369710756358258748>";
-    if (diff <= -0.05) return "<:ad:1369710758241374219>";
+    if (diff >= 0.02) return "<:au:1369710756358258748>";
+    if (diff <= -0.02) return "<:ad:1369710758241374219>";
     return `${this.getSpacing(3)}-${this.getSpacing(3)}`;
   }
 
