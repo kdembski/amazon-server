@@ -119,9 +119,9 @@ export class DiscordLogService {
   }
 
   private getSpeedIcon(speed: number) {
-    if (speed <= 0.1) return "<:red:1345009441191362613>";
-    if (speed <= 1) return "<:yellow:1345009442579681291>";
-    return "<:green:1345009439916294154>";
+    if (speed <= 0.1) return "<:rd:1345009441191362613>";
+    if (speed <= 1) return "<:yw:1345009442579681291>";
+    return "<:gn:1345009439916294154>";
   }
 
   private getSpeedDiff(diff: number) {
@@ -130,8 +130,8 @@ export class DiscordLogService {
   }
 
   private getSpeedDiffIcon(diff: number) {
-    if (diff >= 0.02) return "<:arrow_up:1369710756358258748>";
-    if (diff <= -0.02) return "<:arrow_down:1369710758241374219>";
+    if (diff >= 0.05) return "<:au:1369710756358258748>";
+    if (diff <= -0.05) return "<:ad:1369710758241374219>";
     return `${this.getSpacing(3)}-${this.getSpacing(3)}`;
   }
 
@@ -151,7 +151,7 @@ export class DiscordLogService {
 
     statuses.sort((a, b) => (a[0] > b[0] ? 1 : -1));
 
-    return statuses
+    const content = statuses
       .map(([name, status]) => {
         const { speed, pending, speedDiff } = status;
         const cpu = this.scrapersStatusService.getCpuUsage(name);
@@ -167,6 +167,8 @@ export class DiscordLogService {
         ].join(this.getSpacing(4));
       })
       .join("\n");
+
+    return content.substring(0, 1023);
   }
 
   private getSpacing(i: number) {
