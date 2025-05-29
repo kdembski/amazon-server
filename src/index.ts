@@ -24,7 +24,7 @@ new CurrencyExchangeRateCronService().schedule();
 new HourlyStatsCronService().schedule();
 new DailyStatsCronService().schedule();
 
-//DiscordCommandService.getInstance().login();
+DiscordCommandService.getInstance().login();
 
 process.on("uncaughtException", (err) => {
   console.error(err);

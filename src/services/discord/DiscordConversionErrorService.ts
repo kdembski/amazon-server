@@ -1,23 +1,13 @@
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { DiscordService } from "@/services/discord/DiscordService";
-import { AiChatService } from "@/services/AiChatService";
-import { AllegroScraper } from "@/scrapers/AllegroScraper";
 import { roundToTwoDecimals } from "@/helpers/number";
 
 export class DiscordConversionErrorService {
   private service;
-  private aiChatService;
-  private allegroScraper;
 
-  constructor(
-    service = new DiscordService(),
-    aiChatService = AiChatService.getInstance(),
-    allegroScraper = new AllegroScraper()
-  ) {
+  constructor(service = new DiscordService()) {
     this.service = service;
-    this.aiChatService = aiChatService;
-    this.allegroScraper = allegroScraper;
   }
 
   async send(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {

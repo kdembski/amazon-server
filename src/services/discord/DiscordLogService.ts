@@ -12,6 +12,7 @@ import {
   WebhookMessageCreateOptions,
 } from "discord.js";
 import { SystemService } from "@/services/SystemService";
+import { getSpacing } from "@/helpers/discord";
 
 export class DiscordLogService {
   private service;
@@ -50,7 +51,7 @@ export class DiscordLogService {
         `50-200: **${logs[5]}**`,
         `200+: **${logs[6]}**`,
         `hist: **${logs[7]}**`,
-      ].join(this.getSpacing(4)),
+      ].join(getSpacing(4)),
     });
 
     if (statuses) {
@@ -63,7 +64,7 @@ export class DiscordLogService {
     fields.push({
       name: "Server",
       value: [`CPU: **${roundToOneDecimal(cpu)}%**`, `RAM: **${ram}%**`].join(
-        this.getSpacing(4)
+        getSpacing(4)
       ),
     });
 
@@ -89,7 +90,7 @@ export class DiscordLogService {
       value: [
         `Total: **${addSeparators(adsCount.total)}**`,
         `Last 24h: **${addSeparators(adsCount.today)}**`,
-      ].join(this.getSpacing(4)),
+      ].join(getSpacing(4)),
     });
 
     fields.push({
@@ -99,7 +100,7 @@ export class DiscordLogService {
           (rate) =>
             `${rate.source.code} -> ${rate.target.code}: **${rate.value}**`
         )
-        .join(this.getSpacing(4)),
+        .join(getSpacing(4)),
     });
 
     if (disk) {
@@ -125,6 +126,7 @@ export class DiscordLogService {
   }
 
   private getSpeedDiff(diff: number) {
+    if (diff > -0.01 && diff < 0.01) return "*0.00*";
     if (diff > 0) return `*(+${roundToTwoDecimals(diff)})*`;
     return `*(${roundToTwoDecimals(diff)})*`;
   }
@@ -132,7 +134,7 @@ export class DiscordLogService {
   private getSpeedDiffIcon(diff: number) {
     if (diff >= 0.02) return "<:au:1369710756358258748>";
     if (diff <= -0.02) return "<:ad:1369710758241374219>";
-    return `${this.getSpacing(3)}-${this.getSpacing(3)}`;
+    return `${getSpacing(3)}-${getSpacing(3)}`;
   }
 
   private getScrapersSpeedSum() {
@@ -164,14 +166,10 @@ export class DiscordLogService {
           `${speedValue} ${speedDiffValue} ${speedDiffIcon}`,
           `${addSeparators(pending)}`,
           `${Math.round(cpu)} %`,
-        ].join(this.getSpacing(4));
+        ].join(getSpacing(4));
       })
       .join("\n");
 
     return content.substring(0, 1023);
-  }
-
-  private getSpacing(i: number) {
-    return new Array(i).fill("‎").join(" ");
   }
 }

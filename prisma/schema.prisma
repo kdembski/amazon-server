@@ -19,12 +19,12 @@ model AmazonAdCategory {
 model AmazonAd {
   id            Int              @id @default(autoincrement())
   asin          String           @unique(map: "asin_UNIQUE") @db.VarChar(63)
-  name          String           @db.VarChar(255)
-  image         String           @db.VarChar(255)
   categoryId    Int
   createdAt     DateTime         @db.Timestamp(2)
   updatedAt     DateTime         @db.Timestamp(2)
   scrapedAt     DateTime?        @db.Timestamp(2)
+  image         String           @db.VarChar(255)
+  name          String           @db.VarChar(255)
   category      AmazonAdCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "amazon_ad_category_id_fk")
   AmazonAdPrice AmazonAdPrice[]
 
@@ -40,18 +40,23 @@ model AmazonAdPrice {
   updatedAt DateTime @db.Timestamp(2)
   ad        AmazonAd @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_ad_price_ad_id_fk")
   country   Country  @relation(fields: [countryId], references: [id], onDelete: Cascade, map: "amazon_ad_price_country_id_fk")
+
+  @@index([adId], map: "amazon_ad_price_ad_id_fk")
+  @@index([countryId], map: "amazon_ad_price_country_id_fk")
 }
 
 model Country {
   id            Int             @id @default(autoincrement())
   name          String          @db.VarChar(63)
-  code          String          @db.VarChar(63)
-  active        Boolean         @default(false)
+  code          String          @unique(map: "country_code_UNIQUE") @db.VarChar(63)
   currencyId    Int
   createdAt     DateTime        @db.Timestamp(2)
   updatedAt     DateTime        @db.Timestamp(2)
-  currency      Currency        @relation(fields: [currencyId], references: [id], onDelete: Cascade, map: "country_currency_id_fk")
+  active        Boolean         @default(false)
   AmazonAdPrice AmazonAdPrice[]
+  currency      Currency        @relation(fields: [currencyId], references: [id], onDelete: Cascade, map: "country_currency_id_fk")
+
+  @@index([currencyId], map: "country_currency_id_fk")
 }
 
 model Currency {
@@ -70,13 +75,14 @@ model CurrencyExchangeRate {
   id        Int      @id @default(autoincrement())
   sourceId  Int
   targetId  Int
-  value     Decimal  @db.Decimal(9, 2)
   createdAt DateTime @db.Timestamp(2)
   updatedAt DateTime @db.Timestamp(2)
+  value     Decimal  @db.Decimal(9, 2)
   source    Currency @relation("ExchangeRateSource", fields: [sourceId], references: [id], onDelete: Cascade, map: "currency_exchange_rate_source_id_fk")
   target    Currency @relation("ExchangeRateTarget", fields: [targetId], references: [id], onDelete: Cascade, map: "currency_exchange_rate_target_id_fk")
 
   @@unique([sourceId, targetId], map: "unique_exchange_rate_idx")
+  @@index([targetId], map: "currency_exchange_rate_target_id_fk")
 }
 
 model Log {

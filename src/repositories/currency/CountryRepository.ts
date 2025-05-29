@@ -12,8 +12,16 @@ export class CountryRepository {
     return this.delegate.findUnique({ where: { id } });
   }
 
+  getByCode(code: string) {
+    return this.delegate.findUnique({ where: { code } });
+  }
+
   getAll() {
     return this.delegate.findMany();
+  }
+
+  getActive() {
+    return this.delegate.findMany({ where: { active: true } });
   }
 
   create(data: Prisma.CountryCreateInput) {
@@ -22,6 +30,10 @@ export class CountryRepository {
 
   update(id: number, data: Prisma.CountryUpdateInput) {
     return this.delegate.update({ where: { id }, data });
+  }
+
+  updateActive(id: number, active: boolean) {
+    return this.delegate.update({ where: { id }, data: { active } });
   }
 
   delete(id: number) {

@@ -17,6 +17,7 @@ export class AmazonAdPriceRepository {
         code: true,
         currencyId: true,
         currency: true,
+        active: true,
       },
     },
   };

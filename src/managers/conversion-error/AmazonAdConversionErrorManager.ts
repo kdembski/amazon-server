@@ -30,7 +30,7 @@ export class AmazonAdConversionErrorManager {
     await this.unifyCurrencies(prices);
     this.sortPrices(prices);
 
-    if (!["pl", "se"].includes(prices[0].country.code)) return;
+    if (!prices[0].country.active) return;
 
     this.percentageManager.check(ad, prices);
     this.rangeManager.check(ad, prices);

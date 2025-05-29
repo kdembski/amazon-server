@@ -1,13 +1,12 @@
+import { DiscordCountriesCommandBuilder } from "@/builders/discord/DiscordCountriesCommandBuilder";
 import { DiscordCommandT } from "@/types/discord.types";
 import {
-  CacheType,
-  ChatInputCommandInteraction,
   Client,
   Events,
   GatewayIntentBits,
+  MessageFlags,
   REST,
   Routes,
-  SlashCommandBuilder,
 } from "discord.js";
 
 export class DiscordCommandService {
@@ -36,18 +35,37 @@ export class DiscordCommandService {
   }
 
   private init() {
-    this.commands.ping = {
-      data: new SlashCommandBuilder()
-        .setName("ping")
-        .setDescription("ping desc"),
-      async execute(interaction: ChatInputCommandInteraction<CacheType>) {
-        await interaction.reply("Pong!");
-      },
+    this.commands = {
+      ...new DiscordCountriesCommandBuilder().build(),
     };
 
-    this.client.on(Events.InteractionCreate, (interaction) => {
+    this.client.on(Events.InteractionCreate, async (interaction) => {
       if (!interaction.isChatInputCommand()) return;
-      this.commands[interaction.commandName].execute(interaction);
+      const command = this.commands[interaction.commandName];
+
+      if (!command) {
+        const error = `DiscordCommandService: command ${interaction.commandName} not found`;
+        console.error(error);
+        return;
+      }
+
+      try {
+        await command.execute(interaction);
+      } catch (e) {
+        console.error(`DiscordCommandService: ${e}`);
+
+        const errorReply = {
+          content: "*Wystapił bład podaczas wykonywania komendy*",
+          flags: MessageFlags.Ephemeral as const,
+        };
+
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(errorReply);
+          return;
+        }
+
+        await interaction.reply(errorReply);
+      }
     });
   }
 
