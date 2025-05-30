@@ -4,6 +4,23 @@ import { PrismaClient } from "@@prisma/PrismaClient";
 export class AmazonAdRepository {
   private delegate;
   private prisma;
+  private structure = {
+    id: true,
+    asin: true,
+    image: true,
+    name: true,
+    categoryId: true,
+    createdAt: true,
+    updatedAt: true,
+    scrapedAt: true,
+    category: {
+      select: {
+        id: true,
+        name: true,
+        active: true,
+      },
+    },
+  };
 
   constructor(prisma = PrismaClient.getInstance()) {
     this.delegate = prisma.amazonAd;
@@ -11,11 +28,21 @@ export class AmazonAdRepository {
   }
 
   getById(id: number) {
-    return this.delegate.findUniqueOrThrow({ where: { id } });
+    return this.delegate.findUniqueOrThrow({
+      where: { id },
+      select: this.structure,
+    });
   }
 
-  getForScraping(count: number) {
+  getForScraping(count: number, categoryIds: number[], blacklist: string[]) {
+    const blacklistQuery = blacklist.map((keyword) => ({
+      NOT: { name: { contains: keyword } },
+    }));
+
     return this.delegate.findMany({
+      where: {
+        AND: [{ categoryId: { in: categoryIds } }, ...blacklistQuery],
+      },
       take: count,
       orderBy: {
         scrapedAt: { sort: "asc", nulls: "first" },

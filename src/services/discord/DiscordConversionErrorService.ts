@@ -28,6 +28,7 @@ export class DiscordConversionErrorService {
           };
         }),
       ],
+      footer: { text: ad.category.name },
     };
 
     this.service.send({ embeds: [embed] });

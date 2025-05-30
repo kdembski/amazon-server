@@ -12,12 +12,13 @@ import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
 import { LogService } from "@/services/LogService";
 import { AmazonAdConversionErrorManager } from "@/managers/conversion-error/AmazonAdConversionErrorManager";
 import { AmazonAdPricingErrorManager } from "@/managers/AmazonAdPricingErrorManager";
-import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
+import { AmazonAdCategoryService } from "@/services/amazon/AmazonAdCategoryService";
 
 export class AmazonAdService {
   private repository;
   private updateMapper;
   private priceService;
+  private categoryService;
   private logService;
   private amazonAdConversionErrorManager;
   private amazonAdPricingErrorManager;
@@ -30,6 +31,7 @@ export class AmazonAdService {
     repository = new AmazonAdRepository(),
     updateMapper = new AmazonAdUpdateMapper(),
     priceService = new AmazonAdPriceService(),
+    categoryService = new AmazonAdCategoryService(),
     logService = new LogService(),
     amazonAdConversionErrorManager = new AmazonAdConversionErrorManager(),
     amazonAdPricingErrorManager = new AmazonAdPricingErrorManager(),
@@ -40,6 +42,7 @@ export class AmazonAdService {
     this.repository = repository;
     this.updateMapper = updateMapper;
     this.priceService = priceService;
+    this.categoryService = categoryService;
     this.logService = logService;
     this.amazonAdConversionErrorManager = amazonAdConversionErrorManager;
     this.amazonAdPricingErrorManager = amazonAdPricingErrorManager;
@@ -90,7 +93,10 @@ export class AmazonAdService {
     count: number,
     resolve: (v: AmazonAdSelectDto[]) => void
   ) {
-    const ads = await this.repository.getForScraping(count);
+    const categories = await this.categoryService.getActive();
+    const categoryIds = categories.map((category) => category.id);
+
+    const ads = await this.repository.getForScraping(count, categoryIds, []);
     const ids = ads.map((ad) => ad.id);
     await this.repository.updateScrapedAt(ids);
 

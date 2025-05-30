@@ -54,6 +54,7 @@ export class DiscordPricingErrorService {
         height: 200,
       },
       fields,
+      footer: { text: ad.category.name },
     };
 
     this.service.send({ embeds: [embed] });

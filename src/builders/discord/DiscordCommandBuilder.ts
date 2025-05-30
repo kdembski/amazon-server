@@ -1,3 +1,4 @@
+import { getSpacing } from "@/helpers/discord";
 import {
   APIEmbed,
   CacheType,
@@ -24,7 +25,7 @@ export abstract class DiscordCommandBuilder {
     message: string
   ) {
     return interaction.reply({
-      content: `:information_source: ${message}`,
+      content: `:information_source:${getSpacing(3)}${message}`,
       flags: MessageFlags.Ephemeral,
     });
   }
@@ -34,7 +35,7 @@ export abstract class DiscordCommandBuilder {
     message: string
   ) {
     return interaction.reply({
-      content: `:white_check_mark: ${message}`,
+      content: `:white_check_mark:${getSpacing(3)}${message}`,
       flags: MessageFlags.Ephemeral,
     });
   }
@@ -44,7 +45,7 @@ export abstract class DiscordCommandBuilder {
     message: string
   ) {
     return interaction.reply({
-      content: `:exclamation: ${message} :exclamation:`,
+      content: `:no_entry:${getSpacing(3)}${message}`,
       flags: MessageFlags.Ephemeral,
     });
   }

@@ -13,6 +13,7 @@ model AmazonAdCategory {
   createdAt DateTime   @db.Timestamp(2)
   updatedAt DateTime   @db.Timestamp(2)
   scrapedAt DateTime?  @db.Timestamp(2)
+  active    Boolean    @default(false)
   ads       AmazonAd[]
 }
 

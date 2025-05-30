@@ -1,3 +1,4 @@
+import { DiscordCategoriesCommandBuilder } from "@/builders/discord/DiscordCategoriesCommandBuilder";
 import { DiscordCountriesCommandBuilder } from "@/builders/discord/DiscordCountriesCommandBuilder";
 import { DiscordCommandT } from "@/types/discord.types";
 import {
@@ -37,6 +38,7 @@ export class DiscordCommandService {
   private init() {
     this.commands = {
       ...new DiscordCountriesCommandBuilder().build(),
+      ...new DiscordCategoriesCommandBuilder().build(),
     };
 
     this.client.on(Events.InteractionCreate, async (interaction) => {

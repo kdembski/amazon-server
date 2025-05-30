@@ -35,6 +35,18 @@ export class AmazonAdCategoryService {
     return this.repository.getAll();
   }
 
+  getByName(name: string) {
+    return this.repository.getByName(name);
+  }
+
+  getActive() {
+    return this.repository.getActive();
+  }
+
+  updateActive(id: number, active: boolean) {
+    return this.repository.updateActive(id, active);
+  }
+
   async getForScraping() {
     return new Promise<AmazonAdCategorySelectDto>((resolve) => {
       if (AmazonAdCategoryService.isGetting) {

@@ -12,6 +12,10 @@ export class AmazonAdCategoryRepository {
     return this.delegate.findUniqueOrThrow({ where: { id } });
   }
 
+  getByName(name: string) {
+    return this.delegate.findUnique({ where: { name } });
+  }
+
   getAll() {
     return this.delegate.findMany();
   }
@@ -24,12 +28,20 @@ export class AmazonAdCategoryRepository {
     });
   }
 
+  getActive() {
+    return this.delegate.findMany({ where: { active: true } });
+  }
+
   create(data: Prisma.AmazonAdCategoryCreateInput) {
     return this.delegate.create({ data });
   }
 
   update(id: number, data: Prisma.AmazonAdCategoryUpdateInput) {
     return this.delegate.update({ where: { id }, data });
+  }
+
+  updateActive(id: number, active: boolean) {
+    return this.delegate.update({ where: { id }, data: { active } });
   }
 
   delete(id: number) {
