@@ -47,6 +47,10 @@ export class AmazonAdRepository {
       orderBy: {
         scrapedAt: { sort: "asc", nulls: "first" },
       },
+      select: {
+        id: true,
+        asin: true,
+      },
     });
   }
 

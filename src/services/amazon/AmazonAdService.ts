@@ -78,7 +78,7 @@ export class AmazonAdService {
   }
 
   async getForScraping(count: number) {
-    return new Promise<AmazonAdSelectDto[]>((resolve) => {
+    return new Promise<{ id: number; asin: string }[]>((resolve) => {
       if (AmazonAdService.isGetting) {
         setTimeout(() => this._getForScraping(count, resolve), 1000);
         return;
@@ -91,7 +91,7 @@ export class AmazonAdService {
 
   private async _getForScraping(
     count: number,
-    resolve: (v: AmazonAdSelectDto[]) => void
+    resolve: (v: { id: number; asin: string }[]) => void
   ) {
     const categories = await this.categoryService.getActive();
     const categoryIds = categories.map((category) => category.id);
