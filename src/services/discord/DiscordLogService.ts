@@ -126,7 +126,7 @@ export class DiscordLogService {
   }
 
   private getSpeedDiff(diff: number) {
-    if (diff > -0.01 && diff < 0.01) return "*0.00*";
+    if (diff > -0.01 && diff < 0.01) return "*(0.00)*";
     if (diff > 0) return `*(+${roundToTwoDecimals(diff)})*`;
     return `*(${roundToTwoDecimals(diff)})*`;
   }

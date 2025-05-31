@@ -1,7 +1,3 @@
-import {
-  AmazonAdSelectDto,
-  AmazonAdUpdateDto,
-} from "@/dtos/amazon/AmazonAdDtos";
 import { AmazonAdCreateMapper } from "@/mappers/amazon/AmazonAdCreateMapper";
 import { AmazonAdUpdateMapper } from "@/mappers/amazon/AmazonAdUpdateMapper";
 import { AmazonAdRepository } from "@/repositories/amazon/AmazonAdRepository";
@@ -13,10 +9,11 @@ import { LogService } from "@/services/LogService";
 import { AmazonAdConversionErrorManager } from "@/managers/conversion-error/AmazonAdConversionErrorManager";
 import { AmazonAdPricingErrorManager } from "@/managers/AmazonAdPricingErrorManager";
 import { AmazonAdCategoryService } from "@/services/amazon/AmazonAdCategoryService";
+import { UpdatableService } from "@/services/crud/UpdatableService";
+import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 
 export class AmazonAdService {
   private repository;
-  private updateMapper;
   private priceService;
   private categoryService;
   private logService;
@@ -26,10 +23,10 @@ export class AmazonAdService {
   selectable;
   deletable;
   creatable;
+  updatable;
 
   constructor(
     repository = new AmazonAdRepository(),
-    updateMapper = new AmazonAdUpdateMapper(),
     priceService = new AmazonAdPriceService(),
     categoryService = new AmazonAdCategoryService(),
     logService = new LogService(),
@@ -37,10 +34,10 @@ export class AmazonAdService {
     amazonAdPricingErrorManager = new AmazonAdPricingErrorManager(),
     selectable = new SelectableService(repository),
     deletable = new DeletableService(repository),
-    creatable = new CreatableService(repository, new AmazonAdCreateMapper())
+    creatable = new CreatableService(repository, new AmazonAdCreateMapper()),
+    updatable = new UpdatableService(repository, new AmazonAdUpdateMapper())
   ) {
     this.repository = repository;
-    this.updateMapper = updateMapper;
     this.priceService = priceService;
     this.categoryService = categoryService;
     this.logService = logService;
@@ -49,6 +46,7 @@ export class AmazonAdService {
     this.selectable = selectable;
     this.deletable = deletable;
     this.creatable = creatable;
+    this.updatable = updatable;
   }
 
   getAll() {
@@ -59,10 +57,7 @@ export class AmazonAdService {
     return this.repository.getCount(from, to);
   }
 
-  async update(id: number, dto: AmazonAdUpdateDto) {
-    const input = this.updateMapper.toUpdateInput(dto);
-    const prices = dto.prices;
-
+  async updatePrices(id: number, prices: AmazonAdPriceCreateDto[]) {
     const promises = prices.map((price) =>
       this.priceService.creatable.create(price)
     );
@@ -73,8 +68,6 @@ export class AmazonAdService {
 
     this.amazonAdConversionErrorManager.check(ad, [...prices]);
     this.amazonAdPricingErrorManager.check(ad, [...prices]);
-
-    return this.repository.update(id, input);
   }
 
   async getForScraping(count: number) {

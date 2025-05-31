@@ -84,7 +84,7 @@ export class DiscordCategoriesCommandBuilder extends DiscordCommandBuilder {
         this.sendReply(interaction, [
           {
             title: "Lista kategorii",
-            description: "Tylko aktywne kategorie będą scrapowane",
+            description: "Tylko aktywne kategorie będą scrapowane.",
             fields: [
               {
                 name: "Aktywne",

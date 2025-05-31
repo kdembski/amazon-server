@@ -4,7 +4,7 @@ import { DeletableController } from "@/controllers/crud/DeletableController";
 import { SelectableController } from "@/controllers/crud/SelectableController";
 import { ResponseErrorService } from "@/services/ResponseErrorService";
 import { AmazonAdService } from "@/services/amazon/AmazonAdService";
-import { AmazonAdUpdateDto } from "@/dtos/amazon/AmazonAdDtos";
+import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 
 export class AmazonAdController {
   private service;
@@ -47,14 +47,14 @@ export class AmazonAdController {
   }
 
   async update(
-    request: Request<{ id: string }, {}, AmazonAdUpdateDto>,
+    request: Request<{ id: string }, {}, { prices: AmazonAdPriceCreateDto[] }>,
     response: Response
   ) {
     try {
       const id = parseInt(request.params.id);
       const data = request.body;
 
-      const results = await this.service.update(id, data);
+      const results = await this.service.updatePrices(id, data.prices);
       response.json(results);
     } catch (error: any) {
       new ResponseErrorService(response).send(error);
