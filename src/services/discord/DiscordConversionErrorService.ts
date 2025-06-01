@@ -1,4 +1,4 @@
-import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
+import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { DiscordService } from "@/services/discord/DiscordService";
 import { roundToTwoDecimals } from "@/helpers/number";
@@ -10,7 +10,7 @@ export class DiscordConversionErrorService {
     this.service = service;
   }
 
-  async send(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
+  async send(ad: AmazonAdSelectDto, prices: AmazonAdPriceSelectDto[]) {
     const embed = {
       title: ad.name,
       description: ad.asin,
@@ -29,6 +29,7 @@ export class DiscordConversionErrorService {
         }),
       ],
       footer: { text: ad.category.name },
+      color: process.env.NODE_ENV === "development" ? 0xe50000 : 0,
     };
 
     this.service.send({ embeds: [embed] });

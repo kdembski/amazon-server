@@ -1,10 +1,17 @@
+import { Decimal } from "@prisma/client/runtime/library";
 import _ from "lodash";
 
-export const roundToOneDecimal = (value?: number) => {
+export const roundToOneDecimal = (value?: number | Decimal) => {
+  if (typeof value !== "number") {
+    value = value?.toNumber();
+  }
   return !_.isNil(value) ? (Math.round(value * 10) / 10).toFixed(1) : "-";
 };
 
-export const roundToTwoDecimals = (value?: number) => {
+export const roundToTwoDecimals = (value?: number | Decimal) => {
+  if (typeof value !== "number") {
+    value = value?.toNumber();
+  }
   return !_.isNil(value) ? (Math.round(value * 100) / 100).toFixed(2) : "-";
 };
 

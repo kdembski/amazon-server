@@ -1,3 +1,4 @@
+import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { Prisma } from "@prisma/client";
 
@@ -33,13 +34,23 @@ export class AmazonAdPriceRepository {
     });
   }
 
-  getByAdAndCountry(data: { adId: number; countryId: number }) {
-    return this.delegate.findMany({
-      where: data,
+  async getByAdAndCountry(adId: number, countryIds: number[]) {
+    const result = await this.delegate.findMany({
+      where: { adId, countryId: { in: countryIds } },
       take: 5,
       orderBy: { createdAt: "desc" },
       select: this.structure,
     });
+
+    return result.reduce((accum: AmazonAdPriceSelectDto[][], price) => {
+      const country = accum.find((c) => c[0].countryId === price.countryId);
+      if (!country) {
+        accum.push([price]);
+        return accum;
+      }
+      country.push(price);
+      return accum;
+    }, []);
   }
 
   create(data: Prisma.AmazonAdPriceCreateInput) {

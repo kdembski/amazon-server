@@ -1,6 +1,5 @@
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
-import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
-import { roundToTwoDecimals } from "@/helpers/number";
+import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdConversionErrorPercentageManager } from "@/managers/conversion-error/AmazonAdConversionErrorPercentageManager";
 import { AmazonAdConversionErrorRangeManager } from "@/managers/conversion-error/AmazonAdConversionErrorRangeManager";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
@@ -24,7 +23,7 @@ export class AmazonAdConversionErrorManager {
     this.storageService = storageService;
   }
 
-  async check(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
+  async check(ad: AmazonAdSelectDto, prices: AmazonAdPriceSelectDto[]) {
     if (prices.length < 3) return;
 
     await this.unifyCurrencies(prices);
@@ -36,7 +35,7 @@ export class AmazonAdConversionErrorManager {
     this.rangeManager.check(ad, prices);
   }
 
-  private async unifyCurrencies(prices: AmazonAdPriceCreateDto[]) {
+  private async unifyCurrencies(prices: AmazonAdPriceSelectDto[]) {
     const rates = await this.getPlnExchangeRates();
 
     prices.forEach((price) => {
@@ -44,7 +43,7 @@ export class AmazonAdConversionErrorManager {
       const rate = rates.find((rate) => rate.sourceId === currencyId);
       if (!rate) return;
 
-      price.value = price.value * rate.value.toNumber();
+      price.value = price.value.times(rate.value);
     });
   }
 
@@ -60,7 +59,7 @@ export class AmazonAdConversionErrorManager {
     return storedRates;
   }
 
-  private sortPrices(prices: AmazonAdPriceCreateDto[]) {
-    prices.sort((a, b) => a.value - b.value);
+  private sortPrices(prices: AmazonAdPriceSelectDto[]) {
+    prices.sort((a, b) => a.value.toNumber() - b.value.toNumber());
   }
 }

@@ -1,4 +1,3 @@
-import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdPriceCreateMapper } from "@/mappers/amazon/AmazonAdPriceCreateMapper";
 import { AmazonAdPriceUpdateMapper } from "@/mappers/amazon/AmazonAdPriceUpdateMapper";
 import { AmazonAdPriceRepository } from "@/repositories/amazon/AmazonAdPriceRepository";
@@ -30,7 +29,7 @@ export class AmazonAdPriceService {
     this.updatable = updatable;
   }
 
-  getByAdAndCountry(data: { adId: number; countryId: number }) {
-    return this.repository.getByAdAndCountry(data);
+  getByAdAndCountry(adId: number, countryIds: number[]) {
+    return this.repository.getByAdAndCountry(adId, countryIds);
   }
 }

@@ -66,8 +66,16 @@ export class AmazonAdService {
     await this.logService.creatable.create({ event: "ad_scraped" });
     const ad = await this.selectable.getById(id);
 
-    this.amazonAdConversionErrorManager.check(ad, [...prices]);
-    this.amazonAdPricingErrorManager.check(ad, [...prices]);
+    this.priceService
+      .getByAdAndCountry(
+        ad.id,
+        prices.map((price) => price.countryId)
+      )
+      .then((countryPrices) => {
+        const mostRecentPrices = countryPrices.map((prices) => prices[0]);
+        this.amazonAdConversionErrorManager.check(ad, [...mostRecentPrices]);
+        this.amazonAdPricingErrorManager.check(ad, [...countryPrices]);
+      });
   }
 
   async getForScraping(count: number) {

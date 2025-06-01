@@ -1,5 +1,5 @@
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
-import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
+import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdConversionErrorEvaluator } from "@/managers/conversion-error/AmazonAdConversionErrorEvaluator";
 import { DiscordConversionErrorService } from "@/services/discord/DiscordConversionErrorService";
 import { LogService } from "@/services/LogService";
@@ -19,7 +19,7 @@ export class AmazonAdConversionErrorPercentageManager {
     this.discordService = discordService;
   }
 
-  async check(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
+  async check(ad: AmazonAdSelectDto, prices: AmazonAdPriceSelectDto[]) {
     if (this.evaluator.isOverPercentageDifference(prices, 90)) {
       await this.logService.creatable.create({
         event: "conversion_error_3_sent",
