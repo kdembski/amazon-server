@@ -92,3 +92,9 @@ model Log {
   data      String?  @db.VarChar(1023)
   createdAt DateTime @db.Timestamp(2)
 }
+
+model BlacklistedKeyword {
+  id        Int      @id @default(autoincrement())
+  value     String   @unique(map: "blacklisted_keyword_value_UNIQUE") @db.VarChar(63)
+  createdAt DateTime @db.Timestamp(2)
+}

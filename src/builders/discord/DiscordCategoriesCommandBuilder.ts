@@ -25,12 +25,12 @@ export class DiscordCategoriesCommandBuilder extends DiscordCommandBuilder {
           .addSubcommand((subcommand) =>
             subcommand
               .setName("list")
-              .setDescription("Wyświetl listę dostępnych kategorii")
+              .setDescription("Wyświetla listę dostępnych kategorii")
           )
           .addSubcommand((subcommand) =>
             subcommand
               .setName("activate")
-              .setDescription("Dodaj kategorię do aktywnych")
+              .setDescription("Dodaje kategorię do aktywnych")
               .addStringOption((option) =>
                 option
                   .setName("name")
@@ -41,7 +41,7 @@ export class DiscordCategoriesCommandBuilder extends DiscordCommandBuilder {
           .addSubcommand((subcommand) =>
             subcommand
               .setName("deactivate")
-              .setDescription("Usuń kategorię z aktywnych")
+              .setDescription("Usuwa kategorię z aktywnych")
               .addStringOption((option) =>
                 option
                   .setName("name")

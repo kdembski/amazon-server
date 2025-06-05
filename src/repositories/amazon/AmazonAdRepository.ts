@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { PrismaClient } from "@@prisma/PrismaClient";
+import { BlacklistedKeywordSelectDto } from "@/dtos/blacklist/BlacklistedKeywordDtos";
 
 export class AmazonAdRepository {
   private delegate;
@@ -34,14 +35,17 @@ export class AmazonAdRepository {
     });
   }
 
-  getForScraping(count: number, categoryIds: number[], blacklist: string[]) {
-    const blacklistQuery = blacklist.map((keyword) => ({
-      NOT: { name: { contains: keyword } },
-    }));
-
+  getForScraping(
+    count: number,
+    categoryIds: number[],
+    blacklistedKeywords: BlacklistedKeywordSelectDto[]
+  ) {
     return this.delegate.findMany({
       where: {
-        AND: [{ categoryId: { in: categoryIds } }, ...blacklistQuery],
+        AND: [
+          { categoryId: { in: categoryIds } },
+          { NOT: this.getBlacklistWhereQuery(blacklistedKeywords) },
+        ],
       },
       take: count,
       orderBy: {
@@ -76,6 +80,12 @@ export class AmazonAdRepository {
     });
   }
 
+  getBlacklistedCount(blacklistedKeywords: BlacklistedKeywordSelectDto[]) {
+    return this.delegate.count({
+      where: this.getBlacklistWhereQuery(blacklistedKeywords),
+    });
+  }
+
   create(data: Prisma.AmazonAdCreateInput) {
     return this.delegate.create({ data });
   }
@@ -86,5 +96,18 @@ export class AmazonAdRepository {
 
   delete(id: number) {
     return this.delegate.delete({ where: { id } });
+  }
+
+  private getBlacklistWhereQuery(keywords: BlacklistedKeywordSelectDto[]) {
+    const query = keywords.map((keyword) => {
+      const value = keyword.value.split("+");
+
+      if (value.length > 1) {
+        return { AND: value.map((v) => ({ name: { contains: v } })) };
+      }
+      return { name: { contains: value[0] } };
+    });
+
+    return { OR: query };
   }
 }

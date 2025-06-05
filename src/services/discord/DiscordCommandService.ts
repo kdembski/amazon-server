@@ -1,3 +1,4 @@
+import { DiscordBlacklistCommandBuilder } from "@/builders/discord/DiscordBlacklistCommandBuilder";
 import { DiscordCategoriesCommandBuilder } from "@/builders/discord/DiscordCategoriesCommandBuilder";
 import { DiscordCountriesCommandBuilder } from "@/builders/discord/DiscordCountriesCommandBuilder";
 import { DiscordCommandT } from "@/types/discord.types";
@@ -39,6 +40,7 @@ export class DiscordCommandService {
     this.commands = {
       ...new DiscordCountriesCommandBuilder().build(),
       ...new DiscordCategoriesCommandBuilder().build(),
+      ...new DiscordBlacklistCommandBuilder().build(),
     };
 
     this.client.on(Events.InteractionCreate, async (interaction) => {

@@ -26,12 +26,12 @@ export class DiscordCountriesCommandBuilder extends DiscordCommandBuilder {
           .addSubcommand((subcommand) =>
             subcommand
               .setName("list")
-              .setDescription("Wyświetl listę dostępnych rynków")
+              .setDescription("Wyświetla listę dostępnych rynków")
           )
           .addSubcommand((subcommand) =>
             subcommand
               .setName("activate")
-              .setDescription("Dodaj rynek do aktywnych")
+              .setDescription("Dodaje rynek do aktywnych")
               .addStringOption((option) =>
                 option
                   .setName("code")
@@ -42,7 +42,7 @@ export class DiscordCountriesCommandBuilder extends DiscordCommandBuilder {
           .addSubcommand((subcommand) =>
             subcommand
               .setName("deactivate")
-              .setDescription("Usuń rynek z aktywnych")
+              .setDescription("Usuwa rynek z aktywnych")
               .addStringOption((option) =>
                 option
                   .setName("code")

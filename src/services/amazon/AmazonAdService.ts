@@ -11,11 +11,14 @@ import { AmazonAdPricingErrorManager } from "@/managers/AmazonAdPricingErrorMana
 import { AmazonAdCategoryService } from "@/services/amazon/AmazonAdCategoryService";
 import { UpdatableService } from "@/services/crud/UpdatableService";
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
+import { BlacklistedKeywordSelectDto } from "@/dtos/blacklist/BlacklistedKeywordDtos";
+import { BlacklistedKeywordService } from "@/services/blacklist/BlacklistedKeywordService";
 
 export class AmazonAdService {
   private repository;
   private priceService;
   private categoryService;
+  private blacklistService;
   private logService;
   private amazonAdConversionErrorManager;
   private amazonAdPricingErrorManager;
@@ -29,6 +32,7 @@ export class AmazonAdService {
     repository = new AmazonAdRepository(),
     priceService = new AmazonAdPriceService(),
     categoryService = new AmazonAdCategoryService(),
+    blacklistService = new BlacklistedKeywordService(),
     logService = new LogService(),
     amazonAdConversionErrorManager = new AmazonAdConversionErrorManager(),
     amazonAdPricingErrorManager = new AmazonAdPricingErrorManager(),
@@ -40,6 +44,7 @@ export class AmazonAdService {
     this.repository = repository;
     this.priceService = priceService;
     this.categoryService = categoryService;
+    this.blacklistService = blacklistService;
     this.logService = logService;
     this.amazonAdConversionErrorManager = amazonAdConversionErrorManager;
     this.amazonAdPricingErrorManager = amazonAdPricingErrorManager;
@@ -55,6 +60,10 @@ export class AmazonAdService {
 
   getCount(from?: Date, to?: Date) {
     return this.repository.getCount(from, to);
+  }
+
+  getBlacklistedCount(blacklistedKeywords: BlacklistedKeywordSelectDto[]) {
+    return this.repository.getBlacklistedCount(blacklistedKeywords);
   }
 
   async updatePrices(id: number, prices: AmazonAdPriceCreateDto[]) {
@@ -95,9 +104,15 @@ export class AmazonAdService {
     resolve: (v: { id: number; asin: string }[]) => void
   ) {
     const categories = await this.categoryService.getActive();
+    const keywords = await this.blacklistService.getAll();
     const categoryIds = categories.map((category) => category.id);
 
-    const ads = await this.repository.getForScraping(count, categoryIds, []);
+    const ads = await this.repository.getForScraping(
+      count,
+      categoryIds,
+      keywords
+    );
+
     const ids = ads.map((ad) => ad.id);
     await this.repository.updateScrapedAt(ids);
 
