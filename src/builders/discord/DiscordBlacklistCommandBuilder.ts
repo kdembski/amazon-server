@@ -80,7 +80,7 @@ export class DiscordBlacklistCommandBuilder extends DiscordCommandBuilder {
         this.sendReply(interaction, [
           {
             title: "Blacklista",
-            description: `Ogłoszenia, które w nazwie mają conajmniej jeden z zablokowanych keywordów, bedą ignorowane przy scrapowaniu.\nWyjątkiem jest kontrukcja z "+", w takim przypadku ogłoszenie zostanie zignorowane tylko, jeżeli nazwa zawiera każdy z wyrazów połączonych plusem.`,
+            description: `Ogłoszenia, które w nazwie mają conajmniej jeden z zablokowanych keywordów, bedą ignorowane przy scrapowaniu.`,
             fields: [
               {
                 name: "Keywordy",
