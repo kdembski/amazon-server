@@ -113,6 +113,14 @@ export class AmazonAdService {
       keywords
     );
 
+    keywords.forEach((keyword) => {
+      ads.forEach((ad) => {
+        if (ad.name.includes(keyword.value)) {
+          console.log(ad.name);
+        }
+      });
+    });
+
     const ids = ads.map((ad) => ad.id);
     await this.repository.updateScrapedAt(ids);
 

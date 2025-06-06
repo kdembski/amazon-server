@@ -54,6 +54,7 @@ export class AmazonAdRepository {
       select: {
         id: true,
         asin: true,
+        name: true,
       },
     });
   }
