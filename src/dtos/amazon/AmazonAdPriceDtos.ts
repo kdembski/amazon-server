@@ -4,6 +4,7 @@ export interface AmazonAdPriceCreateDto {
   value: number;
   adId: number;
   countryId: number;
+  dispatchFrom: string | undefined;
 }
 
 export interface AmazonAdPriceUpdateDto {

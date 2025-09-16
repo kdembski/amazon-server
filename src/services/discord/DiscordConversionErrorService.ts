@@ -29,7 +29,7 @@ export class DiscordConversionErrorService {
         }),
       ],
       footer: { text: ad.category.name },
-      color: process.env.NODE_ENV === "development" ? 0xe50000 : 0,
+      color: process.env.NODE_ENV === "development" ? 0xe50000 : undefined,
     };
 
     this.service.send({ embeds: [embed] });

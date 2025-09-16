@@ -19,4 +19,9 @@ export class AmazonAdConversionErrorEvaluator {
     if (min) return price.gte(min);
     if (max) return price.lte(max);
   }
+
+  isAmazonDispatch(prices: AmazonAdPriceSelectDto[]) {
+    const dispatchFrom = prices[0].dispatchFrom;
+    return dispatchFrom && dispatchFrom === "Amazon";
+  }
 }

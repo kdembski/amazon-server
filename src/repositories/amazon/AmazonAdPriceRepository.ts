@@ -9,6 +9,7 @@ export class AmazonAdPriceRepository {
     adId: true,
     countryId: true,
     value: true,
+    dispatchFrom: true,
     createdAt: true,
     updatedAt: true,
     country: {

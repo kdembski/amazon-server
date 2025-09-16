@@ -20,6 +20,7 @@ export class AmazonAdConversionErrorRangeManager {
   }
 
   async check(ad: AmazonAdSelectDto, prices: AmazonAdPriceSelectDto[]) {
+    if (!this.evaluator.isAmazonDispatch(prices)) return;
     if (!this.evaluator.isOverPercentageDifference(prices, 70)) return;
 
     if (this.evaluator.isInRange(prices, 0, 50)) {

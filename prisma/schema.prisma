@@ -33,14 +33,15 @@ model AmazonAd {
 }
 
 model AmazonAdPrice {
-  id        Int      @id @default(autoincrement())
-  adId      Int
-  countryId Int
-  value     Decimal  @db.Decimal(9, 2)
-  createdAt DateTime @db.Timestamp(2)
-  updatedAt DateTime @db.Timestamp(2)
-  ad        AmazonAd @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_ad_price_ad_id_fk")
-  country   Country  @relation(fields: [countryId], references: [id], onDelete: Cascade, map: "amazon_ad_price_country_id_fk")
+  id           Int      @id @default(autoincrement())
+  adId         Int
+  countryId    Int
+  value        Decimal  @db.Decimal(9, 2)
+  dispatchFrom String?  @db.VarChar(63)
+  createdAt    DateTime @db.Timestamp(2)
+  updatedAt    DateTime @db.Timestamp(2)
+  ad           AmazonAd @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_ad_price_ad_id_fk")
+  country      Country  @relation(fields: [countryId], references: [id], onDelete: Cascade, map: "amazon_ad_price_country_id_fk")
 
   @@index([adId], map: "amazon_ad_price_ad_id_fk")
   @@index([countryId], map: "amazon_ad_price_country_id_fk")

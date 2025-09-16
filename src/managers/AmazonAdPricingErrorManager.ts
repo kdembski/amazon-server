@@ -21,7 +21,11 @@ export class AmazonAdPricingErrorManager {
   ) {
     const countryPricesToSend = countryPrices.filter((prices) => {
       const isActive = prices[0].country.active;
-      return this.isOverPercentageDifference(prices) && isActive;
+      return (
+        this.isOverPercentageDifference(prices) &&
+        this.isAmazonDispatch(prices) &&
+        isActive
+      );
     });
 
     if (!countryPricesToSend.length) return;
@@ -39,5 +43,10 @@ export class AmazonAdPricingErrorManager {
       if (i === 1) return first.lte(price.value.times(0.5));
       return first.lt(price.value);
     });
+  }
+
+  private isAmazonDispatch(prices: AmazonAdPriceSelectDto[]) {
+    const dispatchFrom = prices[0].dispatchFrom;
+    return dispatchFrom && dispatchFrom === "Amazon";
   }
 }

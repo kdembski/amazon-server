@@ -13,7 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@everapi/freecurrencyapi-js": "^1.0.1",
-    "@prisma/client": "^6.2.1",
+    "@prisma/client": "^6.16.2",
     "cors": "^2.8.5",
     "cron": "^4.1.4",
     "date-fns": "^4.1.0",
@@ -26,7 +26,6 @@
     "node-os-utils": "^1.3.7",
     "pkgroll": "^2.11.2",
     "pm2": "^6.0.5",
-    "prisma": "^6.2.1",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "rebrowser-puppeteer": "^23.10.3",
@@ -42,6 +41,7 @@
     "@types/node-os-utils": "^1.3.4",
     "@types/user-agents": "^1.0.4",
     "@types/ws": "^8.5.13",
+    "prisma": "^6.16.2",
     "typescript": "^5.7.3",
     "vite-node": "^3.0.2"
   }
