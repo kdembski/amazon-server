@@ -17,4 +17,13 @@ export class SystemController {
       new ResponseErrorService(response).send(error);
     }
   }
+
+  async getMemoryUsage(response: Response) {
+    try {
+      const usage = await this.service.getMemoryUsage();
+      response.json(usage);
+    } catch (error: any) {
+      new ResponseErrorService(response).send(error);
+    }
+  }
 }

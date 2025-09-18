@@ -14,6 +14,7 @@ export class SystemRouter implements SubRouterI {
 
   build() {
     this.router.get("/cpu", (_, res) => this.controller.getCpuUsage(res));
+    this.router.get("/mem", (_, res) => this.controller.getMemoryUsage(res));
     return this;
   }
 
