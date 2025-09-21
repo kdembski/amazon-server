@@ -1,4 +1,3 @@
-import { AmazonAdUpdateDto } from "@/dtos/amazon/AmazonAdDtos";
 import { AmazonAdService } from "@/services/amazon/AmazonAdService";
 import { WebSocketController } from "@/websockets/WebSocketController";
 import { Server } from "http";
