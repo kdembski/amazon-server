@@ -26,6 +26,10 @@ aliases work in tests without extra setup. There is no linter configured.
 
 Path aliases: `@/*` → `src/*`, `@@prisma/*` → `prisma/*` (defined in both `tsconfig.json` and `vite.config.ts`; keep them in sync).
 
+## Commits
+
+Commit messages are short English sentences starting with a capitalised past-tense verb (e.g. `Added vitest setup`, `Fixed ...`). Do NOT add any `Co-Authored-By` trailer or other attribution lines to commits or PR descriptions.
+
 ## Environment variables
 
 Read directly from `process.env` (`dotenv` is a dependency but is never imported, so variables must be provided by the runtime/pm2):
