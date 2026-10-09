@@ -14,9 +14,15 @@ npm run watch        # same, with file watching
 npm run build        # bundle to dist/ with pkgroll
 npx prisma generate  # regenerate client after editing prisma/schema.prisma
 npx tsc --noEmit     # type-check (no dedicated lint/typecheck script exists)
+npm test             # unit tests (vitest), tests/unit
+npm run test:watch   # same, watch mode
+npm run test:coverage # unit tests with v8 coverage report
 ```
 
-There are no tests and no linter configured.
+Unit tests live in `tests/unit` (mirror of `src/`), shared factories and fakes in `tests/support`.
+`tests/integration` is reserved for future MySQL tests. Tests need the generated Prisma client
+(`npx prisma generate`, no DB connection required). `vitest.config.ts` merges `vite.config.ts`, so
+aliases work in tests without extra setup. There is no linter configured.
 
 Path aliases: `@/*` → `src/*`, `@@prisma/*` → `prisma/*` (defined in both `tsconfig.json` and `vite.config.ts`; keep them in sync).
 
