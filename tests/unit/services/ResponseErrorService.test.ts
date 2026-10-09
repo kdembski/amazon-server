@@ -46,4 +46,12 @@ describe("ResponseErrorService", () => {
       "P2025::\n\n" + JSON.stringify({ cause: "x" }, null, 2)
     );
   });
+
+  it("does not throw for errors without a message", () => {
+    const { response, status, send } = fakeResponse();
+
+    expect(() => new ResponseErrorService(response).send("boom")).not.toThrow();
+    expect(status).toHaveBeenCalledWith(500);
+    expect(send).toHaveBeenCalledWith("boom");
+  });
 });
