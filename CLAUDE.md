@@ -1,0 +1,77 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+Express + Prisma (MySQL) backend for an Amazon price-monitoring system. External scraper processes (managed by pm2, names containing `pdp`) pull ASINs to scrape from this server, post back prices, and the server detects price anomalies and reports them to Discord. It also runs a Discord bot with slash commands for managing countries, categories and a keyword blacklist.
+
+## Commands
+
+```bash
+npm start            # run src/index.ts with vite-node
+npm run watch        # same, with file watching
+npm run build        # bundle to dist/ with pkgroll
+npx prisma generate  # regenerate client after editing prisma/schema.prisma
+npx tsc --noEmit     # type-check (no dedicated lint/typecheck script exists)
+```
+
+There are no tests and no linter configured.
+
+Path aliases: `@/*` → `src/*`, `@@prisma/*` → `prisma/*` (defined in both `tsconfig.json` and `vite.config.ts`; keep them in sync).
+
+## Environment variables
+
+Read directly from `process.env` (`dotenv` is a dependency but is never imported, so variables must be provided by the runtime/pm2):
+
+- `DATABASE_URL` (MySQL, used by Prisma), `PORT` (default 5001), `NODE_ENV`
+- `DISCORD_BOT_TOKEN`, `DISCORD_APP_ID`, `DISCORD_SERVER_ID` – slash-command bot
+- Webhook tokens (appended to `https://discord.com/api/webhooks/`): `DISCORD_LOGS_TOKEN`, `DISCORD_PRICING_ERROR_TOKEN`, `DISCORD_CONVERSION_ERROR_{1..6}_TOKEN`
+- `CURRENCY_API_KEY` – freecurrencyapi
+
+## Architecture
+
+### Layered CRUD pattern
+
+Every entity follows the same vertical slice: `routes/` → `controllers/` → `services/` → `repositories/` (Prisma), with `mappers/` converting DTOs (`dtos/`) into Prisma `CreateInput`/`UpdateInput`.
+
+Generic CRUD is composed, not inherited. `src/routes/crud`, `src/controllers/crud`, `src/services/crud` and `src/interfaces/crud` provide `Selectable`/`Creatable`/`Updatable`/`Deletable` building blocks. An entity opts into a capability by exposing it as a public field (e.g. `service.creatable`, `controller.deletable`) and mounting the matching router inside its own `build()`. Entity-specific endpoints are declared in the entity router before the generic ones are mounted (route order matters: e.g. `GET /scrap` must precede `GET /:id`).
+
+Registering a new entity: create router implementing `SubRouterI` (with `readonly path`) and add it to the list in `src/routes/index.ts`.
+
+Dependency injection is done via constructor default parameters (`constructor(repository = new XRepository(), ...)`). Cross-cutting services (`PrismaClient`, `StorageService`, `AiChatService`, `SystemService`, `ScraperStatusService`, `DiscordCommandService`, websocket controllers) are singletons via `getInstance()`.
+
+`*SelectDto` types are derived from repository return types (`Awaited<ReturnType<Repo["getById"]>>`), so changing a repository `select` structure changes the DTO everywhere.
+
+Errors in controllers go through `ResponseErrorService`, which maps Prisma error codes (P2002 → 422, P1001 → 503) to HTTP responses.
+
+### Scraping workflow
+
+1. Scrapers call `GET /amazon/ads/scrap?count=N`. `AmazonAdService.getForScraping` is guarded by a static `isGetting` flag so concurrent callers are serialized; it picks ads from active categories, excludes names matching blacklisted keywords (a keyword containing `+` means all parts must match), ordered by oldest `scrapedAt` (nulls first), then bumps `scrapedAt` via raw SQL.
+2. Scrapers post prices with `PUT /amazon/ads/:id` body `{ prices: AmazonAdPriceCreateDto[] }`. `updatePrices` stores them, logs an `ad_scraped` event, then asynchronously runs the anomaly managers on the last 5 prices per country.
+3. Scrapers report status with `POST /scrapers/:name/status` (`{ speed, pending }`).
+
+### Anomaly detection (`src/managers`)
+
+- `AmazonAdConversionErrorManager` – compares the most recent price across countries. Converts all to PLN using exchange rates cached in `StorageService` (populated lazily and refreshed by the currency cron), sorts ascending, and requires ≥3 countries, cheapest country active and `dispatchFrom === "Amazon"`. Then:
+  - `PercentageManager`: cheapest ≤ second by 90/70/50 % → Discord channel 3/2/1 (`conversion_error_N_sent` log).
+  - `RangeManager`: ≥70 % cheaper and cheapest price in 0–50 / 50–200 / 200+ PLN → channel 4/5/6.
+- `AmazonAdPricingErrorManager` – per country, newest price ≤ 50 % of previous and lower than all older ones, Amazon dispatch, active country → `DISCORD_PRICING_ERROR_TOKEN` webhook (`pricing_error_sent` log).
+
+Each sent alert is recorded in the `Log` table; the cron reports count those events.
+
+### Scheduled jobs (`src/services/cron`)
+
+- Hourly: counts of `ad_scraped` and each alert event over the last hour, scraper speeds/CPU (from pm2 via `ScraperStatusService`) and server CPU/RAM → Discord logs webhook.
+- Daily 20:00: total/24h ASIN count, PLN exchange rates, disk usage.
+- Daily 20:00: fetch EUR/SEK → PLN rates from freecurrencyapi, update `CurrencyExchangeRate` and the `StorageService` cache.
+
+### Discord bot (`src/services/discord`, `src/builders/discord`)
+
+`DiscordService` wraps a webhook client (token chosen by env var name). `DiscordCommandService` logs in the bot, merges commands from the `*CommandBuilder` classes and re-registers guild slash commands on every startup. Builders extend `DiscordCommandBuilder` for ephemeral reply helpers; user-facing bot text is in Polish.
+
+### Other
+
+- `AiChatService` (hercai) is throttled through `RequestQueueService` (one request per 10 s).
+- `WebSocketController` upgrades HTTP connections on `/amazon/ads` and pings clients every 40 s; the Amazon websocket currently has no message handling.
+- Prisma schema uses explicit `@map` constraint names and `Timestamp(2)` columns; `createdAt`/`updatedAt` are set manually in mappers, not by Prisma defaults. There is no `prisma/migrations` directory – the schema mirrors an existing database.
