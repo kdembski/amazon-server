@@ -129,7 +129,12 @@ describe("AmazonAdService.updatePrices", () => {
 
 describe("AmazonAdService.getForScraping", () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    // A failed assertion before the lock is released would otherwise cascade
+    // into every later test in this file.
+    (AmazonAdService as unknown as { isGetting: boolean }).isGetting = false;
+  });
 
   it("fetches ads for active categories minus blacklist and bumps scrapedAt", async () => {
     const { service, repository, categoryService, blacklistService } = setup();
@@ -183,6 +188,39 @@ describe("AmazonAdService.getForScraping", () => {
     expect(categoryService.getActive).toHaveBeenCalledTimes(1);
 
     await vi.advanceTimersByTimeAsync(1);
+    await call2;
+    expect(categoryService.getActive).toHaveBeenCalledTimes(2);
+  });
+
+  it("resets the lock when fetching throws so the next call can proceed", async () => {
+    const { service, repository, categoryService } = setup();
+    repository.getForScraping
+      .mockRejectedValueOnce(new Error("db down"))
+      .mockResolvedValue([]);
+
+    await expect(service.getForScraping(1)).rejects.toThrow("db down");
+
+    const next = service.getForScraping(1);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(categoryService.getActive).toHaveBeenCalledTimes(2);
+    await next;
+  });
+
+  it("keeps waiting while the first call is still in flight after one second", async () => {
+    const { service, repository, categoryService } = setup();
+    const first = deferred<ScrapAd[]>();
+    repository.getForScraping
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValue([]);
+
+    const call1 = service.getForScraping(1);
+    const call2 = service.getForScraping(1);
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(categoryService.getActive).toHaveBeenCalledTimes(1);
+
+    first.resolve([]);
+    await call1;
+    await vi.advanceTimersByTimeAsync(1000);
     await call2;
     expect(categoryService.getActive).toHaveBeenCalledTimes(2);
   });
