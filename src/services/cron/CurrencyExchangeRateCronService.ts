@@ -64,14 +64,15 @@ export class CurrencyExchangeRateCronService {
 
     if (!targetCurrency) return;
 
-    await Promise.all(sourceCurrencies).then((sources) => {
-      sources.forEach(async (source) => {
+    const sources = await Promise.all(sourceCurrencies);
+    await Promise.all(
+      sources.map(async (source) => {
         if (!source) return;
 
         const value = 1 / rates[source.code];
         const ids = { sourceId: source.id, targetId: targetCurrency.id };
         await this.exchangeRateService.updateBySourceAndTarget(ids, { value });
-      });
-    });
+      })
+    );
   }
 }

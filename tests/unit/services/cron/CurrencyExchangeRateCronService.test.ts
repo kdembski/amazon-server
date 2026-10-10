@@ -140,4 +140,29 @@ describe("CurrencyExchangeRateCronService", () => {
     expect(updateBySourceAndTarget).not.toHaveBeenCalled();
   });
 
+  it("refreshes the cache only after all rate updates have completed", async () => {
+    const { service, updateBySourceAndTarget, getByTargetCode } = setup();
+    const pending = deferred<unknown>();
+    updateBySourceAndTarget.mockReturnValue(pending.promise);
+
+    const run = service.run();
+    await vi.waitFor(() =>
+      expect(updateBySourceAndTarget).toHaveBeenCalledTimes(2)
+    );
+    expect(getByTargetCode).not.toHaveBeenCalled();
+
+    pending.resolve({});
+    await run;
+    expect(getByTargetCode).toHaveBeenCalledWith("PLN");
+  });
+
+  it("reports rate update failures and skips the cache refresh", async () => {
+    const { service, updateBySourceAndTarget, getByTargetCode, send } = setup();
+    updateBySourceAndTarget.mockRejectedValue(new Error("db down"));
+
+    await service.run();
+
+    expect(send).toHaveBeenCalledWith("Currency exchange rates error: db down");
+    expect(getByTargetCode).not.toHaveBeenCalled();
+  });
 });
