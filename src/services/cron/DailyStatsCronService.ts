@@ -22,14 +22,16 @@ export class DailyStatsCronService {
     this.exchangeRatesService = exchangeRatesService;
   }
 
-  async schedule() {
-    new CronJob("00 00 20 * * *", async () => {
-      const adsCount = await this.getAdsCount();
-      const rates = await this.getRates();
-      const scraped = await this.getScrapedCount();
+  schedule() {
+    new CronJob("00 00 20 * * *", () => this.run()).start();
+  }
 
-      this.discordService.sendDaily(adsCount, rates, scraped);
-    }).start();
+  async run() {
+    const adsCount = await this.getAdsCount();
+    const rates = await this.getRates();
+    const scraped = await this.getScrapedCount();
+
+    this.discordService.sendDaily(adsCount, rates, scraped);
   }
 
   private async getAdsCount() {

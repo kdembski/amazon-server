@@ -28,23 +28,25 @@ export class CurrencyExchangeRateCronService {
     this.storageService = storageService;
   }
 
-  async schedule() {
-    new CronJob("00 00 20 * * *", async () => {
-      this.currencyApi
-        .latest({
-          base_currency: this.targetCode,
-          currencies: this.sourceCodes.join(","),
-        })
-        .then(async (response: any) => {
-          await this.updateCurrencyExchangeRates(response.data);
-          await this.updateStoredPlnExchangeRates();
-        })
-        .catch((e: any) => {
-          this.discordService.send(
-            "Currency exchange rates error: " + e.message
-          );
-        });
-    }).start();
+  schedule() {
+    new CronJob("00 00 20 * * *", () => this.run()).start();
+  }
+
+  run(): Promise<void> {
+    return this.currencyApi
+      .latest({
+        base_currency: this.targetCode,
+        currencies: this.sourceCodes.join(","),
+      })
+      .then(async (response: any) => {
+        await this.updateCurrencyExchangeRates(response.data);
+        await this.updateStoredPlnExchangeRates();
+      })
+      .catch((e: any) => {
+        this.discordService.send(
+          "Currency exchange rates error: " + e.message
+        );
+      });
   }
 
   private async updateStoredPlnExchangeRates() {
