@@ -15,22 +15,24 @@ export class HourlyStatsCronService {
   }
 
   schedule() {
-    new CronJob("00 00 */1 * * *", async () => {
-      const logs = [
-        this.getLogCount("ad_scraped"),
-        this.getLogCount("conversion_error_1_sent"),
-        this.getLogCount("conversion_error_2_sent"),
-        this.getLogCount("conversion_error_3_sent"),
-        this.getLogCount("conversion_error_4_sent"),
-        this.getLogCount("conversion_error_5_sent"),
-        this.getLogCount("conversion_error_6_sent"),
-        this.getLogCount("pricing_error_sent"),
-      ];
+    new CronJob("00 00 */1 * * *", () => this.run()).start();
+  }
 
-      await Promise.all(logs).then((logs) => {
-        this.discordService.sendHourly(logs);
-      });
-    }).start();
+  async run() {
+    const logs = [
+      this.getLogCount("ad_scraped"),
+      this.getLogCount("conversion_error_1_sent"),
+      this.getLogCount("conversion_error_2_sent"),
+      this.getLogCount("conversion_error_3_sent"),
+      this.getLogCount("conversion_error_4_sent"),
+      this.getLogCount("conversion_error_5_sent"),
+      this.getLogCount("conversion_error_6_sent"),
+      this.getLogCount("pricing_error_sent"),
+    ];
+
+    await Promise.all(logs).then((logs) => {
+      this.discordService.sendHourly(logs);
+    });
   }
 
   getLogCount(event: string) {

@@ -87,22 +87,21 @@ export class AmazonAdService {
       });
   }
 
-  async getForScraping(count: number) {
-    return new Promise<{ id: number; asin: string }[]>((resolve) => {
-      if (AmazonAdService.isGetting) {
-        setTimeout(() => this._getForScraping(count, resolve), 1000);
-        return;
-      }
+  async getForScraping(count: number): Promise<{ id: number; asin: string }[]> {
+    if (AmazonAdService.isGetting) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return this.getForScraping(count);
+    }
 
-      AmazonAdService.isGetting = true;
-      this._getForScraping(count, resolve);
-    });
+    AmazonAdService.isGetting = true;
+    try {
+      return await this._getForScraping(count);
+    } finally {
+      AmazonAdService.isGetting = false;
+    }
   }
 
-  private async _getForScraping(
-    count: number,
-    resolve: (v: { id: number; asin: string }[]) => void
-  ) {
+  private async _getForScraping(count: number) {
     const categories = await this.categoryService.getActive();
     const keywords = await this.blacklistService.getAll();
     const categoryIds = categories.map((category) => category.id);
@@ -124,7 +123,6 @@ export class AmazonAdService {
     const ids = ads.map((ad) => ad.id);
     await this.repository.updateScrapedAt(ids);
 
-    AmazonAdService.isGetting = false;
-    resolve(ads);
+    return ads;
   }
 }

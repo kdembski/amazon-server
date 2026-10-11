@@ -133,7 +133,7 @@ export class DiscordBlacklistCommandBuilder extends DiscordCommandBuilder {
     const keyword = await this.service.getByValue(value);
 
     if (!keyword) {
-      this.sendErrorReply(interaction, `Nie znaleziono keyworda **${name}**`);
+      this.sendErrorReply(interaction, `Nie znaleziono keyworda **${value}**`);
       return;
     }
 

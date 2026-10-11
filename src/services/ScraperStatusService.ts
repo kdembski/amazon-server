@@ -42,7 +42,10 @@ export class ScraperStatusService {
 
   private updateCpuUsage() {
     pm2.list((e, list) => {
-      if (e) console.error(e);
+      if (e) {
+        console.error(e);
+        return;
+      }
 
       const names = this.getNames();
       names.forEach((name) => {
@@ -61,7 +64,11 @@ export class ScraperStatusService {
 
   private updateScrapers() {
     pm2.list((e, list) => {
-      if (e) console.error(e);
+      if (e) {
+        console.error(e);
+        return;
+      }
+
       this.scrapers = list.filter((p) => p.name?.includes("pdp"));
     });
   }

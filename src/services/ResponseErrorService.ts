@@ -17,8 +17,11 @@ export class ResponseErrorService {
         return `Unique constraint failed on the '${error?.meta?.target}'`;
       case "P1001":
         return `Can't reach database server`;
-      case undefined:
-        return error?.message.split(/\r?\n/).pop();
+      case undefined: {
+        const message =
+          typeof error?.message === "string" ? error.message : String(error);
+        return message.split(/\r?\n/).pop();
+      }
       default:
         return error?.code + "::\n\n" + JSON.stringify(error?.meta, null, 2);
     }

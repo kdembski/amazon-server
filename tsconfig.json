@@ -5,13 +5,15 @@
     "outDir": "dist",
     "baseUrl": ".",
     "module": "es2022",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "target": "ES2022",
+    "lib": ["ES2022"],
+    "skipLibCheck": true,
     "paths": {
       "@/*": ["./src/*"],
       "@@prisma/*": ["./prisma/*"]
     }
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "tests/**/*"]
 }

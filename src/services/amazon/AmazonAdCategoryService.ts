@@ -47,26 +47,27 @@ export class AmazonAdCategoryService {
     return this.repository.updateActive(id, active);
   }
 
-  async getForScraping() {
-    return new Promise<AmazonAdCategorySelectDto>((resolve) => {
-      if (AmazonAdCategoryService.isGetting) {
-        setTimeout(() => this._getForScraping(resolve), 1000);
-        return;
-      }
+  async getForScraping(): Promise<AmazonAdCategorySelectDto> {
+    if (AmazonAdCategoryService.isGetting) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return this.getForScraping();
+    }
 
-      AmazonAdCategoryService.isGetting = true;
-      this._getForScraping(resolve);
-    });
+    AmazonAdCategoryService.isGetting = true;
+    try {
+      return await this._getForScraping();
+    } finally {
+      AmazonAdCategoryService.isGetting = false;
+    }
   }
 
-  async _getForScraping(resolve: (v: AmazonAdCategorySelectDto) => void) {
+  private async _getForScraping() {
     const category = await this.repository.getForScraping();
 
     await this.repository.update(category.id, {
       scrapedAt: new Date(Date.now()),
     });
 
-    AmazonAdCategoryService.isGetting = false;
-    resolve(category);
+    return category;
   }
 }
