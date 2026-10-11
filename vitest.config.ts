@@ -21,6 +21,16 @@ export default mergeConfig(
           "src/declarations.d.ts",
         ],
         reporter: ["text", "html"],
+        // A negative value means "at most N uncovered". Exactly these four
+        // guards may stay uncovered, as they are unreachable with real types:
+        // RequestQueueService:16, DiscordLogService:59, WebSocketController:30
+        // and AmazonAdWebScoketController:25.
+        thresholds: {
+          lines: 100,
+          functions: 100,
+          statements: 100,
+          branches: -4,
+        },
       },
     },
   })

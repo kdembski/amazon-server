@@ -24,6 +24,22 @@ Unit tests live in `tests/unit` (mirror of `src/`), shared factories and fakes i
 (`npx prisma generate`, no DB connection required). `vitest.config.ts` merges `vite.config.ts`, so
 aliases work in tests without extra setup. There is no linter configured.
 
+Test conventions:
+
+- Coverage thresholds in `vitest.config.ts`: 100% lines/functions/statements, at most 4 uncovered
+  branches (the unreachable guards listed there). Scope: all of `src/` except `index.ts` and type-only
+  files (`dtos`, `interfaces`, `types`, `declarations.d.ts`).
+- One test file per source file under the same relative path. Exceptions: mappers share
+  `tests/unit/mappers/mappers.test.ts`; the abstract `DiscordCommandBuilder` is covered through its subclasses.
+- Inject dependencies through the existing constructor default parameters. Use `vi.mock` only for
+  external modules (`pm2`, `node-os-utils`, `hercai`, `discord.js`, `ws`, `cron`, `express`), singletons
+  with private constructors (`resetSingleton()` in `tests/support/fakes.ts`) and composition roots that
+  construct dependencies inline (`routes/index.ts`, `websockets/index.ts`, the builders inside
+  `DiscordCommandService`, `AmazonAdService` inside `AmazonAdWebSocketController`).
+- Repositories: fake Prisma client (`fakePrisma`, query shape only). Routers: `fakeRouter`/`routeTable`.
+  Controllers: `fakeRequest`/`fakeResponse`. Discord replies: `tests/support/discord.ts`.
+- Cron services expose `run()` for the job body; `schedule()` only wires the `CronJob`.
+
 Path aliases: `@/*` → `src/*`, `@@prisma/*` → `prisma/*` (defined in both `tsconfig.json` and `vite.config.ts`; keep them in sync).
 
 ## Commits
