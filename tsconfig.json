@@ -8,6 +8,8 @@
     "moduleResolution": "bundler",
     "esModuleInterop": true,
     "target": "ES2022",
+    "lib": ["ES2022"],
+    "skipLibCheck": true,
     "paths": {
       "@/*": ["./src/*"],
       "@@prisma/*": ["./prisma/*"]

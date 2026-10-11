@@ -144,6 +144,22 @@ describe("DiscordBlacklistCommandBuilder", () => {
   });
 
   describe("remove", () => {
+    it("reports unknown keywords by value", async () => {
+      const { command, service } = setup();
+      const { interaction, reply } = fakeInteraction({
+        subcommand: "remove",
+        strings: { keyword: "ghost" },
+      });
+
+      await command.execute(interaction);
+
+      await expectEphemeralReply(
+        reply,
+        `${replyPrefix.error}Nie znaleziono keyworda **ghost**`
+      );
+      expect(service.deletable.delete).not.toHaveBeenCalled();
+    });
+
     it("deletes the keyword and confirms", async () => {
       const { command, service } = setup();
       service.getByValue.mockResolvedValue(
