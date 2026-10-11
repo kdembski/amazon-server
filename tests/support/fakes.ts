@@ -99,9 +99,12 @@ export type RouteCall = { method: string; path?: string; handler: unknown };
 
 export function fakeRouter() {
   const calls: RouteCall[] = [];
+  // Express semantics: `use(handler)` vs `use(path, handler)` /
+  // `get(path, handler)`. Decide by arity, not by the first argument's type,
+  // so string tags returned by fakeSubRouter are recorded as handlers.
   const record = (method: string) =>
     vi.fn((...args: unknown[]) => {
-      if (typeof args[0] === "string") {
+      if (args.length >= 2 && typeof args[0] === "string") {
         calls.push({ method, path: args[0], handler: args[1] });
       } else {
         calls.push({ method, handler: args[0] });
@@ -116,6 +119,11 @@ export function fakeRouter() {
   } as unknown as Router;
   return { router, calls };
 }
+
+// Registration order as [method, path] for routes and [method, tag] for
+// mounted sub-routers (see fakeSubRouter).
+export const routeTable = (calls: RouteCall[]) =>
+  calls.map((c) => (c.method === "use" ? [c.method, c.handler] : [c.method, c.path]));
 
 export function fakeSubRouter<T>(tag: string) {
   const build = vi.fn().mockReturnValue({ router: tag });
