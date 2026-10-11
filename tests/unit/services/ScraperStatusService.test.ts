@@ -14,6 +14,13 @@ const givenProcesses = (processes: Proc[]) => {
   );
 };
 
+// Real pm2 passes only the error to the callback, no list.
+const givenPm2Error = (error: Error) => {
+  pm2List.mockImplementation((cb: (e: Error, list?: Proc[]) => void) =>
+    cb(error)
+  );
+};
+
 describe("ScraperStatusService", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -78,5 +85,22 @@ describe("ScraperStatusService", () => {
     vi.advanceTimersByTime(60_000 + 3700 * 1000);
 
     expect(service.cpuHistories["pdp-1"]).toHaveLength(3600);
+  });
+
+  it("logs pm2 errors from both pollers and keeps the previous state", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const service = ScraperStatusService.getInstance();
+    givenProcesses([{ name: "pdp-1", monit: { cpu: 10 } }]);
+    vi.advanceTimersByTime(61_000);
+    expect(service.getNames()).toEqual(["pdp-1"]);
+
+    const pm2Error = new Error("pm2 down");
+    givenPm2Error(pm2Error);
+    expect(() => vi.advanceTimersByTime(60_000)).not.toThrow();
+
+    expect(error).toHaveBeenCalledWith(pm2Error);
+    expect(error.mock.calls.length).toBeGreaterThanOrEqual(61);
+    expect(service.getNames()).toEqual(["pdp-1"]);
+    expect(service.getCpuUsage("pdp-1")).toBe(10);
   });
 });
