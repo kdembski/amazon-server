@@ -14,15 +14,25 @@ npm run watch        # same, with file watching
 npm run build        # bundle to dist/ with pkgroll
 npx prisma generate  # regenerate client after editing prisma/schema.prisma
 npx tsc --noEmit     # type-check (no dedicated lint/typecheck script exists)
-npm test             # unit tests (vitest), tests/unit
+npm test             # unit tests (vitest project "unit"), tests/unit, no database needed
 npm run test:watch   # same, watch mode
 npm run test:coverage # unit tests with v8 coverage report
+npm run test:integration # MySQL + HTTP tests (vitest project "integration"), needs TEST_DATABASE_URL
+npm run test:all     # both projects
 ```
 
 Unit tests live in `tests/unit` (mirror of `src/`), shared factories and fakes in `tests/support`.
-`tests/integration` is reserved for future MySQL tests. Tests need the generated Prisma client
-(`npx prisma generate`, no DB connection required). `vitest.config.ts` merges `vite.config.ts`, so
-aliases work in tests without extra setup. There is no linter configured.
+Integration tests live in `tests/integration` and run against a real MySQL 8 pointed to by
+`TEST_DATABASE_URL` (shell or `.env.test.local`, loaded by `tests/integration/globalSetup.ts`). The
+database name must end with `_test`: every run pushes the schema with `prisma db push --force-reset`
+(there are no migrations), which drops all tables in it. Create the database once with an admin
+account; the test account only needs privileges on that database (Prisma answers `P1010` when it has
+to create it). Prisma CLI refuses `--force-reset` when it detects an AI agent (`CLAUDECODE`); an agent
+must ask the user for explicit consent and pass their exact message in
+`PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION`, never write it itself. Tests need the generated Prisma client
+(`npx prisma generate`, no DB connection required). `vitest.config.ts` merges `vite.config.ts`
+and defines two projects (`unit`, `integration`), so aliases work in tests without extra setup. There
+is no linter configured.
 
 Test conventions:
 
@@ -45,6 +55,10 @@ Path aliases: `@/*` → `src/*`, `@@prisma/*` → `prisma/*` (defined in both `t
 ## Commits
 
 Commit messages are short English sentences starting with a capitalised past-tense verb (e.g. `Added vitest setup`, `Fixed ...`). Do NOT add any `Co-Authored-By` trailer or other attribution lines to commits or PR descriptions.
+
+## Code comments
+
+Write a comment only when it adds information about the logic that the code itself does not show: a non-obvious constraint, invariant, ordering requirement or behaviour of an external system. Do NOT write comments that justify why something was added or changed, compare it with rejected alternatives or describe history; that belongs in the commit message or the PR description.
 
 ## Environment variables
 

@@ -1,0 +1,152 @@
+import { Prisma } from "@prisma/client";
+import { prisma } from "./db";
+import { FIXED_DATE } from "../factories";
+
+let seq = 0;
+const next = () => ++seq;
+const stamps = (at: Date = FIXED_DATE) => ({ createdAt: at, updatedAt: at });
+
+export function seedCurrency(
+  overrides: Partial<Prisma.CurrencyUncheckedCreateInput> = {}
+) {
+  const n = next();
+  return prisma.currency.create({
+    data: {
+      name: `Currency ${n}`,
+      code: `CUR${n}`,
+      symbol: "¤",
+      ...stamps(),
+      ...overrides,
+    },
+  });
+}
+
+export async function seedCountry(
+  overrides: Partial<Prisma.CountryUncheckedCreateInput> = {}
+) {
+  const n = next();
+  const currencyId = overrides.currencyId ?? (await seedCurrency()).id;
+  return prisma.country.create({
+    data: {
+      name: `Country ${n}`,
+      code: `c${n}`,
+      active: true,
+      ...stamps(),
+      ...overrides,
+      currencyId,
+    },
+  });
+}
+
+export function seedCategory(
+  overrides: Partial<Prisma.AmazonAdCategoryUncheckedCreateInput> = {}
+) {
+  const n = next();
+  return prisma.amazonAdCategory.create({
+    data: {
+      name: `category-${n}`,
+      active: true,
+      scrapedAt: null,
+      ...stamps(),
+      ...overrides,
+    },
+  });
+}
+
+export async function seedAd(
+  overrides: Partial<Prisma.AmazonAdUncheckedCreateInput> = {}
+) {
+  const n = next();
+  const categoryId = overrides.categoryId ?? (await seedCategory()).id;
+  return prisma.amazonAd.create({
+    data: {
+      asin: `B0SEED${String(n).padStart(4, "0")}`,
+      name: `Product ${n}`,
+      image: `https://images.example/${n}.jpg`,
+      scrapedAt: null,
+      ...stamps(),
+      ...overrides,
+      categoryId,
+    },
+  });
+}
+
+export async function seedPrice(
+  overrides: Partial<Prisma.AmazonAdPriceUncheckedCreateInput> = {}
+) {
+  const adId = overrides.adId ?? (await seedAd()).id;
+  const countryId = overrides.countryId ?? (await seedCountry()).id;
+  return prisma.amazonAdPrice.create({
+    data: {
+      value: 100,
+      dispatchFrom: "Amazon",
+      ...stamps(),
+      ...overrides,
+      adId,
+      countryId,
+    },
+  });
+}
+
+export async function seedRate(
+  overrides: Partial<Prisma.CurrencyExchangeRateUncheckedCreateInput> = {}
+) {
+  const sourceId = overrides.sourceId ?? (await seedCurrency()).id;
+  const targetId = overrides.targetId ?? (await seedCurrency()).id;
+  return prisma.currencyExchangeRate.create({
+    data: { value: 4.3, ...stamps(), ...overrides, sourceId, targetId },
+  });
+}
+
+export function seedKeyword(
+  overrides: Partial<Prisma.BlacklistedKeywordUncheckedCreateInput> = {}
+) {
+  const n = next();
+  return prisma.blacklistedKeyword.create({
+    data: { value: `keyword-${n}`, createdAt: FIXED_DATE, ...overrides },
+  });
+}
+
+export function seedLog(
+  overrides: Partial<Prisma.LogUncheckedCreateInput> = {}
+) {
+  return prisma.log.create({
+    data: { event: "ad_scraped", createdAt: FIXED_DATE, ...overrides },
+  });
+}
+
+export function seedPln() {
+  return prisma.currency.upsert({
+    where: { code: "PLN" },
+    update: {},
+    create: { name: "Polish zloty", code: "PLN", symbol: "zł", ...stamps() },
+  });
+}
+
+// Currency + country + (optionally) the currency's rate to PLN.
+export async function seedMarket(options: {
+  countryCode: string;
+  currencyCode: string;
+  rateToPln?: number;
+  active?: boolean;
+}) {
+  const pln = await seedPln();
+  const currency =
+    options.currencyCode === "PLN"
+      ? pln
+      : await seedCurrency({ code: options.currencyCode });
+  const country = await seedCountry({
+    code: options.countryCode,
+    currencyId: currency.id,
+    active: options.active ?? true,
+  });
+  const rate =
+    options.rateToPln === undefined
+      ? null
+      : await seedRate({
+          sourceId: currency.id,
+          targetId: pln.id,
+          value: options.rateToPln,
+        });
+  return { pln, currency, country, rate };
+}

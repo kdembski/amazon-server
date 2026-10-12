@@ -6,10 +6,31 @@ export default mergeConfig(
   defineConfig({
     test: {
       environment: "node",
-      include: ["tests/unit/**/*.test.ts"],
       clearMocks: true,
       unstubEnvs: true,
       unstubGlobals: true,
+      projects: [
+        {
+          extends: true,
+          test: {
+            name: "unit",
+            include: ["tests/unit/**/*.test.ts"],
+          },
+        },
+        {
+          extends: true,
+          test: {
+            name: "integration",
+            include: ["tests/integration/**/*.test.ts"],
+            globalSetup: ["tests/integration/globalSetup.ts"],
+            setupFiles: ["tests/integration/setup.ts"],
+            pool: "forks",
+            poolOptions: { forks: { singleFork: true } },
+            testTimeout: 30_000,
+            hookTimeout: 120_000,
+          },
+        },
+      ],
       coverage: {
         provider: "v8",
         include: ["src/**/*.ts"],
@@ -21,10 +42,6 @@ export default mergeConfig(
           "src/declarations.d.ts",
         ],
         reporter: ["text", "html"],
-        // A negative value means "at most N uncovered". Exactly these four
-        // guards may stay uncovered, as they are unreachable with real types:
-        // RequestQueueService:16, DiscordLogService:59, WebSocketController:30
-        // and AmazonAdWebScoketController:25.
         thresholds: {
           lines: 100,
           functions: 100,
@@ -33,5 +50,5 @@ export default mergeConfig(
         },
       },
     },
-  })
+  }),
 );
