@@ -111,6 +111,10 @@ describe("AmazonAdRepository (MySQL)", () => {
     ]);
   });
 
+  it("updateScrapedAt accepts an empty id list", async () => {
+    await expect(repository.updateScrapedAt([])).resolves.toBe(0);
+  });
+
   it("getCount honours inclusive from/to bounds", async () => {
     await seedAd({ createdAt: day(0) });
     await seedAd({ createdAt: day(1) });

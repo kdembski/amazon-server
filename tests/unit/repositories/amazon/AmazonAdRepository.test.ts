@@ -91,6 +91,14 @@ describe("AmazonAdRepository", () => {
     expect(values[0]).toEqual(Prisma.join([1, 2]));
   });
 
+  it("updateScrapedAt skips the query for an empty id list", async () => {
+    const { repository, $executeRaw } = setup();
+
+    await expect(repository.updateScrapedAt([])).resolves.toBe(0);
+
+    expect($executeRaw).not.toHaveBeenCalled();
+  });
+
   it("getAll, getCount and getBlacklistedCount build the expected queries", async () => {
     const { repository, delegate } = setup();
     const from = new Date(1);
