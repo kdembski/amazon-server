@@ -27,14 +27,11 @@ the `unit` and `integration` projects. There is no linter configured.
 
 Before running tests:
 
-- Run `npx prisma generate` (no database connection needed).
-- For integration tests, set `TEST_DATABASE_URL` in the shell or in `.env.test.local`: MySQL 8, host
-  `127.0.0.1` (not `localhost`), a dedicated database whose name ends with `_test`.
-- Create that database once with an admin account. Grant the test account privileges on that
-  database only.
-- As an AI agent, ask the user for explicit consent to reset the test database before running
-  integration tests, and pass their exact message in `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION`.
-  Never write that message yourself.
+- Run `npx prisma generate`.
+- Integration tests need `TEST_DATABASE_URL` (shell or `.env.test.local`): MySQL 8 at `127.0.0.1`, a
+  pre-created database whose name ends with `_test`.
+- Before running integration tests, get the user's explicit consent to reset the test database and pass
+  their exact message in `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION`. Never write it yourself.
 
 Test conventions:
 
@@ -44,13 +41,17 @@ Test conventions:
 - One test file per source file under the same relative path. Exceptions: mappers share
   `tests/unit/mappers/mappers.test.ts`; the abstract `DiscordCommandBuilder` is covered through its subclasses.
 - Inject dependencies through the existing constructor default parameters. Use `vi.mock` only for
-  external modules (`pm2`, `node-os-utils`, `hercai`, `discord.js`, `ws`, `cron`, `express`), singletons
-  with private constructors (`resetSingleton()` in `tests/support/fakes.ts`) and composition roots that
-  construct dependencies inline (`routes/index.ts`, `websockets/index.ts`, the builders inside
+  external modules (`pm2`, `node-os-utils`, `hercai`, `discord.js`, `ws`, `cron`, `express`, `cors`),
+  singletons with private constructors (`resetSingleton()` in `tests/support/fakes.ts`) and composition
+  roots that construct dependencies inline (`app.ts`, `routes/index.ts`, `websockets/index.ts`, the builders inside
   `DiscordCommandService`, `AmazonAdService` inside `AmazonAdWebSocketController`).
 - Repositories: fake Prisma client (`fakePrisma`, query shape only). Routers: `fakeRouter`/`routeTable`.
   Controllers: `fakeRequest`/`fakeResponse`. Discord replies: `tests/support/discord.ts`.
 - Cron services expose `run()` for the job body; `schedule()` only wires the `CronJob`.
+- Integration tests: `repositories/` and `services/` mirror `src/`; `http/` has one file per router,
+  using supertest on `createApp()`. Seed with `tests/support/integration/seed.ts` and use the returned
+  ids. Wait for anomaly managers with `vi.waitFor`. Set env in `tests/integration/env.ts` with plain
+  `process.env` assignments, not `vi.stubEnv`.
 
 Path aliases: `@/*` → `src/*`, `@@prisma/*` → `prisma/*` (defined in both `tsconfig.json` and `vite.config.ts`; keep them in sync).
 
@@ -74,6 +75,7 @@ Provide them through the runtime or pm2. The app reads them from `process.env` a
 - `DISCORD_BOT_TOKEN`, `DISCORD_APP_ID`, `DISCORD_SERVER_ID` – slash-command bot
 - Webhook tokens (appended to `https://discord.com/api/webhooks/`): `DISCORD_LOGS_TOKEN`, `DISCORD_PRICING_ERROR_TOKEN`, `DISCORD_CONVERSION_ERROR_{1..6}_TOKEN`
 - `CURRENCY_API_KEY` – freecurrencyapi
+- `TEST_DATABASE_URL` – integration tests only, see `Before running tests`
 
 ## Architecture
 
@@ -121,3 +123,4 @@ Each sent alert is recorded in the `Log` table; the cron reports count those eve
 - `AiChatService` (hercai) is throttled through `RequestQueueService` (one request per 10 s).
 - `WebSocketController` upgrades HTTP connections on `/amazon/ads` and pings clients every 40 s; the Amazon websocket currently has no message handling.
 - Prisma schema uses explicit `@map` constraint names and `Timestamp(2)` columns; `createdAt`/`updatedAt` are set manually in mappers, not by Prisma defaults. There is no `prisma/migrations` directory – the schema mirrors an existing database.
+- `src/app.ts` (`createApp()`) assembles express + json + cors + `useRouter()`; `src/index.ts` only adds `listen`, websockets, cron jobs and the Discord bot login.
