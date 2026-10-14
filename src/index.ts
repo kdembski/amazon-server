@@ -1,18 +1,11 @@
-import express from "express";
-import cors from "cors";
-import { useRouter } from "@/routes";
+import { createApp } from "@/app";
 import { useWebSockets } from "@/websockets";
 import { CurrencyExchangeRateCronService } from "@/services/cron/CurrencyExchangeRateCronService";
 import { HourlyStatsCronService } from "@/services/cron/HourlyStatsCronService";
 import { DailyStatsCronService } from "@/services/cron/DailyStatsCronService";
 import { DiscordCommandService } from "@/services/discord/DiscordCommandService";
 
-const app = express();
-app.use(express.json());
-app.use(cors());
-
-const { router } = useRouter();
-app.use(router);
+const app = createApp();
 
 const server = app.listen(process.env.PORT || 5001, () =>
   console.log("Amazon Server is running...")

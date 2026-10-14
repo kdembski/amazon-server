@@ -59,7 +59,9 @@ export class AmazonAdRepository {
     });
   }
 
-  updateScrapedAt(ids: number[]) {
+  updateScrapedAt(ids: number[]): Promise<number> {
+    if (!ids.length) return Promise.resolve(0);
+
     return this.prisma
       .$executeRaw`UPDATE AmazonAd SET scrapedAt = NOW() WHERE id IN (${Prisma.join(
       ids
