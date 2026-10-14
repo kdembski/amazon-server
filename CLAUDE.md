@@ -22,17 +22,19 @@ npm run test:all     # both projects
 ```
 
 Unit tests live in `tests/unit` (mirror of `src/`), shared factories and fakes in `tests/support`.
-Integration tests live in `tests/integration` and run against a real MySQL 8 pointed to by
-`TEST_DATABASE_URL` (shell or `.env.test.local`, loaded by `tests/integration/globalSetup.ts`). The
-database name must end with `_test`: every run pushes the schema with `prisma db push --force-reset`
-(there are no migrations), which drops all tables in it. Create the database once with an admin
-account; the test account only needs privileges on that database (Prisma answers `P1010` when it has
-to create it). Prisma CLI refuses `--force-reset` when it detects an AI agent (`CLAUDECODE`); an agent
-must ask the user for explicit consent and pass their exact message in
-`PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION`, never write it itself. Tests need the generated Prisma client
-(`npx prisma generate`, no DB connection required). `vitest.config.ts` merges `vite.config.ts`
-and defines two projects (`unit`, `integration`), so aliases work in tests without extra setup. There
-is no linter configured.
+Integration tests live in `tests/integration`. `vitest.config.ts` merges `vite.config.ts` and defines
+the `unit` and `integration` projects. There is no linter configured.
+
+Before running tests:
+
+- Run `npx prisma generate` (no database connection needed).
+- For integration tests, set `TEST_DATABASE_URL` in the shell or in `.env.test.local`: MySQL 8, host
+  `127.0.0.1` (not `localhost`), a dedicated database whose name ends with `_test`.
+- Create that database once with an admin account. Grant the test account privileges on that
+  database only.
+- As an AI agent, ask the user for explicit consent to reset the test database before running
+  integration tests, and pass their exact message in `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION`.
+  Never write that message yourself.
 
 Test conventions:
 
@@ -60,9 +62,13 @@ Commit messages are short English sentences starting with a capitalised past-ten
 
 Write a comment only when it adds information about the logic that the code itself does not show: a non-obvious constraint, invariant, ordering requirement or behaviour of an external system. Do NOT write comments that justify why something was added or changed, compare it with rejected alternatives or describe history; that belongs in the commit message or the PR description.
 
+## Editing CLAUDE.md
+
+Write instructions as what to do. Do NOT explain why a rule exists, what happens if it is broken or how it was discovered; that belongs in the commit message or the PR description.
+
 ## Environment variables
 
-Read directly from `process.env` (`dotenv` is a dependency but is never imported, so variables must be provided by the runtime/pm2):
+Provide them through the runtime or pm2. The app reads them from `process.env` and does not load `.env` files:
 
 - `DATABASE_URL` (MySQL, used by Prisma), `PORT` (default 5001), `NODE_ENV`
 - `DISCORD_BOT_TOKEN`, `DISCORD_APP_ID`, `DISCORD_SERVER_ID` – slash-command bot
