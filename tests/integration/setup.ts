@@ -20,22 +20,12 @@ vi.mock("discord.js", async () => {
   };
 });
 
-vi.mock("pm2", () => ({
-  default: {
-    list: (callback: (error: Error | null, list: never[]) => void) =>
-      callback(null, []),
-  },
+vi.mock("@/services/SystemService", () => ({
+  SystemService: { getInstance: () => ({}) },
 }));
 
-vi.mock("node-os-utils", () => ({
-  default: {
-    cpu: { usage: () => Promise.resolve(0) },
-    mem: { used: () => Promise.resolve({ totalMemMb: 100, usedMemMb: 50 }) },
-    drive: {
-      info: () =>
-        Promise.resolve({ usedGb: 1, totalGb: 10, usedPercentage: 10 }),
-    },
-  },
+vi.mock("@/services/ScraperStatusService", () => ({
+  ScraperStatusService: { getInstance: () => ({}) },
 }));
 
 vi.mock("hercai", () => ({
