@@ -9,11 +9,9 @@
     "start": "vite-node src/index.ts",
     "watch": "vite-node --watch src/index.ts",
     "build": "pkgroll",
-    "test": "vitest run --project unit",
-    "test:watch": "vitest --project unit",
+    "test:unit": "vitest run --project unit",
     "test:coverage": "vitest run --coverage --project unit",
-    "test:integration": "vitest run --project integration",
-    "test:all": "vitest run"
+    "test:integration": "vitest run --project integration"
   },
   "license": "ISC",
   "dependencies": {

@@ -14,11 +14,9 @@ npm run watch        # same, with file watching
 npm run build        # bundle to dist/ with pkgroll
 npx prisma generate  # regenerate client after editing prisma/schema.prisma
 npx tsc --noEmit     # type-check (no dedicated lint/typecheck script exists)
-npm test             # unit tests (vitest project "unit"), tests/unit, no database needed
-npm run test:watch   # same, watch mode
+npm run test:unit    # unit tests (vitest project "unit"), tests/unit, no database needed
 npm run test:coverage # unit tests with v8 coverage report
 npm run test:integration # MySQL + HTTP tests (vitest project "integration"), needs TEST_DATABASE_URL
-npm run test:all     # both projects
 ```
 
 Unit tests live in `tests/unit` (mirror of `src/`), shared factories and fakes in `tests/support`.
