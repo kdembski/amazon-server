@@ -3,6 +3,8 @@ services:
     image: mysql:8
     restart: unless-stopped
     env_file: .env.production
+    ports:
+      - "127.0.0.1:3307:3306"
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
