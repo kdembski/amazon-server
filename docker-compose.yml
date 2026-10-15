@@ -1,0 +1,31 @@
+services:
+  db:
+    image: mysql:8
+    restart: unless-stopped
+    env_file: .env.production
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env.production
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "5001:5001"
+    logging: *logging
+
+volumes:
+  db_data:
