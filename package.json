@@ -33,6 +33,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@testcontainers/mysql": "^12.2.1",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/lodash": "^4.17.14",
