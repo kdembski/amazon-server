@@ -30,7 +30,7 @@ export class DiscordLogService {
   }
 
   send(options: string | MessagePayload | WebhookMessageCreateOptions) {
-    this.service.send(options);
+    return this.service.send(options);
   }
 
   async sendHourly(logs: number[]) {
@@ -74,7 +74,7 @@ export class DiscordLogService {
       fields,
     };
 
-    this.service.send({ embeds: [embed] });
+    return this.service.send({ embeds: [embed] });
   }
 
   async sendDaily(
@@ -116,7 +116,7 @@ export class DiscordLogService {
       fields,
     };
 
-    this.service.send({ embeds: [embed] });
+    return this.service.send({ embeds: [embed] });
   }
 
   private getSpeedIcon(speed: number) {

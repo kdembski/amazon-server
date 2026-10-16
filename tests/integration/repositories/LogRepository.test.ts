@@ -23,6 +23,20 @@ describe("LogRepository (MySQL)", () => {
     ).toEqual([early.id, mid.id]);
   });
 
+  it("deleteOlderThan removes rows strictly before the date across batches", async () => {
+    await seedLog({ event: "ad_scraped", createdAt: minute(0) });
+    await seedLog({ event: "ad_scraped", createdAt: minute(1) });
+    await seedLog({ event: "pricing_error_sent", createdAt: minute(2) });
+    const boundary = await seedLog({ event: "ad_scraped", createdAt: minute(3) });
+    const later = await seedLog({ event: "ad_scraped", createdAt: minute(4) });
+
+    expect(await repository.deleteOlderThan(minute(3), 2)).toBe(3);
+    expect((await prisma.log.findMany()).map((l) => l.id)).toEqual([
+      boundary.id,
+      later.id,
+    ]);
+  });
+
   it("create stores optional data and delete removes the row", async () => {
     const log = await repository.create({
       event: "ad_scraped",

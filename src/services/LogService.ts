@@ -25,4 +25,8 @@ export class LogService {
   getCountByEvent(event: string, from?: Date, to?: Date) {
     return this.repository.getCountByEvent(event, from, to);
   }
+
+  deleteOlderThan(date: Date) {
+    return this.repository.deleteOlderThan(date);
+  }
 }

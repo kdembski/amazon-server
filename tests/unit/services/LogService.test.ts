@@ -6,6 +6,7 @@ const setup = () => {
   const repository = {
     getByEvent: vi.fn().mockResolvedValue([]),
     getCountByEvent: vi.fn().mockResolvedValue(0),
+    deleteOlderThan: vi.fn().mockResolvedValue(3),
     create: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue({}),
   };
@@ -26,6 +27,14 @@ describe("LogService", () => {
       from,
       to
     );
+  });
+
+  it("delegates deleteOlderThan", async () => {
+    const { service, repository } = setup();
+    const date = new Date(1);
+
+    expect(await service.deleteOlderThan(date)).toBe(3);
+    expect(repository.deleteOlderThan).toHaveBeenCalledWith(date);
   });
 
   it("wires creatable and deletable to the repository", async () => {

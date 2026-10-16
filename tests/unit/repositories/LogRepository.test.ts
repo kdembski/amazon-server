@@ -21,6 +21,25 @@ describe("LogRepository", () => {
     expect(delegate.count).toHaveBeenCalledWith({ where });
   });
 
+  it("deletes logs older than a date in batches until a batch comes back short", async () => {
+    const db = fakePrisma();
+    const repository = new LogRepository(db.prisma);
+    db.$executeRaw
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(1);
+    const date = new Date(5);
+
+    expect(await repository.deleteOlderThan(date, 2)).toBe(5);
+
+    expect(db.$executeRaw).toHaveBeenCalledTimes(3);
+    const [strings, ...values] = db.$executeRaw.mock.calls[0];
+    expect(strings.join("?")).toBe(
+      "DELETE FROM Log WHERE createdAt < ? LIMIT ?"
+    );
+    expect(values).toEqual([date, 2]);
+  });
+
   it("writes delegate to prisma", async () => {
     const { repository, delegate } = setup();
 
