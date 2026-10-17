@@ -14,6 +14,8 @@ import {
 
 // Matches the VarChar(63) of SearchRule.value.
 const MAX_RULE_LENGTH = 63;
+const RECALCULATION_NOTICE =
+  "Oferty zostaną przeliczone w tle w ciągu kilku minut.";
 
 export class DiscordSearchRulesCommandBuilder extends DiscordCommandBuilder {
   private service;
@@ -151,7 +153,7 @@ export class DiscordSearchRulesCommandBuilder extends DiscordCommandBuilder {
       .then(() => {
         this.sendSuccessReply(
           interaction,
-          `Dodano **${value}**: ${describeSearchRule(parsed)}`
+          `Dodano **${value}**: ${describeSearchRule(parsed)}. ${RECALCULATION_NOTICE}`
         );
       })
       .catch((e) => {
@@ -175,7 +177,7 @@ export class DiscordSearchRulesCommandBuilder extends DiscordCommandBuilder {
       .then(() => {
         this.sendSuccessReply(
           interaction,
-          `Usunięto **${value}** z zasad`
+          `Usunięto **${value}** z zasad. ${RECALCULATION_NOTICE}`
         );
       })
       .catch((e) => {

@@ -138,6 +138,7 @@ export function fakeDelegate() {
     findUniqueOrThrow: vi.fn(),
     findFirstOrThrow: vi.fn(),
     findMany: vi.fn(),
+    updateMany: vi.fn(),
     count: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),

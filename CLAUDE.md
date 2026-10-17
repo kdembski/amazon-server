@@ -52,8 +52,10 @@ npm run test:integration  # tests/integration, needs a running Docker
   before generic ones (`GET /scrap` before `GET /:id`). Register routers in `src/routes/index.ts`.
 - Cross-cutting services are `getInstance()` singletons. `*SelectDto` types derive from repository return
   types. Controller errors go through `ResponseErrorService` (P2002 → 422, P1001 → 503).
-- Scraping: `GET /amazon/ads/scrap` hands out ads whose name matches any `SearchRule`, from any category,
-  oldest `scrapedAt` first, and stamps them; no positive rule → `[]`. Rule syntax lives in
+- Scraping: `GET /amazon/ads/scrap` hands out ads with `matchesRules = true`, oldest `scrapedAt` first, and
+  stamps them; never filter it by `name LIKE`. `SearchRuleMatchCronService` runs every minute: it rematches
+  every ad when the `SearchRule` values changed since the last run (and after each restart), otherwise only
+  ads with `matchesRules = null`. New ads start with `matchesRules: null`. Rule syntax lives in
   `src/helpers/searchRule.ts` (`+` and, `|` or, `!` not; a rule of only `!` members excludes globally).
   `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices, logs `ad_scraped` and
   asynchronously runs the anomaly managers (`src/managers`), which log `*_sent` events and post to Discord.

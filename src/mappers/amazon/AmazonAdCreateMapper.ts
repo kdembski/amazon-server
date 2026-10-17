@@ -11,6 +11,7 @@ export class AmazonAdCreateMapper
       asin: dto.asin,
       name: dto.name,
       image: dto.image,
+      matchesRules: null,
       createdAt: new Date(Date.now()),
       updatedAt: new Date(Date.now()),
       category: {

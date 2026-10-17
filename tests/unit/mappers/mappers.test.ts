@@ -46,6 +46,7 @@ describe("create mappers", () => {
       expected: {
         asin: "A1",
         name: "Drill",
+        matchesRules: null,
         image: "img",
         createdAt: NOW,
         updatedAt: NOW,
