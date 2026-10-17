@@ -117,6 +117,19 @@ describe("CRUD /amazon/ads", () => {
     expect(dup.text).toMatch(/^Unique constraint failed on the/);
   });
 
+  it("POST / with many ads skips duplicate asins and creates the rest", async () => {
+    const body = { asin: "B0HTTP0001", name: "Ad", image: "img", categoryName: "audio" };
+    await request(app).post("/amazon/ads").send(body).expect(200);
+
+    const res = await request(app)
+      .post("/amazon/ads")
+      .send([body, { ...body, asin: "B0HTTP0002" }])
+      .expect(200);
+
+    expect(res.body.map((a: { asin: string }) => a.asin)).toEqual(["B0HTTP0002"]);
+    expect(await prisma.amazonAd.count()).toBe(2);
+  });
+
   it("DELETE /:id removes the ad", async () => {
     const ad = await seedAd();
 

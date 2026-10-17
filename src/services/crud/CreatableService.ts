@@ -25,8 +25,11 @@ export class CreatableService<CreateDto, CreateInput, Model>
     const models: Model[] = [];
 
     for (const dto of dtos) {
-      const model = await this.create(dto);
-      models.push(model);
+      try {
+        models.push(await this.create(dto));
+      } catch (error: any) {
+        if (error?.code !== "P2002") throw error;
+      }
     }
 
     return models;
