@@ -18,8 +18,7 @@ type Status = { speed: number; pending: number; speedDiff: number };
 
 const setup = (statuses: Record<string, Status> = {}) => {
   const discord = fakeDiscordService();
-  const getCpuUsage = vi.fn().mockReturnValue(33.3);
-  const scrapers = { statuses, getCpuUsage } as unknown as ScraperStatusService;
+  const scrapers = { statuses } as unknown as ScraperStatusService;
   const getDiskSpace = vi
     .fn()
     .mockResolvedValue({ used: 10, total: 100, percentage: 10 });
@@ -30,7 +29,7 @@ const setup = (statuses: Record<string, Status> = {}) => {
   } as unknown as SystemService;
   const service = new DiscordLogService(discord.service, scrapers, system);
   const lastEmbed = () => discord.send.mock.calls.at(-1)![0].embeds[0];
-  return { service, discord, getCpuUsage, getDiskSpace, lastEmbed };
+  return { service, discord, getDiskSpace, lastEmbed };
 };
 
 describe("DiscordLogService.send", () => {
@@ -69,7 +68,7 @@ describe("DiscordLogService.sendHourly", () => {
   });
 
   it("renders scrapers sorted by name with speed icons and diffs", async () => {
-    const { service, getCpuUsage, lastEmbed } = setup({
+    const { service, lastEmbed } = setup({
       b: { speed: 0.08, pending: 1500, speedDiff: 0.03 },
       a: { speed: 0.5, pending: 2, speedDiff: 0.005 },
       c: { speed: 2, pending: 0, speedDiff: -0.05 },
@@ -78,13 +77,12 @@ describe("DiscordLogService.sendHourly", () => {
     await service.sendHourly([0, 0, 0, 0, 0, 0, 0, 0]);
 
     const scrapers = lastEmbed().fields[1];
-    expect(getCpuUsage.mock.calls.map(([name]) => name)).toEqual(["a", "b", "c"]);
     expect(scrapers.name).toBe("Scrapers *(2.6/s)*");
     expect(scrapers.value).toBe(
       [
-        [`${YELLOW} a`, `**0.5/s** *(0.00)* ${FLAT}`, "2", "33 %"].join(SP4),
-        [`${RED} b`, `**0.1/s** *(+0.03)* ${UP}`, "1 500", "33 %"].join(SP4),
-        [`${GREEN} c`, `**2.0/s** *(-0.05)* ${DOWN}`, "0", "33 %"].join(SP4),
+        [`${YELLOW} a`, `**0.5/s** *(0.00)* ${FLAT}`, "2"].join(SP4),
+        [`${RED} b`, `**0.1/s** *(+0.03)* ${UP}`, "1 500"].join(SP4),
+        [`${GREEN} c`, `**2.0/s** *(-0.05)* ${DOWN}`, "0"].join(SP4),
       ].join("\n")
     );
   });

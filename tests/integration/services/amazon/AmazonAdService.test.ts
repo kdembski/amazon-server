@@ -16,7 +16,7 @@ import {
   seedAd,
   seedCategory,
   seedCountry,
-  seedKeyword,
+  seedSearchRule,
   seedMarket,
   seedPrice,
 } from "../../../support/integration/seed";
@@ -27,7 +27,6 @@ const buildAdService = () => {
   const pricing = fakeDiscordPricingErrorService();
   const conversion = fakeDiscordConversionErrorService();
   const service = new AmazonAdService(
-    undefined,
     undefined,
     undefined,
     undefined,
@@ -43,34 +42,36 @@ const buildAdService = () => {
 
 describe("AmazonAdService (MySQL)", () => {
   describe("getForScraping", () => {
-    it("returns ads of active categories, skips the blacklist and stamps scrapedAt", async () => {
+    it("returns search rule matches from any category and stamps only them", async () => {
       const { service } = buildAdService();
-      const active = await seedCategory({ active: true });
       const inactive = await seedCategory({ active: false });
-      const wanted = await seedAd({ categoryId: active.id, name: "Sony WH-1000XM5" });
-      await seedAd({ categoryId: active.id, name: "Used Sony WH-1000XM5" });
-      await seedAd({ categoryId: inactive.id });
-      await seedKeyword({ value: "used" });
+      const wanted = await seedAd({ categoryId: inactive.id, name: "Sony WH-1000XM5" });
+      const other = await seedAd({ name: "Bose QC45" });
+      await seedSearchRule({ value: "sony" });
 
       const ads = await service.getForScraping(10);
 
       expect(ads).toEqual([{ id: wanted.id, asin: wanted.asin, name: wanted.name }]);
       const row = await prisma.amazonAd.findUniqueOrThrow({ where: { id: wanted.id } });
       expect(row.scrapedAt).toBeInstanceOf(Date);
+      const skipped = await prisma.amazonAd.findUniqueOrThrow({ where: { id: other.id } });
+      expect(skipped.scrapedAt).toBeNull();
     });
 
-    it("returns an empty list without throwing when nothing qualifies", async () => {
+    it("returns an empty list and stamps nothing when there are no search rules", async () => {
       const { service } = buildAdService();
-      await seedCategory({ active: false });
+      const ad = await seedAd();
 
       await expect(service.getForScraping(10)).resolves.toEqual([]);
+      const row = await prisma.amazonAd.findUniqueOrThrow({ where: { id: ad.id } });
+      expect(row.scrapedAt).toBeNull();
     });
 
     it("serialises concurrent calls so they hand out disjoint ads", async () => {
       const { service } = buildAdService();
-      const category = await seedCategory({ active: true });
-      const first = await seedAd({ categoryId: category.id });
-      const second = await seedAd({ categoryId: category.id });
+      const first = await seedAd({ name: "Sony A" });
+      const second = await seedAd({ name: "Sony B" });
+      await seedSearchRule({ value: "sony" });
 
       // The second caller waits 1 s on the static lock before retrying.
       const [a, b] = await Promise.all([

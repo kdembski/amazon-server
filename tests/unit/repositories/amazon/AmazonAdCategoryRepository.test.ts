@@ -28,12 +28,13 @@ describe("AmazonAdCategoryRepository", () => {
     });
   });
 
-  it("getForScraping picks the category with the oldest scrapedAt, nulls first", async () => {
+  it("getForScraping picks the active category with the oldest scrapedAt, nulls first", async () => {
     const { repository, delegate } = setup();
 
     await repository.getForScraping();
 
     expect(delegate.findFirstOrThrow).toHaveBeenCalledWith({
+      where: { active: true },
       orderBy: { scrapedAt: { sort: "asc", nulls: "first" } },
     });
   });

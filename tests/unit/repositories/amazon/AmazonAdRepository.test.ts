@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Prisma } from "@prisma/client";
 import { AmazonAdRepository } from "@/repositories/amazon/AmazonAdRepository";
-import { buildKeyword } from "../../../support/factories";
+import { buildSearchRule } from "../../../support/factories";
 import { fakePrisma } from "../../../support/fakes";
 
 const setup = () => {
@@ -35,39 +35,40 @@ describe("AmazonAdRepository", () => {
     });
   });
 
-  it("getForScraping with an empty blacklist excludes nothing", async () => {
+  it("getForScraping matches any search rule, oldest scrapedAt first with nulls first", async () => {
     const { repository, delegate } = setup();
 
-    await repository.getForScraping(5, [1], []);
-
-    expect(delegate.findMany.mock.calls[0][0].where).toEqual({
-      AND: [{ categoryId: { in: [1] } }, { NOT: { OR: [] } }],
-    });
-  });
-
-  it("getForScraping filters by categories and blacklist, oldest scrapedAt first with nulls first", async () => {
-    const { repository, delegate } = setup();
-
-    await repository.getForScraping(
-      10,
-      [1, 2],
-      [buildKeyword({ value: "used" }), buildKeyword({ value: "box+damaged" })]
-    );
+    await repository.getForScraping(10, [
+      buildSearchRule({ value: "drill" }),
+      buildSearchRule({ value: "rtx+4090|4080+!laptop" }),
+      buildSearchRule({ value: "!used|50%" }),
+    ]);
 
     expect(delegate.findMany).toHaveBeenCalledWith({
       where: {
         AND: [
-          { categoryId: { in: [1, 2] } },
+          {
+            OR: [
+              { AND: [{ OR: [{ name: { contains: "drill" } }] }] },
+              {
+                AND: [
+                  { OR: [{ name: { contains: "rtx" } }] },
+                  {
+                    OR: [
+                      { name: { contains: "4090" } },
+                      { name: { contains: "4080" } },
+                    ],
+                  },
+                  { NOT: { name: { contains: "laptop" } } },
+                ],
+              },
+            ],
+          },
           {
             NOT: {
               OR: [
                 { name: { contains: "used" } },
-                {
-                  AND: [
-                    { name: { contains: "box" } },
-                    { name: { contains: "damaged" } },
-                  ],
-                },
+                { name: { contains: "50\\%" } },
               ],
             },
           },
@@ -77,6 +78,34 @@ describe("AmazonAdRepository", () => {
       orderBy: { scrapedAt: { sort: "asc", nulls: "first" } },
       select: { id: true, asin: true, name: true },
     });
+  });
+
+  it("getForScraping skips and reports rules that fail to parse", async () => {
+    const { repository, delegate } = setup();
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await repository.getForScraping(5, [
+      buildSearchRule({ value: "a++b" }),
+      buildSearchRule({ value: "sony" }),
+    ]);
+
+    expect(delegate.findMany.mock.calls[0][0].where).toEqual({
+      OR: [{ AND: [{ OR: [{ name: { contains: "sony" } }] }] }],
+    });
+    expect(error).toHaveBeenCalledWith(
+      "AmazonAdRepository: skipped search rule a++b: Error: Zasada **a++b** zawiera pusty fragment"
+    );
+    error.mockRestore();
+  });
+
+  it("getForScraping skips the query when no rule has a positive member", async () => {
+    const { repository, delegate } = setup();
+
+    await expect(
+      repository.getForScraping(5, [buildSearchRule({ value: "!used" })])
+    ).resolves.toEqual([]);
+
+    expect(delegate.findMany).not.toHaveBeenCalled();
   });
 
   it("updateScrapedAt runs a raw UPDATE for the given ids", async () => {
@@ -99,21 +128,17 @@ describe("AmazonAdRepository", () => {
     expect($executeRaw).not.toHaveBeenCalled();
   });
 
-  it("getAll, getCount and getBlacklistedCount build the expected queries", async () => {
+  it("getAll and getCount build the expected queries", async () => {
     const { repository, delegate } = setup();
     const from = new Date(1);
     const to = new Date(2);
 
     await repository.getAll();
     await repository.getCount(from, to);
-    await repository.getBlacklistedCount([buildKeyword({ value: "used" })]);
 
     expect(delegate.findMany).toHaveBeenCalledWith();
-    expect(delegate.count).toHaveBeenNthCalledWith(1, {
+    expect(delegate.count).toHaveBeenCalledWith({
       where: { createdAt: { lte: to, gte: from } },
-    });
-    expect(delegate.count).toHaveBeenNthCalledWith(2, {
-      where: { OR: [{ name: { contains: "used" } }] },
     });
   });
 

@@ -1,18 +1,14 @@
 import { calculateAvg, roundToOneDecimal } from "@/helpers/number";
-import { ScraperStatusService } from "@/services/ScraperStatusService";
 import osu from "node-os-utils";
 
 export class SystemService {
   private static instance: SystemService;
-  private scrapersService;
   private cpuUsageHistory: number[] = [];
 
-  private constructor(scrapersService = ScraperStatusService.getInstance()) {
-    this.scrapersService = scrapersService;
-
+  private constructor() {
     setInterval(async () => {
       this.updateCpuUsage();
-      console.log(this.getLogs());
+      console.log(`global: ${roundToOneDecimal(this.getCpuUsage())}%`);
     }, 1000);
   }
 
@@ -47,19 +43,5 @@ export class SystemService {
       total: disk.totalGb,
       percentage: disk.usedPercentage,
     };
-  }
-
-  private getLogs() {
-    return [
-      ...this.scrapersService
-        .getNames()
-        .map(
-          (name) =>
-            `${name}: ${roundToOneDecimal(
-              this.scrapersService.getCpuUsage(name)
-            )}%`
-        ),
-      `global: ${roundToOneDecimal(this.getCpuUsage())}%`,
-    ].join(" | ");
   }
 }

@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { BlacklistedKeywordService } from "@/services/blacklist/BlacklistedKeywordService";
-import { BlacklistedKeywordRepository } from "@/repositories/blacklist/BlacklistedKeywordRepository";
-import { buildKeyword } from "../../../support/factories";
+import { SearchRuleService } from "@/services/search-rule/SearchRuleService";
+import { SearchRuleRepository } from "@/repositories/search-rule/SearchRuleRepository";
 
 const setup = () => {
   const repository = {
@@ -11,28 +10,19 @@ const setup = () => {
     create: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue({}),
   };
-  const service = new BlacklistedKeywordService(
-    repository as unknown as BlacklistedKeywordRepository
+  const service = new SearchRuleService(
+    repository as unknown as SearchRuleRepository
   );
   return { service, repository };
 };
 
-describe("BlacklistedKeywordService", () => {
+describe("SearchRuleService", () => {
   it("delegates getAll and getByValue", async () => {
     const { service, repository } = setup();
     await service.getAll();
     await service.getByValue("used");
     expect(repository.getAll).toHaveBeenCalled();
     expect(repository.getByValue).toHaveBeenCalledWith("used");
-  });
-
-  it("splitPlusKeywords splits values on '+'", () => {
-    const { service } = setup();
-    const result = service.splitPlusKeywords([
-      buildKeyword({ value: "a+b" }),
-      buildKeyword({ value: "c" }),
-    ]);
-    expect(result.map((k) => k.value)).toEqual([["a", "b"], ["c"]]);
   });
 
   it("wires creatable and deletable to the repository", async () => {

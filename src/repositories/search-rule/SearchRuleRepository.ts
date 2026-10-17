@@ -1,11 +1,11 @@
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { Prisma } from "@prisma/client";
 
-export class BlacklistedKeywordRepository {
+export class SearchRuleRepository {
   private delegate;
 
   constructor(prisma = PrismaClient.getInstance()) {
-    this.delegate = prisma.blacklistedKeyword;
+    this.delegate = prisma.searchRule;
   }
 
   getById(id: number) {
@@ -20,7 +20,7 @@ export class BlacklistedKeywordRepository {
     return this.delegate.findUnique({ where: { value } });
   }
 
-  create(data: Prisma.BlacklistedKeywordCreateInput) {
+  create(data: Prisma.SearchRuleCreateInput) {
     return this.delegate.create({ data });
   }
 

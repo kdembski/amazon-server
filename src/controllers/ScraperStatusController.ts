@@ -23,23 +23,4 @@ export class ScraperStatusController {
       new ResponseErrorService(response).send(error);
     }
   }
-
-  async getCpuUsage(request: Request<{ name: string }>, response: Response) {
-    try {
-      const name = request.params.name;
-      const usage = this.service.getCpuUsage(name);
-      response.json(usage);
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
-  }
-
-  async getCount(response: Response) {
-    try {
-      const count = this.service.getCount();
-      response.json(count);
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
-  }
 }

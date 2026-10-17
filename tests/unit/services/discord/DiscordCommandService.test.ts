@@ -14,7 +14,7 @@ const {
   clientOn,
   restPut,
   restSetToken,
-  executeBlacklist,
+  executeRules,
   executeCategories,
   executeCountries,
   fakeBuilder,
@@ -37,7 +37,7 @@ const {
     clientOn: vi.fn(),
     restPut,
     restSetToken: vi.fn(() => ({ put: restPut })),
-    executeBlacklist: vi.fn(async () => undefined),
+    executeRules: vi.fn(async () => undefined),
     executeCategories: vi.fn(async () => undefined),
     executeCountries: vi.fn(async () => undefined),
     fakeBuilder,
@@ -57,8 +57,8 @@ vi.mock("discord.js", async (importOriginal) => {
   };
 });
 
-vi.mock("@/builders/discord/DiscordBlacklistCommandBuilder", () => ({
-  DiscordBlacklistCommandBuilder: fakeBuilder("blacklist", executeBlacklist),
+vi.mock("@/builders/discord/DiscordSearchRulesCommandBuilder", () => ({
+  DiscordSearchRulesCommandBuilder: fakeBuilder("rules", executeRules),
 }));
 vi.mock("@/builders/discord/DiscordCategoriesCommandBuilder", () => ({
   DiscordCategoriesCommandBuilder: fakeBuilder("categories", executeCategories),
@@ -113,7 +113,7 @@ describe("DiscordCommandService", () => {
     expect(restSetToken).toHaveBeenCalledWith("bot-token");
     expect(restPut).toHaveBeenCalledWith(
       Routes.applicationGuildCommands("app", "guild"),
-      { body: [{ name: "countries" }, { name: "categories" }, { name: "blacklist" }] }
+      { body: [{ name: "countries" }, { name: "categories" }, { name: "rules" }] }
     );
     await vi.waitFor(() =>
       expect(log).toHaveBeenCalledWith("Successfully reloaded commands.")
@@ -144,13 +144,13 @@ describe("DiscordCommandService", () => {
     it("ignores non chat-input interactions", async () => {
       const { handler } = await loginWithEnv();
       const { interaction, reply } = fakeInteraction({
-        commandName: "blacklist",
+        commandName: "rules",
         isChatInputCommand: false,
       });
 
       await handler(interaction);
 
-      expect(executeBlacklist).not.toHaveBeenCalled();
+      expect(executeRules).not.toHaveBeenCalled();
       expect(reply).not.toHaveBeenCalled();
     });
 
@@ -174,7 +174,7 @@ describe("DiscordCommandService", () => {
       await handler(interaction);
 
       expect(executeCategories).toHaveBeenCalledWith(interaction);
-      expect(executeBlacklist).not.toHaveBeenCalled();
+      expect(executeRules).not.toHaveBeenCalled();
       expect(executeCountries).not.toHaveBeenCalled();
     });
 

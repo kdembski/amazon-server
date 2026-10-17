@@ -1,7 +1,8 @@
 # CLAUDE.md
 
-Express + Prisma (MySQL) backend for Amazon price monitoring: pm2 scrapers (`pdp*`) pull ASINs and post
-prices; the server detects price anomalies, reports them to Discord webhooks and runs a Discord slash-command bot.
+Express + Prisma (MySQL) backend for Amazon price monitoring: scrapers (Docker containers) pull ASINs,
+post prices and report their status to `POST /scrapers/:name/status`; the server detects price anomalies,
+reports them to Discord webhooks and runs a Discord slash-command bot.
 
 ## Commands
 
@@ -41,7 +42,7 @@ npm run test:integration  # tests/integration, needs a running Docker
   `vite.config.ts`.
 - Write user-facing Discord bot text in Polish.
 - Set `createdAt`/`updatedAt` in mappers. Do not add Prisma migrations or column defaults.
-- The app reads env vars only from the runtime/pm2, never from `.env` files.
+- The app reads env vars only from the runtime environment, never from `.env` files.
 
 ## Architecture
 
@@ -51,8 +52,10 @@ npm run test:integration  # tests/integration, needs a running Docker
   before generic ones (`GET /scrap` before `GET /:id`). Register routers in `src/routes/index.ts`.
 - Cross-cutting services are `getInstance()` singletons. `*SelectDto` types derive from repository return
   types. Controller errors go through `ResponseErrorService` (P2002 → 422, P1001 → 503).
-- Scraping: `GET /amazon/ads/scrap` hands out ads from active categories, minus the keyword blacklist,
-  oldest `scrapedAt` first, and stamps them. `PUT /amazon/ads/:id` stores prices, logs `ad_scraped` and
+- Scraping: `GET /amazon/ads/scrap` hands out ads whose name matches any `SearchRule`, from any category,
+  oldest `scrapedAt` first, and stamps them; no positive rule → `[]`. Rule syntax lives in
+  `src/helpers/searchRule.ts` (`+` and, `|` or, `!` not; a rule of only `!` members excludes globally).
+  `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices, logs `ad_scraped` and
   asynchronously runs the anomaly managers (`src/managers`), which log `*_sent` events and post to Discord.
 - `src/app.ts` builds the express app; `src/index.ts` adds `listen`, websockets, cron jobs
   (`src/services/cron`) and the bot login.

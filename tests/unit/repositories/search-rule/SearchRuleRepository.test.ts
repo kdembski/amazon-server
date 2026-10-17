@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { Prisma } from "@prisma/client";
-import { BlacklistedKeywordRepository } from "@/repositories/blacklist/BlacklistedKeywordRepository";
+import { SearchRuleRepository } from "@/repositories/search-rule/SearchRuleRepository";
 import { fakePrisma } from "../../../support/fakes";
 
 const setup = () => {
   const db = fakePrisma();
   return {
-    repository: new BlacklistedKeywordRepository(db.prisma),
-    delegate: db.blacklistedKeyword,
+    repository: new SearchRuleRepository(db.prisma),
+    delegate: db.searchRule,
   };
 };
 
-describe("BlacklistedKeywordRepository", () => {
+describe("SearchRuleRepository", () => {
   it("reads by id, value and all", async () => {
     const { repository, delegate } = setup();
 
@@ -28,7 +28,7 @@ describe("BlacklistedKeywordRepository", () => {
 
   it("writes delegate to prisma", async () => {
     const { repository, delegate } = setup();
-    const data = { value: "used" } as Prisma.BlacklistedKeywordCreateInput;
+    const data = { value: "used" } as Prisma.SearchRuleCreateInput;
 
     await repository.create(data);
     await repository.delete(3);

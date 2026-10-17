@@ -20,6 +20,21 @@ describe("AmazonAdCategoryRepository (MySQL)", () => {
     expect((await repository.getForScraping()).id).toBe(oldest.id);
   });
 
+  it("getForScraping skips inactive categories, even never scraped ones", async () => {
+    await seedCategory({ active: false, scrapedAt: null });
+    const active = await seedCategory({ scrapedAt: day(0) });
+
+    expect((await repository.getForScraping()).id).toBe(active.id);
+  });
+
+  it("getForScraping throws P2025 when no category is active", async () => {
+    await seedCategory({ active: false });
+
+    await expect(repository.getForScraping()).rejects.toMatchObject({
+      code: "P2025",
+    });
+  });
+
   it("getForScraping throws P2025 on an empty table", async () => {
     await expect(repository.getForScraping()).rejects.toMatchObject({
       code: "P2025",

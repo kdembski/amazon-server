@@ -8,17 +8,14 @@ import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
 import { LogService } from "@/services/LogService";
 import { AmazonAdConversionErrorManager } from "@/managers/conversion-error/AmazonAdConversionErrorManager";
 import { AmazonAdPricingErrorManager } from "@/managers/AmazonAdPricingErrorManager";
-import { AmazonAdCategoryService } from "@/services/amazon/AmazonAdCategoryService";
 import { UpdatableService } from "@/services/crud/UpdatableService";
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
-import { BlacklistedKeywordSelectDto } from "@/dtos/blacklist/BlacklistedKeywordDtos";
-import { BlacklistedKeywordService } from "@/services/blacklist/BlacklistedKeywordService";
+import { SearchRuleService } from "@/services/search-rule/SearchRuleService";
 
 export class AmazonAdService {
   private repository;
   private priceService;
-  private categoryService;
-  private blacklistService;
+  private searchRuleService;
   private logService;
   private amazonAdConversionErrorManager;
   private amazonAdPricingErrorManager;
@@ -31,8 +28,7 @@ export class AmazonAdService {
   constructor(
     repository = new AmazonAdRepository(),
     priceService = new AmazonAdPriceService(),
-    categoryService = new AmazonAdCategoryService(),
-    blacklistService = new BlacklistedKeywordService(),
+    searchRuleService = new SearchRuleService(),
     logService = new LogService(),
     amazonAdConversionErrorManager = new AmazonAdConversionErrorManager(),
     amazonAdPricingErrorManager = new AmazonAdPricingErrorManager(),
@@ -43,8 +39,7 @@ export class AmazonAdService {
   ) {
     this.repository = repository;
     this.priceService = priceService;
-    this.categoryService = categoryService;
-    this.blacklistService = blacklistService;
+    this.searchRuleService = searchRuleService;
     this.logService = logService;
     this.amazonAdConversionErrorManager = amazonAdConversionErrorManager;
     this.amazonAdPricingErrorManager = amazonAdPricingErrorManager;
@@ -60,10 +55,6 @@ export class AmazonAdService {
 
   getCount(from?: Date, to?: Date) {
     return this.repository.getCount(from, to);
-  }
-
-  getBlacklistedCount(blacklistedKeywords: BlacklistedKeywordSelectDto[]) {
-    return this.repository.getBlacklistedCount(blacklistedKeywords);
   }
 
   async updatePrices(id: number, prices: AmazonAdPriceCreateDto[]) {
@@ -102,23 +93,10 @@ export class AmazonAdService {
   }
 
   private async _getForScraping(count: number) {
-    const categories = await this.categoryService.getActive();
-    const keywords = await this.blacklistService.getAll();
-    const categoryIds = categories.map((category) => category.id);
+    const searchRules = await this.searchRuleService.getAll();
+    if (!searchRules.length) return [];
 
-    const ads = await this.repository.getForScraping(
-      count,
-      categoryIds,
-      keywords
-    );
-
-    keywords.forEach((keyword) => {
-      ads.forEach((ad) => {
-        if (ad.name.includes(keyword.value)) {
-          console.log(ad.name);
-        }
-      });
-    });
+    const ads = await this.repository.getForScraping(count, searchRules);
 
     const ids = ads.map((ad) => ad.id);
     await this.repository.updateScrapedAt(ids);

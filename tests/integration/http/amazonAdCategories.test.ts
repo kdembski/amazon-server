@@ -27,6 +27,19 @@ describe("/amazon/ads/categories", () => {
     expect(row.scrapedAt).not.toBeNull();
   });
 
+  it("GET /scrap skips inactive categories and fails with 500 when none is active", async () => {
+    const inactive = await seedCategory({ active: false, scrapedAt: null });
+    const active = await seedCategory({ scrapedAt: FIXED_DATE });
+
+    const scrap = await request(app).get("/amazon/ads/categories/scrap").expect(200);
+    expect(scrap.body.id).toBe(active.id);
+
+    await prisma.amazonAdCategory.update({ where: { id: active.id }, data: { active: false } });
+    await request(app).get("/amazon/ads/categories/scrap").expect(500);
+    const row = await prisma.amazonAdCategory.findUniqueOrThrow({ where: { id: inactive.id } });
+    expect(row.scrapedAt).toBeNull();
+  });
+
   it("POST / creates (inactive by default) and rejects a duplicate name with 422", async () => {
     const created = await request(app)
       .post("/amazon/ads/categories")
