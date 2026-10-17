@@ -28,9 +28,12 @@ export class AmazonAdRepository {
     },
   };
 
-  constructor(prisma = PrismaClient.getInstance()) {
+  private matchBatchSize;
+
+  constructor(prisma = PrismaClient.getInstance(), matchBatchSize = 20_000) {
     this.delegate = prisma.amazonAd;
     this.prisma = prisma;
+    this.matchBatchSize = matchBatchSize;
   }
 
   getById(id: number) {
@@ -56,30 +59,34 @@ export class AmazonAdRepository {
   }
 
   // Ads with matchesRules = null have not been checked yet; onlyNew limits the
-  // update to them. Matching ads are flagged before the rest is cleared, so the
-  // scraping queue never runs empty in between.
+  // update to them. A full rematch walks the table in id ranges so each UPDATE
+  // commits quickly and only briefly locks the rows /scrap stamps.
   async matchSearchRules(searchRules: SearchRuleSelectDto[], onlyNew = false) {
-    const unflagged: Prisma.AmazonAdWhereInput = onlyNew
-      ? { matchesRules: null }
-      : { OR: [{ matchesRules: false }, { matchesRules: null }] };
-    const flagged: Prisma.AmazonAdWhereInput = onlyNew
-      ? { matchesRules: null }
-      : { OR: [{ matchesRules: true }, { matchesRules: null }] };
     const where = this.getSearchRuleWhereQuery(searchRules);
 
-    const matched = where
-      ? await this.delegate.updateMany({
-          where: { AND: [unflagged, where] },
-          data: { matchesRules: true },
-        })
-      : { count: 0 };
+    if (onlyNew) {
+      return this.updateMatches(
+        where,
+        { matchesRules: null },
+        { matchesRules: null }
+      );
+    }
 
-    const unmatched = await this.delegate.updateMany({
-      where: { AND: [flagged, ...(where ? [{ NOT: where }] : [])] },
-      data: { matchesRules: false },
-    });
+    const { _max } = await this.delegate.aggregate({ _max: { id: true } });
+    const total = { matched: 0, unmatched: 0 };
 
-    return { matched: matched.count, unmatched: unmatched.count };
+    for (let lastId = 0; lastId < (_max.id ?? 0); lastId += this.matchBatchSize) {
+      const range = { id: { gt: lastId, lte: lastId + this.matchBatchSize } };
+      const result = await this.updateMatches(
+        where,
+        { AND: [range, { OR: [{ matchesRules: false }, { matchesRules: null }] }] },
+        { AND: [range, { OR: [{ matchesRules: true }, { matchesRules: null }] }] }
+      );
+      total.matched += result.matched;
+      total.unmatched += result.unmatched;
+    }
+
+    return total;
   }
 
   updateScrapedAt(ids: number[]): Promise<number> {
@@ -116,6 +123,28 @@ export class AmazonAdRepository {
 
   delete(id: number) {
     return this.delegate.delete({ where: { id } });
+  }
+
+  // Flags matching ads before clearing the rest, so the scraping queue never
+  // runs empty in between.
+  private async updateMatches(
+    where: Prisma.AmazonAdWhereInput | null,
+    unflagged: Prisma.AmazonAdWhereInput,
+    flagged: Prisma.AmazonAdWhereInput
+  ) {
+    const matched = where
+      ? await this.delegate.updateMany({
+          where: { AND: [unflagged, where] },
+          data: { matchesRules: true },
+        })
+      : { count: 0 };
+
+    const unmatched = await this.delegate.updateMany({
+      where: { AND: [flagged, ...(where ? [{ NOT: where }] : [])] },
+      data: { matchesRules: false },
+    });
+
+    return { matched: matched.count, unmatched: unmatched.count };
   }
 
   private getSearchRuleWhereQuery(
