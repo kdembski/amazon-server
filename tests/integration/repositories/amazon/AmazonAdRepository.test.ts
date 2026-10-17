@@ -190,6 +190,25 @@ describe("AmazonAdRepository (MySQL)", () => {
       ]);
     });
 
+    it("rematches across several id batches", async () => {
+      const batched = new AmazonAdRepository(prisma, 2);
+      await seedAd({ name: "Sony 1", matchesRules: false });
+      await seedAd({ name: "Bose 2", matchesRules: true });
+      await seedAd({ name: "Sony 3", matchesRules: null });
+      await seedAd({ name: "Bose 4", matchesRules: null });
+      await seedAd({ name: "Sony 5", matchesRules: true });
+      const rule = await seedSearchRule({ value: "sony" });
+
+      expect(await batched.matchSearchRules([rule])).toEqual({ matched: 2, unmatched: 2 });
+      expect(await flags()).toEqual([
+        ["Sony 1", true],
+        ["Bose 2", false],
+        ["Sony 3", true],
+        ["Bose 4", false],
+        ["Sony 5", true],
+      ]);
+    });
+
     it("with onlyNew checks only ads that were never matched", async () => {
       await seedAd({ name: "Sony stale true", matchesRules: true });
       await seedAd({ name: "Bose stale false", matchesRules: false });
