@@ -22,6 +22,7 @@ export class AmazonAdCategoryRepository {
 
   getForScraping() {
     return this.delegate.findFirstOrThrow({
+      where: { active: true },
       orderBy: {
         scrapedAt: { sort: "asc", nulls: "first" },
       },
