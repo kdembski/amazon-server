@@ -2,8 +2,7 @@ import { Prisma } from "@prisma/client";
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { SearchRuleSelectDto } from "@/dtos/search-rule/SearchRuleDtos";
 import {
-  escapeLikePattern,
-  isGlobalExclusion,
+  createSearchRuleMatcher,
   parseSearchRule,
 } from "@/helpers/searchRule";
 
@@ -59,29 +58,22 @@ export class AmazonAdRepository {
   }
 
   // Ads with matchesRules = null have not been checked yet; onlyNew limits the
-  // update to them. A full rematch walks the table in id ranges so each UPDATE
+  // check to them. A full rematch walks the table in id ranges so each UPDATE
   // commits quickly and only briefly locks the rows /scrap stamps.
   async matchSearchRules(searchRules: SearchRuleSelectDto[], onlyNew = false) {
-    const where = this.getSearchRuleWhereQuery(searchRules);
+    const matches = createSearchRuleMatcher(this.parseSearchRules(searchRules));
 
     if (onlyNew) {
-      return this.updateMatches(
-        where,
-        { matchesRules: null },
-        { matchesRules: null }
-      );
+      return this.updateMatches(matches, { matchesRules: null });
     }
 
     const { _max } = await this.delegate.aggregate({ _max: { id: true } });
     const total = { matched: 0, unmatched: 0 };
 
     for (let lastId = 0; lastId < (_max.id ?? 0); lastId += this.matchBatchSize) {
-      const range = { id: { gt: lastId, lte: lastId + this.matchBatchSize } };
-      const result = await this.updateMatches(
-        where,
-        { AND: [range, { OR: [{ matchesRules: false }, { matchesRules: null }] }] },
-        { AND: [range, { OR: [{ matchesRules: true }, { matchesRules: null }] }] }
-      );
+      const result = await this.updateMatches(matches, {
+        id: { gt: lastId, lte: lastId + this.matchBatchSize },
+      });
       total.matched += result.matched;
       total.unmatched += result.unmatched;
     }
@@ -128,29 +120,40 @@ export class AmazonAdRepository {
   // Flags matching ads before clearing the rest, so the scraping queue never
   // runs empty in between.
   private async updateMatches(
-    where: Prisma.AmazonAdWhereInput | null,
-    unflagged: Prisma.AmazonAdWhereInput,
-    flagged: Prisma.AmazonAdWhereInput
+    matches: (name: string) => boolean,
+    where: Prisma.AmazonAdWhereInput
   ) {
-    const matched = where
-      ? await this.delegate.updateMany({
-          where: { AND: [unflagged, where] },
-          data: { matchesRules: true },
-        })
-      : { count: 0 };
-
-    const unmatched = await this.delegate.updateMany({
-      where: { AND: [flagged, ...(where ? [{ NOT: where }] : [])] },
-      data: { matchesRules: false },
+    const ads = await this.delegate.findMany({
+      where,
+      select: { id: true, name: true, matchesRules: true },
     });
+    const flagged: number[] = [];
+    const cleared: number[] = [];
 
-    return { matched: matched.count, unmatched: unmatched.count };
+    for (const ad of ads) {
+      const matched = matches(ad.name);
+      if (matched && ad.matchesRules !== true) flagged.push(ad.id);
+      if (!matched && ad.matchesRules !== false) cleared.push(ad.id);
+    }
+
+    return {
+      matched: await this.setMatchesRules(flagged, true),
+      unmatched: await this.setMatchesRules(cleared, false),
+    };
   }
 
-  private getSearchRuleWhereQuery(
-    searchRules: SearchRuleSelectDto[]
-  ): Prisma.AmazonAdWhereInput | null {
-    const parsed = searchRules.flatMap((searchRule) => {
+  private async setMatchesRules(ids: number[], matchesRules: boolean) {
+    if (!ids.length) return 0;
+
+    const { count } = await this.delegate.updateMany({
+      where: { id: { in: ids } },
+      data: { matchesRules },
+    });
+    return count;
+  }
+
+  private parseSearchRules(searchRules: SearchRuleSelectDto[]) {
+    return searchRules.flatMap((searchRule) => {
       try {
         return [parseSearchRule(searchRule.value)];
       } catch (e) {
@@ -160,30 +163,5 @@ export class AmazonAdRepository {
         return [];
       }
     });
-
-    const contains = (phrase: string) => ({
-      name: { contains: escapeLikePattern(phrase) },
-    });
-
-    const rules = parsed
-      .filter((rule) => !isGlobalExclusion(rule))
-      .map((rule) => ({
-        AND: [
-          ...rule.include.map((group) => ({ OR: group.map(contains) })),
-          ...rule.exclude.map((phrase) => ({ NOT: contains(phrase) })),
-        ],
-      }));
-
-    const globalExclusions = parsed
-      .filter(isGlobalExclusion)
-      .flatMap((rule) => rule.exclude);
-
-    // Prisma drops an empty nested OR instead of treating it as false.
-    if (!rules.length) return null;
-    if (!globalExclusions.length) return { OR: rules };
-
-    return {
-      AND: [{ OR: rules }, { NOT: { OR: globalExclusions.map(contains) } }],
-    };
   }
 }

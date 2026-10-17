@@ -84,7 +84,7 @@ describe("AmazonAdRepository (MySQL)", () => {
       return rows.map((row) => [row.name, row.matchesRules]);
     };
 
-    it("flags ads matching any rule, case-insensitively on MySQL, and counts the changes", async () => {
+    it("flags ads matching any rule, case-insensitively, and counts the changes", async () => {
       await seedAd({ name: "Sony WH-1000XM5" });
       await seedAd({ name: "Bose QC45" });
       await seedAd({ name: "JBL Tune 760" });
@@ -155,6 +155,26 @@ describe("AmazonAdRepository (MySQL)", () => {
       expect(await flags()).toEqual([
         ["Sony WH-1000XM5", false],
         ["Bose QC45", false],
+      ]);
+    });
+
+    it("matches whole words unless a phrase has a wildcard", async () => {
+      await seedAd({ name: "Hape drewniana kuchnia" });
+      await seedAd({ name: "Mini Gift Bag Shaped Balloon, torebka" });
+      await seedAd({ name: "Hape kuchnia" });
+      await seedAd({ name: "Zdalnie sterowana łódź" });
+      const rules = [
+        await seedSearchRule({ value: "hape+drewn*" }),
+        await seedSearchRule({ value: "*sterowan*+lodz" }),
+      ];
+
+      await repository.matchSearchRules(rules);
+
+      expect(await flags()).toEqual([
+        ["Hape drewniana kuchnia", true],
+        ["Mini Gift Bag Shaped Balloon, torebka", false],
+        ["Hape kuchnia", false],
+        ["Zdalnie sterowana łódź", true],
       ]);
     });
 
