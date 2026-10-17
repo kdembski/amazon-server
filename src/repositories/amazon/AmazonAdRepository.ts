@@ -1,6 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { PrismaClient } from "@@prisma/PrismaClient";
-import { BlacklistedKeywordSelectDto } from "@/dtos/blacklist/BlacklistedKeywordDtos";
+import { SearchRuleSelectDto } from "@/dtos/search-rule/SearchRuleDtos";
+import {
+  escapeLikePattern,
+  isGlobalExclusion,
+  parseSearchRule,
+} from "@/helpers/searchRule";
 
 export class AmazonAdRepository {
   private delegate;
@@ -35,18 +40,12 @@ export class AmazonAdRepository {
     });
   }
 
-  getForScraping(
-    count: number,
-    categoryIds: number[],
-    blacklistedKeywords: BlacklistedKeywordSelectDto[]
-  ) {
+  async getForScraping(count: number, searchRules: SearchRuleSelectDto[]) {
+    const where = this.getSearchRuleWhereQuery(searchRules);
+    if (!where) return [];
+
     return this.delegate.findMany({
-      where: {
-        AND: [
-          { categoryId: { in: categoryIds } },
-          { NOT: this.getBlacklistWhereQuery(blacklistedKeywords) },
-        ],
-      },
+      where,
       take: count,
       orderBy: {
         scrapedAt: { sort: "asc", nulls: "first" },
@@ -83,12 +82,6 @@ export class AmazonAdRepository {
     });
   }
 
-  getBlacklistedCount(blacklistedKeywords: BlacklistedKeywordSelectDto[]) {
-    return this.delegate.count({
-      where: this.getBlacklistWhereQuery(blacklistedKeywords),
-    });
-  }
-
   create(data: Prisma.AmazonAdCreateInput) {
     return this.delegate.create({ data });
   }
@@ -101,16 +94,41 @@ export class AmazonAdRepository {
     return this.delegate.delete({ where: { id } });
   }
 
-  private getBlacklistWhereQuery(keywords: BlacklistedKeywordSelectDto[]) {
-    const query = keywords.map((keyword) => {
-      const value = keyword.value.split("+");
-
-      if (value.length > 1) {
-        return { AND: value.map((v) => ({ name: { contains: v } })) };
+  private getSearchRuleWhereQuery(searchRules: SearchRuleSelectDto[]) {
+    const parsed = searchRules.flatMap((searchRule) => {
+      try {
+        return [parseSearchRule(searchRule.value)];
+      } catch (e) {
+        console.error(
+          `AmazonAdRepository: skipped search rule ${searchRule.value}: ${e}`
+        );
+        return [];
       }
-      return { name: { contains: value[0] } };
     });
 
-    return { OR: query };
+    const contains = (phrase: string) => ({
+      name: { contains: escapeLikePattern(phrase) },
+    });
+
+    const rules = parsed
+      .filter((rule) => !isGlobalExclusion(rule))
+      .map((rule) => ({
+        AND: [
+          ...rule.include.map((group) => ({ OR: group.map(contains) })),
+          ...rule.exclude.map((phrase) => ({ NOT: contains(phrase) })),
+        ],
+      }));
+
+    const globalExclusions = parsed
+      .filter(isGlobalExclusion)
+      .flatMap((rule) => rule.exclude);
+
+    // Prisma drops an empty nested OR instead of treating it as false.
+    if (!rules.length) return null;
+    if (!globalExclusions.length) return { OR: rules };
+
+    return {
+      AND: [{ OR: rules }, { NOT: { OR: globalExclusions.map(contains) } }],
+    };
   }
 }

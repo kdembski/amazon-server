@@ -5,7 +5,7 @@ import { AmazonAdCategorySelectDto } from "@/dtos/amazon/AmazonAdCategoryDtos";
 import { CountrySelectDto } from "@/dtos/currency/CountryDtos";
 import { CurrencySelectDto } from "@/dtos/currency/CurrencyDtos";
 import { CurrencyExchangeRateSelectDto } from "@/dtos/currency/CurrencyExchangeRateDtos";
-import { BlacklistedKeywordSelectDto } from "@/dtos/blacklist/BlacklistedKeywordDtos";
+import { SearchRuleSelectDto } from "@/dtos/search-rule/SearchRuleDtos";
 
 export const FIXED_DATE = new Date("2026-01-01T12:00:00.000Z");
 
@@ -136,9 +136,9 @@ export const buildRate = (
   };
 };
 
-export const buildKeyword = (
-  overrides: Partial<BlacklistedKeywordSelectDto> = {}
-): BlacklistedKeywordSelectDto => ({
+export const buildSearchRule = (
+  overrides: Partial<SearchRuleSelectDto> = {}
+): SearchRuleSelectDto => ({
   id: nextId(),
   value: "refurbished",
   createdAt: FIXED_DATE,

@@ -154,7 +154,7 @@ export function fakePrisma() {
     currency: fakeDelegate(),
     currencyExchangeRate: fakeDelegate(),
     log: fakeDelegate(),
-    blacklistedKeyword: fakeDelegate(),
+    searchRule: fakeDelegate(),
   };
   const $executeRaw = vi.fn().mockResolvedValue(1);
   const prisma = { ...delegates, $executeRaw } as unknown as PrismaClient;

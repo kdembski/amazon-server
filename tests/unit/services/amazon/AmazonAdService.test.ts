@@ -2,16 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AmazonAdService } from "@/services/amazon/AmazonAdService";
 import { AmazonAdRepository } from "@/repositories/amazon/AmazonAdRepository";
 import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
-import { AmazonAdCategoryService } from "@/services/amazon/AmazonAdCategoryService";
-import { BlacklistedKeywordService } from "@/services/blacklist/BlacklistedKeywordService";
+import { SearchRuleService } from "@/services/search-rule/SearchRuleService";
 import { AmazonAdConversionErrorManager } from "@/managers/conversion-error/AmazonAdConversionErrorManager";
 import { AmazonAdPricingErrorManager } from "@/managers/AmazonAdPricingErrorManager";
-import {
-  buildAd,
-  buildCategory,
-  buildKeyword,
-  buildPrice,
-} from "../../../support/factories";
+import { buildAd, buildSearchRule, buildPrice } from "../../../support/factories";
 import { deferred, fakeLogService } from "../../../support/fakes";
 
 type ScrapAd = { id: number; asin: string; name: string };
@@ -21,7 +15,6 @@ const setup = () => {
     getById: vi.fn(),
     getAll: vi.fn().mockResolvedValue([]),
     getCount: vi.fn().mockResolvedValue(0),
-    getBlacklistedCount: vi.fn().mockResolvedValue(0),
     getForScraping: vi.fn().mockResolvedValue([]),
     updateScrapedAt: vi.fn().mockResolvedValue(0),
     create: vi.fn(),
@@ -32,8 +25,9 @@ const setup = () => {
     creatable: { create: vi.fn().mockResolvedValue({}) },
     getByAdAndCountry: vi.fn().mockResolvedValue([]),
   };
-  const categoryService = { getActive: vi.fn().mockResolvedValue([]) };
-  const blacklistService = { getAll: vi.fn().mockResolvedValue([]) };
+  const searchRuleService = {
+    getAll: vi.fn().mockResolvedValue([buildSearchRule({ value: "drill" })]),
+  };
   const log = fakeLogService();
   const conversion = { check: vi.fn() };
   const pricing = { check: vi.fn() };
@@ -41,8 +35,7 @@ const setup = () => {
   const service = new AmazonAdService(
     repository as unknown as AmazonAdRepository,
     priceService as unknown as AmazonAdPriceService,
-    categoryService as unknown as AmazonAdCategoryService,
-    blacklistService as unknown as BlacklistedKeywordService,
+    searchRuleService as unknown as SearchRuleService,
     log.service,
     conversion as unknown as AmazonAdConversionErrorManager,
     pricing as unknown as AmazonAdPricingErrorManager
@@ -52,8 +45,7 @@ const setup = () => {
     service,
     repository,
     priceService,
-    categoryService,
-    blacklistService,
+    searchRuleService,
     log,
     conversion,
     pricing,
@@ -61,19 +53,16 @@ const setup = () => {
 };
 
 describe("AmazonAdService delegation", () => {
-  it("delegates getAll, getCount and getBlacklistedCount", async () => {
+  it("delegates getAll and getCount", async () => {
     const { service, repository } = setup();
     const from = new Date(1);
     const to = new Date(2);
-    const keywords = [buildKeyword()];
 
     await service.getAll();
     await service.getCount(from, to);
-    await service.getBlacklistedCount(keywords);
 
     expect(repository.getAll).toHaveBeenCalled();
     expect(repository.getCount).toHaveBeenCalledWith(from, to);
-    expect(repository.getBlacklistedCount).toHaveBeenCalledWith(keywords);
   });
 });
 
@@ -136,42 +125,35 @@ describe("AmazonAdService.getForScraping", () => {
     (AmazonAdService as unknown as { isGetting: boolean }).isGetting = false;
   });
 
-  it("fetches ads for active categories minus blacklist and bumps scrapedAt", async () => {
-    const { service, repository, categoryService, blacklistService } = setup();
-    const categories = [buildCategory({ id: 1 }), buildCategory({ id: 2 })];
-    const keywords = [buildKeyword({ value: "used" })];
+  it("fetches ads matching the search rules and bumps scrapedAt", async () => {
+    const { service, repository, searchRuleService } = setup();
+    const searchRules = [buildSearchRule({ value: "drill" }), buildSearchRule({ value: "saw" })];
     const ads: ScrapAd[] = [
       { id: 10, asin: "A", name: "Drill" },
       { id: 11, asin: "B", name: "Saw" },
     ];
-    categoryService.getActive.mockResolvedValue(categories);
-    blacklistService.getAll.mockResolvedValue(keywords);
+    searchRuleService.getAll.mockResolvedValue(searchRules);
     repository.getForScraping.mockResolvedValue(ads);
 
     const result = await service.getForScraping(2);
 
-    expect(repository.getForScraping).toHaveBeenCalledWith(2, [1, 2], keywords);
+    expect(repository.getForScraping).toHaveBeenCalledWith(2, searchRules);
     expect(repository.updateScrapedAt).toHaveBeenCalledWith([10, 11]);
     expect(result).toBe(ads);
   });
 
-  it("logs ad names that still contain a blacklisted keyword", async () => {
-    const { service, repository, blacklistService } = setup();
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
-    blacklistService.getAll.mockResolvedValue([buildKeyword({ value: "used" })]);
-    repository.getForScraping.mockResolvedValue([
-      { id: 1, asin: "A", name: "used drill" },
-      { id: 2, asin: "B", name: "new drill" },
-    ]);
+  it("returns nothing without querying ads when there are no search rules", async () => {
+    const { service, repository, searchRuleService } = setup();
+    searchRuleService.getAll.mockResolvedValue([]);
 
-    await service.getForScraping(2);
+    await expect(service.getForScraping(5)).resolves.toEqual([]);
 
-    expect(log).toHaveBeenCalledTimes(1);
-    expect(log).toHaveBeenCalledWith("used drill");
+    expect(repository.getForScraping).not.toHaveBeenCalled();
+    expect(repository.updateScrapedAt).not.toHaveBeenCalled();
   });
 
   it("delays a concurrent call by one second while another is in flight", async () => {
-    const { service, repository, categoryService } = setup();
+    const { service, repository, searchRuleService } = setup();
     const first = deferred<ScrapAd[]>();
     repository.getForScraping
       .mockReturnValueOnce(first.promise)
@@ -180,20 +162,20 @@ describe("AmazonAdService.getForScraping", () => {
     const call1 = service.getForScraping(1);
     const call2 = service.getForScraping(1);
     await vi.advanceTimersByTimeAsync(0);
-    expect(categoryService.getActive).toHaveBeenCalledTimes(1);
+    expect(searchRuleService.getAll).toHaveBeenCalledTimes(1);
 
     first.resolve([]);
     await call1;
     await vi.advanceTimersByTimeAsync(999);
-    expect(categoryService.getActive).toHaveBeenCalledTimes(1);
+    expect(searchRuleService.getAll).toHaveBeenCalledTimes(1);
 
     await vi.advanceTimersByTimeAsync(1);
     await call2;
-    expect(categoryService.getActive).toHaveBeenCalledTimes(2);
+    expect(searchRuleService.getAll).toHaveBeenCalledTimes(2);
   });
 
   it("resets the lock when fetching throws so the next call can proceed", async () => {
-    const { service, repository, categoryService } = setup();
+    const { service, repository, searchRuleService } = setup();
     repository.getForScraping
       .mockRejectedValueOnce(new Error("db down"))
       .mockResolvedValue([]);
@@ -202,12 +184,12 @@ describe("AmazonAdService.getForScraping", () => {
 
     const next = service.getForScraping(1);
     await vi.advanceTimersByTimeAsync(0);
-    expect(categoryService.getActive).toHaveBeenCalledTimes(2);
+    expect(searchRuleService.getAll).toHaveBeenCalledTimes(2);
     await next;
   });
 
   it("keeps waiting while the first call is still in flight after one second", async () => {
-    const { service, repository, categoryService } = setup();
+    const { service, repository, searchRuleService } = setup();
     const first = deferred<ScrapAd[]>();
     repository.getForScraping
       .mockReturnValueOnce(first.promise)
@@ -216,12 +198,12 @@ describe("AmazonAdService.getForScraping", () => {
     const call1 = service.getForScraping(1);
     const call2 = service.getForScraping(1);
     await vi.advanceTimersByTimeAsync(1000);
-    expect(categoryService.getActive).toHaveBeenCalledTimes(1);
+    expect(searchRuleService.getAll).toHaveBeenCalledTimes(1);
 
     first.resolve([]);
     await call1;
     await vi.advanceTimersByTimeAsync(1000);
     await call2;
-    expect(categoryService.getActive).toHaveBeenCalledTimes(2);
+    expect(searchRuleService.getAll).toHaveBeenCalledTimes(2);
   });
 });

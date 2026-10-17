@@ -9,6 +9,7 @@ import {
   seedAd,
   seedCategory,
   seedCountry,
+  seedSearchRule,
   seedPrice,
 } from "../../support/integration/seed";
 
@@ -20,11 +21,12 @@ beforeAll(() => {
 });
 
 describe("GET /amazon/ads/scrap", () => {
-  it("returns the next ads to scrape and stamps scrapedAt", async () => {
-    const category = await seedCategory({ active: true });
-    const never = await seedAd({ categoryId: category.id, scrapedAt: null });
-    const older = await seedAd({ categoryId: category.id, scrapedAt: day(1) });
-    const newer = await seedAd({ categoryId: category.id, scrapedAt: day(2) });
+  it("returns the next rule-matching ads to scrape and stamps scrapedAt", async () => {
+    await seedSearchRule({ value: "sony" });
+    const never = await seedAd({ name: "Sony A", scrapedAt: null });
+    const older = await seedAd({ name: "Sony B", scrapedAt: day(1) });
+    const newer = await seedAd({ name: "Sony C", scrapedAt: day(2) });
+    const unmatched = await seedAd({ name: "Bose D", scrapedAt: null });
 
     const res = await request(app).get("/amazon/ads/scrap?count=2").expect(200);
 
@@ -33,16 +35,17 @@ describe("GET /amazon/ads/scrap", () => {
       { id: older.id, asin: older.asin, name: older.name },
     ]);
     const rows = await prisma.amazonAd.findMany({ orderBy: { id: "asc" } });
-    expect(rows.map((r) => r.scrapedAt!.getTime() > day(2).getTime())).toEqual([
+    expect(rows.map((r) => r.id)).toEqual([never.id, older.id, newer.id, unmatched.id]);
+    expect(rows.slice(0, 3).map((r) => r.scrapedAt!.getTime() > day(2).getTime())).toEqual([
       true,
       true,
       false,
     ]);
-    expect(rows[2].id).toBe(newer.id);
+    expect(rows[3].scrapedAt).toBeNull();
   });
 
-  it("is not shadowed by GET /:id and returns [] when nothing qualifies", async () => {
-    await seedCategory({ active: false });
+  it("is not shadowed by GET /:id and returns [] when there are no search rules", async () => {
+    await seedAd();
 
     const res = await request(app).get("/amazon/ads/scrap").expect(200);
 

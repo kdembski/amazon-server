@@ -94,8 +94,8 @@ model Log {
   createdAt DateTime @db.Timestamp(2)
 }
 
-model BlacklistedKeyword {
+model SearchRule {
   id        Int      @id @default(autoincrement())
-  value     String   @unique(map: "blacklisted_keyword_value_UNIQUE") @db.VarChar(63)
+  value     String   @unique(map: "search_rule_value_UNIQUE") @db.VarChar(63)
   createdAt DateTime @db.Timestamp(2)
 }
