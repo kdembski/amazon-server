@@ -16,15 +16,6 @@ vi.mock("node-os-utils", () => ({
   },
 }));
 
-vi.mock("@/services/ScraperStatusService", () => ({
-  ScraperStatusService: {
-    getInstance: () => ({
-      getNames: () => ["pdp-1"],
-      getCpuUsage: () => 42,
-    }),
-  },
-}));
-
 describe("SystemService", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -56,7 +47,7 @@ describe("SystemService", () => {
     expect(service.getCpuUsage()).toBe(20);
   });
 
-  it("samples cpu every second and logs scraper and global usage", async () => {
+  it("samples cpu every second and logs global usage", async () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     const service = SystemService.getInstance();
 
@@ -65,7 +56,7 @@ describe("SystemService", () => {
     expect(cpuUsage).toHaveBeenCalledTimes(1);
     // The log line is written before the awaited sample lands, so the global
     // value lags one tick behind.
-    expect(log).toHaveBeenCalledWith("pdp-1: 42.0% | global: 0.0%");
+    expect(log).toHaveBeenCalledWith("global: 0.0%");
     expect(service.getCpuUsage()).toBe(10);
   });
 

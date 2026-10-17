@@ -1,7 +1,8 @@
 # CLAUDE.md
 
-Express + Prisma (MySQL) backend for Amazon price monitoring: pm2 scrapers (`pdp*`) pull ASINs and post
-prices; the server detects price anomalies, reports them to Discord webhooks and runs a Discord slash-command bot.
+Express + Prisma (MySQL) backend for Amazon price monitoring: scrapers (Docker containers) pull ASINs,
+post prices and report their status to `POST /scrapers/:name/status`; the server detects price anomalies,
+reports them to Discord webhooks and runs a Discord slash-command bot.
 
 ## Commands
 
@@ -41,7 +42,7 @@ npm run test:integration  # tests/integration, needs a running Docker
   `vite.config.ts`.
 - Write user-facing Discord bot text in Polish.
 - Set `createdAt`/`updatedAt` in mappers. Do not add Prisma migrations or column defaults.
-- The app reads env vars only from the runtime/pm2, never from `.env` files.
+- The app reads env vars only from the runtime environment, never from `.env` files.
 
 ## Architecture
 

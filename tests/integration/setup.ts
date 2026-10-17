@@ -24,10 +24,6 @@ vi.mock("@/services/SystemService", () => ({
   SystemService: { getInstance: () => ({}) },
 }));
 
-vi.mock("@/services/ScraperStatusService", () => ({
-  ScraperStatusService: { getInstance: () => ({}) },
-}));
-
 vi.mock("hercai", () => ({
   Hercai: class {
     question() {

@@ -156,7 +156,6 @@ export class DiscordLogService {
     const content = statuses
       .map(([name, status]) => {
         const { speed, pending, speedDiff } = status;
-        const cpu = this.scrapersStatusService.getCpuUsage(name);
         const speedDiffValue = this.getSpeedDiff(speedDiff);
         const speedDiffIcon = this.getSpeedDiffIcon(speedDiff);
         const speedValue = `**${roundToOneDecimal(speed)}/s**`;
@@ -165,7 +164,6 @@ export class DiscordLogService {
           `${this.getSpeedIcon(speed)} ${name}`,
           `${speedValue} ${speedDiffValue} ${speedDiffIcon}`,
           `${addSeparators(pending)}`,
-          `${Math.round(cpu)} %`,
         ].join(getSpacing(4));
       })
       .join("\n");

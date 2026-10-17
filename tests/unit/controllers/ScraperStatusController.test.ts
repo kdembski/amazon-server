@@ -4,11 +4,7 @@ import { ScraperStatusService } from "@/services/ScraperStatusService";
 import { fakeRequest, fakeResponse } from "../../support/fakes";
 
 const setup = () => {
-  const service = {
-    setStatus: vi.fn(),
-    getCpuUsage: vi.fn().mockReturnValue(12),
-    getCount: vi.fn().mockReturnValue(3),
-  };
+  const service = { setStatus: vi.fn() };
   return {
     service,
     controller: new ScraperStatusController(
@@ -32,28 +28,10 @@ describe("ScraperStatusController", () => {
     expect(json).toHaveBeenCalledWith(dto);
   });
 
-  it("getCpuUsage and getCount return json", async () => {
-    const { service, controller } = setup();
-    const { response, json } = fakeResponse();
-
-    await controller.getCpuUsage(fakeRequest({ params: { name: "pdp-1" } }), response);
-    await controller.getCount(response);
-
-    expect(service.getCpuUsage).toHaveBeenCalledWith("pdp-1");
-    expect(json).toHaveBeenNthCalledWith(1, 12);
-    expect(json).toHaveBeenNthCalledWith(2, 3);
-  });
-
-  it("sends error responses when the service throws", async () => {
+  it("sends an error response when the service throws", async () => {
     const { service, controller } = setup();
     service.setStatus.mockImplementation(() => {
       throw new Error("a");
-    });
-    service.getCpuUsage.mockImplementation(() => {
-      throw new Error("b");
-    });
-    service.getCount.mockImplementation(() => {
-      throw new Error("c");
     });
     const { response, status, send, json } = fakeResponse();
 
@@ -61,11 +39,9 @@ describe("ScraperStatusController", () => {
       fakeRequest({ params: { name: "x" }, body: {} }),
       response
     );
-    await controller.getCpuUsage(fakeRequest({ params: { name: "x" } }), response);
-    await controller.getCount(response);
 
-    expect(status).toHaveBeenCalledTimes(3);
-    expect(send.mock.calls.map(([m]) => m)).toEqual(["a", "b", "c"]);
+    expect(status).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith("a");
     expect(json).not.toHaveBeenCalled();
   });
 });

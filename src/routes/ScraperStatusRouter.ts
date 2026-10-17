@@ -13,10 +13,6 @@ export class ScraperStatusRouter implements SubRouterI {
   }
 
   build() {
-    this.router.get("/count", (_, res) => this.controller.getCount(res));
-    this.router.get("/:name/cpu", (req, res) =>
-      this.controller.getCpuUsage(req, res)
-    );
     this.router.post("/:name/status", (req, res) =>
       this.controller.setStatus(req, res)
     );

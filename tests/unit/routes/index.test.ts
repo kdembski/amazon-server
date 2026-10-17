@@ -37,9 +37,6 @@ vi.mock("@/routes/currency/CurrencyExchangeRateRouter", () =>
 vi.mock("@/routes/ScraperStatusRouter", () =>
   fakeRouterModule("ScraperStatusRouter", "/scrapers")
 );
-vi.mock("@/routes/SystemRouter", () =>
-  fakeRouterModule("SystemRouter", "/system")
-);
 
 describe("useRouter", () => {
   it("mounts every sub router under its path", () => {
@@ -54,7 +51,6 @@ describe("useRouter", () => {
       ["/currencies", "/currencies"],
       ["/currencies/rates", "/currencies/rates"],
       ["/scrapers", "/scrapers"],
-      ["/system", "/system"],
     ]);
   });
 });
