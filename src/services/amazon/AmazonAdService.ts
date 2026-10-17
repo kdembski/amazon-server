@@ -10,12 +10,10 @@ import { AmazonAdConversionErrorManager } from "@/managers/conversion-error/Amaz
 import { AmazonAdPricingErrorManager } from "@/managers/AmazonAdPricingErrorManager";
 import { UpdatableService } from "@/services/crud/UpdatableService";
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
-import { SearchRuleService } from "@/services/search-rule/SearchRuleService";
 
 export class AmazonAdService {
   private repository;
   private priceService;
-  private searchRuleService;
   private logService;
   private amazonAdConversionErrorManager;
   private amazonAdPricingErrorManager;
@@ -28,7 +26,6 @@ export class AmazonAdService {
   constructor(
     repository = new AmazonAdRepository(),
     priceService = new AmazonAdPriceService(),
-    searchRuleService = new SearchRuleService(),
     logService = new LogService(),
     amazonAdConversionErrorManager = new AmazonAdConversionErrorManager(),
     amazonAdPricingErrorManager = new AmazonAdPricingErrorManager(),
@@ -39,7 +36,6 @@ export class AmazonAdService {
   ) {
     this.repository = repository;
     this.priceService = priceService;
-    this.searchRuleService = searchRuleService;
     this.logService = logService;
     this.amazonAdConversionErrorManager = amazonAdConversionErrorManager;
     this.amazonAdPricingErrorManager = amazonAdPricingErrorManager;
@@ -93,10 +89,7 @@ export class AmazonAdService {
   }
 
   private async _getForScraping(count: number) {
-    const searchRules = await this.searchRuleService.getAll();
-    if (!searchRules.length) return [];
-
-    const ads = await this.repository.getForScraping(count, searchRules);
+    const ads = await this.repository.getForScraping(count);
 
     const ids = ads.map((ad) => ad.id);
     await this.repository.updateScrapedAt(ids);

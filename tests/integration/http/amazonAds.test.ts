@@ -9,7 +9,6 @@ import {
   seedAd,
   seedCategory,
   seedCountry,
-  seedSearchRule,
   seedPrice,
 } from "../../support/integration/seed";
 
@@ -21,12 +20,11 @@ beforeAll(() => {
 });
 
 describe("GET /amazon/ads/scrap", () => {
-  it("returns the next rule-matching ads to scrape and stamps scrapedAt", async () => {
-    await seedSearchRule({ value: "sony" });
-    const never = await seedAd({ name: "Sony A", scrapedAt: null });
-    const older = await seedAd({ name: "Sony B", scrapedAt: day(1) });
-    const newer = await seedAd({ name: "Sony C", scrapedAt: day(2) });
-    const unmatched = await seedAd({ name: "Bose D", scrapedAt: null });
+  it("returns the next ads flagged as matching and stamps scrapedAt", async () => {
+    const never = await seedAd({ matchesRules: true, scrapedAt: null });
+    const older = await seedAd({ matchesRules: true, scrapedAt: day(1) });
+    const newer = await seedAd({ matchesRules: true, scrapedAt: day(2) });
+    const unmatched = await seedAd({ matchesRules: false, scrapedAt: null });
 
     const res = await request(app).get("/amazon/ads/scrap?count=2").expect(200);
 
@@ -44,8 +42,8 @@ describe("GET /amazon/ads/scrap", () => {
     expect(rows[3].scrapedAt).toBeNull();
   });
 
-  it("is not shadowed by GET /:id and returns [] when there are no search rules", async () => {
-    await seedAd();
+  it("is not shadowed by GET /:id and returns [] when no ad matches", async () => {
+    await seedAd({ matchesRules: false });
 
     const res = await request(app).get("/amazon/ads/scrap").expect(200);
 
@@ -111,10 +109,23 @@ describe("CRUD /amazon/ads", () => {
       .expect(200);
     const dup = await request(app).post("/amazon/ads").send(body).expect(422);
 
-    expect(one.body).toMatchObject({ asin: "B0HTTP0001" });
+    expect(one.body).toMatchObject({ asin: "B0HTTP0001", matchesRules: null });
     expect(many.body).toHaveLength(2);
     expect(await prisma.amazonAdCategory.count()).toBe(1);
     expect(dup.text).toMatch(/^Unique constraint failed on the/);
+  });
+
+  it("POST / with many ads skips duplicate asins and creates the rest", async () => {
+    const body = { asin: "B0HTTP0001", name: "Ad", image: "img", categoryName: "audio" };
+    await request(app).post("/amazon/ads").send(body).expect(200);
+
+    const res = await request(app)
+      .post("/amazon/ads")
+      .send([body, { ...body, asin: "B0HTTP0002" }])
+      .expect(200);
+
+    expect(res.body.map((a: { asin: string }) => a.asin)).toEqual(["B0HTTP0002"]);
+    expect(await prisma.amazonAd.count()).toBe(2);
   });
 
   it("DELETE /:id removes the ad", async () => {

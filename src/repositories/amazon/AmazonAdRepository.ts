@@ -40,22 +40,46 @@ export class AmazonAdRepository {
     });
   }
 
-  async getForScraping(count: number, searchRules: SearchRuleSelectDto[]) {
-    const where = this.getSearchRuleWhereQuery(searchRules);
-    if (!where) return [];
-
+  // MySQL sorts NULL first in ascending order; an explicit `nulls` option
+  // would turn the ORDER BY into an expression the index cannot serve.
+  getForScraping(count: number) {
     return this.delegate.findMany({
-      where,
+      where: { matchesRules: true },
       take: count,
-      orderBy: {
-        scrapedAt: { sort: "asc", nulls: "first" },
-      },
+      orderBy: { scrapedAt: "asc" },
       select: {
         id: true,
         asin: true,
         name: true,
       },
     });
+  }
+
+  // Ads with matchesRules = null have not been checked yet; onlyNew limits the
+  // update to them. Matching ads are flagged before the rest is cleared, so the
+  // scraping queue never runs empty in between.
+  async matchSearchRules(searchRules: SearchRuleSelectDto[], onlyNew = false) {
+    const unflagged: Prisma.AmazonAdWhereInput = onlyNew
+      ? { matchesRules: null }
+      : { OR: [{ matchesRules: false }, { matchesRules: null }] };
+    const flagged: Prisma.AmazonAdWhereInput = onlyNew
+      ? { matchesRules: null }
+      : { OR: [{ matchesRules: true }, { matchesRules: null }] };
+    const where = this.getSearchRuleWhereQuery(searchRules);
+
+    const matched = where
+      ? await this.delegate.updateMany({
+          where: { AND: [unflagged, where] },
+          data: { matchesRules: true },
+        })
+      : { count: 0 };
+
+    const unmatched = await this.delegate.updateMany({
+      where: { AND: [flagged, ...(where ? [{ NOT: where }] : [])] },
+      data: { matchesRules: false },
+    });
+
+    return { matched: matched.count, unmatched: unmatched.count };
   }
 
   updateScrapedAt(ids: number[]): Promise<number> {
@@ -94,7 +118,9 @@ export class AmazonAdRepository {
     return this.delegate.delete({ where: { id } });
   }
 
-  private getSearchRuleWhereQuery(searchRules: SearchRuleSelectDto[]) {
+  private getSearchRuleWhereQuery(
+    searchRules: SearchRuleSelectDto[]
+  ): Prisma.AmazonAdWhereInput | null {
     const parsed = searchRules.flatMap((searchRule) => {
       try {
         return [parseSearchRule(searchRule.value)];

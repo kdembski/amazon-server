@@ -128,7 +128,7 @@ describe("DiscordSearchRulesCommandBuilder", () => {
 
       await expectEphemeralReply(
         reply,
-        `${replyPrefix.ok}Dodano **open box+4090|4080+!laptop**: musi zawierać: *open box*; *4090* lub *4080*; nie może zawierać: *laptop*`
+        `${replyPrefix.ok}Dodano **open box+4090|4080+!laptop**: musi zawierać: *open box*; *4090* lub *4080*; nie może zawierać: *laptop*. Oferty zostaną przeliczone w tle w ciągu kilku minut.`
       );
       expect(service.getByValue).toHaveBeenCalledWith("open box+4090|4080+!laptop");
       expect(service.creatable.create).toHaveBeenCalledWith({
@@ -147,7 +147,7 @@ describe("DiscordSearchRulesCommandBuilder", () => {
 
       await expectEphemeralReply(
         reply,
-        `${replyPrefix.ok}Dodano **!used**: globalnie wyklucza: *used*`
+        `${replyPrefix.ok}Dodano **!used**: globalnie wyklucza: *used*. Oferty zostaną przeliczone w tle w ciągu kilku minut.`
       );
     });
 
@@ -179,7 +179,7 @@ describe("DiscordSearchRulesCommandBuilder", () => {
 
       await expectEphemeralReply(
         reply,
-        `${replyPrefix.ok}Dodano **used**: musi zawierać: *used*`
+        `${replyPrefix.ok}Dodano **used**: musi zawierać: *used*. Oferty zostaną przeliczone w tle w ciągu kilku minut.`
       );
       expect(service.creatable.create).toHaveBeenCalledWith({ value: "used" });
     });
@@ -230,7 +230,7 @@ describe("DiscordSearchRulesCommandBuilder", () => {
 
       await command.execute(interaction);
 
-      await expectEphemeralReply(reply, `${replyPrefix.ok}Usunięto **used** z zasad`);
+      await expectEphemeralReply(reply, `${replyPrefix.ok}Usunięto **used** z zasad. Oferty zostaną przeliczone w tle w ciągu kilku minut.`);
       expect(service.deletable.delete).toHaveBeenCalledWith(4);
     });
 

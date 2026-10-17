@@ -26,10 +26,12 @@ model AmazonAd {
   scrapedAt     DateTime?        @db.Timestamp(2)
   image         String           @db.VarChar(255)
   name          String           @db.VarChar(255)
+  matchesRules  Boolean?
   category      AmazonAdCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "amazon_ad_category_id_fk")
   AmazonAdPrice AmazonAdPrice[]
 
   @@index([categoryId], map: "amazon_ad_category_id_fk_idx")
+  @@index([matchesRules, scrapedAt], map: "amazon_ad_matches_rules_scraped_at_idx")
 }
 
 model AmazonAdPrice {

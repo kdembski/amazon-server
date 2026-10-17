@@ -42,13 +42,13 @@ describe("AmazonAdRepository (MySQL)", () => {
   describe("getForScraping", () => {
     it("returns matching ads of any category, never scraped first, then oldest scrapedAt", async () => {
       const inactive = await seedCategory({ active: false });
-      const recent = await seedAd({ name: "Sony A", scrapedAt: day(2) });
-      const never = await seedAd({ categoryId: inactive.id, name: "Sony B", scrapedAt: null });
-      const old = await seedAd({ name: "Sony C", scrapedAt: day(1) });
-      await seedAd({ name: "Bose D", scrapedAt: null });
-      const searchRule = await seedSearchRule({ value: "sony" });
+      const recent = await seedAd({ matchesRules: true, scrapedAt: day(2) });
+      const never = await seedAd({ categoryId: inactive.id, matchesRules: true, scrapedAt: null });
+      const old = await seedAd({ matchesRules: true, scrapedAt: day(1) });
+      await seedAd({ matchesRules: false, scrapedAt: null });
+      await seedAd({ matchesRules: null, scrapedAt: null });
 
-      const ads = await repository.getForScraping(10, [searchRule]);
+      const ads = await repository.getForScraping(10);
 
       expect(ads).toEqual([
         { id: never.id, asin: never.asin, name: never.name },
@@ -58,61 +58,77 @@ describe("AmazonAdRepository (MySQL)", () => {
     });
 
     it("limits the result to count", async () => {
-      await seedAd({ name: "Sony A" });
-      await seedAd({ name: "Sony B" });
-      await seedAd({ name: "Sony C" });
-      const searchRule = await seedSearchRule({ value: "Sony" });
+      await seedAd({ matchesRules: true });
+      await seedAd({ matchesRules: true });
+      await seedAd({ matchesRules: true });
 
-      expect(await repository.getForScraping(2, [searchRule])).toHaveLength(2);
+      expect(await repository.getForScraping(2)).toHaveLength(2);
     });
 
-    it("returns ads matching any of the search rules, case-insensitively on MySQL", async () => {
-      const sony = await seedAd({ name: "Sony WH-1000XM5" });
-      const bose = await seedAd({ name: "Bose QC45" });
+    it("reads the matchesRules, scrapedAt index without a filesort", async () => {
+      await seedAd({ matchesRules: true });
+
+      // Prisma names the EXPLAIN columns f0..f11: f6 is `key`, f11 is `Extra`.
+      const [plan] = await prisma.$queryRawUnsafe<{ f6: string; f11: string | null }[]>(
+        "EXPLAIN SELECT id, asin, name FROM AmazonAd WHERE matchesRules = true ORDER BY scrapedAt ASC LIMIT 50"
+      );
+
+      expect(plan.f6).toBe("amazon_ad_matches_rules_scraped_at_idx");
+      expect(plan.f11 ?? "").not.toContain("filesort");
+    });
+  });
+
+  describe("matchSearchRules", () => {
+    const flags = async () => {
+      const rows = await prisma.amazonAd.findMany({ orderBy: { id: "asc" } });
+      return rows.map((row) => [row.name, row.matchesRules]);
+    };
+
+    it("flags ads matching any rule, case-insensitively on MySQL, and counts the changes", async () => {
+      await seedAd({ name: "Sony WH-1000XM5" });
+      await seedAd({ name: "Bose QC45" });
       await seedAd({ name: "JBL Tune 760" });
-      const searchRules = [
+      const rules = [
         await seedSearchRule({ value: "SONY" }),
         await seedSearchRule({ value: "bose" }),
       ];
 
-      const ads = await repository.getForScraping(10, searchRules);
+      const result = await repository.matchSearchRules(rules);
 
-      expect(ads.map((ad) => ad.id).sort((a, b) => a - b)).toEqual(
-        [sony.id, bose.id].sort((a, b) => a - b)
-      );
+      expect(result).toEqual({ matched: 2, unmatched: 1 });
+      expect(await flags()).toEqual([
+        ["Sony WH-1000XM5", true],
+        ["Bose QC45", true],
+        ["JBL Tune 760", false],
+      ]);
     });
 
-    it("requires every part of a search rule joined with +", async () => {
-      await seedAd({ name: "RTX 4080 Super" });
-      const both = await seedAd({ name: "RTX 4090 Founders" });
-      const searchRule = await seedSearchRule({ value: "rtx+4090" });
-
-      const ads = await repository.getForScraping(10, [searchRule]);
-
-      expect(ads.map((ad) => ad.id)).toEqual([both.id]);
-    });
-
-    it("supports alternatives, exclusions and phrases with spaces", async () => {
-      const desktop = await seedAd({ name: "RTX 4090 Founders Edition" });
-      const other = await seedAd({ name: "RTX 4080 Super Open Box" });
+    it("requires every part joined with +, supports alternatives, exclusions and phrases", async () => {
+      await seedAd({ name: "RTX 4090 Founders Edition" });
+      await seedAd({ name: "RTX 4080 Super Open Box" });
       await seedAd({ name: "RTX 4090 Laptop GPU" });
       await seedAd({ name: "RTX 4070 Ti" });
-      const openBox = await seedAd({ name: "Sony Open Box headphones" });
+      await seedAd({ name: "Sony Open Box headphones" });
       await seedAd({ name: "Sony headphones open-box" });
       const rules = [
         await seedSearchRule({ value: "rtx+4090|4080+!laptop" }),
         await seedSearchRule({ value: "sony+open box" }),
       ];
 
-      const ads = await repository.getForScraping(10, rules);
+      await repository.matchSearchRules(rules);
 
-      expect(ads.map((ad) => ad.id).sort((a, b) => a - b)).toEqual(
-        [desktop.id, other.id, openBox.id].sort((a, b) => a - b)
-      );
+      expect(await flags()).toEqual([
+        ["RTX 4090 Founders Edition", true],
+        ["RTX 4080 Super Open Box", true],
+        ["RTX 4090 Laptop GPU", false],
+        ["RTX 4070 Ti", false],
+        ["Sony Open Box headphones", true],
+        ["Sony headphones open-box", false],
+      ]);
     });
 
     it("applies exclusion-only rules to every other rule", async () => {
-      const fresh = await seedAd({ name: "Sony WH-1000XM5" });
+      await seedAd({ name: "Sony WH-1000XM5" });
       await seedAd({ name: "Sony WH-1000XM5 (Refurbished)" });
       await seedAd({ name: "Used Bose QC45" });
       const rules = [
@@ -121,21 +137,30 @@ describe("AmazonAdRepository (MySQL)", () => {
         await seedSearchRule({ value: "!refurbished|used" }),
       ];
 
-      const ads = await repository.getForScraping(10, rules);
+      await repository.matchSearchRules(rules);
 
-      expect(ads.map((ad) => ad.id)).toEqual([fresh.id]);
+      expect(await flags()).toEqual([
+        ["Sony WH-1000XM5", true],
+        ["Sony WH-1000XM5 (Refurbished)", false],
+        ["Used Bose QC45", false],
+      ]);
     });
 
-    it("returns nothing when only exclusion rules exist", async () => {
-      await seedAd({ name: "Sony WH-1000XM5" });
+    it("clears every ad when no rule has a positive member", async () => {
+      await seedAd({ name: "Sony WH-1000XM5", matchesRules: true });
+      await seedAd({ name: "Bose QC45", matchesRules: null });
       const rule = await seedSearchRule({ value: "!used" });
 
-      expect(await repository.getForScraping(10, [rule])).toEqual([]);
+      expect(await repository.matchSearchRules([rule])).toEqual({ matched: 0, unmatched: 2 });
+      expect(await flags()).toEqual([
+        ["Sony WH-1000XM5", false],
+        ["Bose QC45", false],
+      ]);
     });
 
     it("treats % and _ in rules literally", async () => {
-      const percent = await seedAd({ name: "Save 50% today" });
-      const underscore = await seedAd({ name: "cable_usb" });
+      await seedAd({ name: "Save 50% today" });
+      await seedAd({ name: "cable_usb" });
       await seedAd({ name: "Save 50 today" });
       await seedAd({ name: "cable-usb" });
       const rules = [
@@ -143,11 +168,42 @@ describe("AmazonAdRepository (MySQL)", () => {
         await seedSearchRule({ value: "cable_usb" }),
       ];
 
-      const ads = await repository.getForScraping(10, rules);
+      await repository.matchSearchRules(rules);
 
-      expect(ads.map((ad) => ad.id).sort((a, b) => a - b)).toEqual(
-        [percent.id, underscore.id].sort((a, b) => a - b)
-      );
+      expect(await flags()).toEqual([
+        ["Save 50% today", true],
+        ["cable_usb", true],
+        ["Save 50 today", false],
+        ["cable-usb", false],
+      ]);
+    });
+
+    it("rematches previously flagged ads when the rules change", async () => {
+      await seedAd({ name: "Sony WH-1000XM5", matchesRules: true });
+      await seedAd({ name: "Bose QC45", matchesRules: false });
+      const rule = await seedSearchRule({ value: "bose" });
+
+      expect(await repository.matchSearchRules([rule])).toEqual({ matched: 1, unmatched: 1 });
+      expect(await flags()).toEqual([
+        ["Sony WH-1000XM5", false],
+        ["Bose QC45", true],
+      ]);
+    });
+
+    it("with onlyNew checks only ads that were never matched", async () => {
+      await seedAd({ name: "Sony stale true", matchesRules: true });
+      await seedAd({ name: "Bose stale false", matchesRules: false });
+      await seedAd({ name: "Bose new", matchesRules: null });
+      await seedAd({ name: "Sony new", matchesRules: null });
+      const rule = await seedSearchRule({ value: "bose" });
+
+      expect(await repository.matchSearchRules([rule], true)).toEqual({ matched: 1, unmatched: 1 });
+      expect(await flags()).toEqual([
+        ["Sony stale true", true],
+        ["Bose stale false", false],
+        ["Bose new", true],
+        ["Sony new", false],
+      ]);
     });
   });
 

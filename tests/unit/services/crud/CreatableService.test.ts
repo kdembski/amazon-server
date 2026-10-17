@@ -43,4 +43,30 @@ describe("CreatableService", () => {
       { id: 2, name: "b" },
     ]);
   });
+
+  it("createMany skips duplicates and keeps creating the rest", async () => {
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce({ code: "P2002" })
+      .mockResolvedValueOnce({ id: 2, name: "b" });
+    const service = new CreatableService<Dto, Input, Model>({ create }, mapper);
+
+    const result = await service.createMany([{ name: "a" }, { name: "b" }]);
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(result).toEqual([{ id: 2, name: "b" }]);
+  });
+
+  it("createMany stops on errors other than a duplicate", async () => {
+    const create = vi
+      .fn()
+      .mockRejectedValueOnce({ code: "P1001" })
+      .mockResolvedValueOnce({ id: 2, name: "b" });
+    const service = new CreatableService<Dto, Input, Model>({ create }, mapper);
+
+    await expect(
+      service.createMany([{ name: "a" }, { name: "b" }])
+    ).rejects.toEqual({ code: "P1001" });
+    expect(create).toHaveBeenCalledTimes(1);
+  });
 });

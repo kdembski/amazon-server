@@ -35,77 +35,142 @@ describe("AmazonAdRepository", () => {
     });
   });
 
-  it("getForScraping matches any search rule, oldest scrapedAt first with nulls first", async () => {
+  it("getForScraping reads matching ads, oldest scrapedAt first", async () => {
     const { repository, delegate } = setup();
 
-    await repository.getForScraping(10, [
-      buildSearchRule({ value: "drill" }),
-      buildSearchRule({ value: "rtx+4090|4080+!laptop" }),
-      buildSearchRule({ value: "!used|50%" }),
-    ]);
+    await repository.getForScraping(10);
 
     expect(delegate.findMany).toHaveBeenCalledWith({
-      where: {
-        AND: [
-          {
-            OR: [
-              { AND: [{ OR: [{ name: { contains: "drill" } }] }] },
-              {
-                AND: [
-                  { OR: [{ name: { contains: "rtx" } }] },
-                  {
-                    OR: [
-                      { name: { contains: "4090" } },
-                      { name: { contains: "4080" } },
-                    ],
-                  },
-                  { NOT: { name: { contains: "laptop" } } },
-                ],
-              },
-            ],
-          },
-          {
-            NOT: {
-              OR: [
-                { name: { contains: "used" } },
-                { name: { contains: "50\\%" } },
-              ],
-            },
-          },
-        ],
-      },
+      where: { matchesRules: true },
       take: 10,
-      orderBy: { scrapedAt: { sort: "asc", nulls: "first" } },
+      orderBy: { scrapedAt: "asc" },
       select: { id: true, asin: true, name: true },
     });
   });
 
-  it("getForScraping skips and reports rules that fail to parse", async () => {
-    const { repository, delegate } = setup();
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+  describe("matchSearchRules", () => {
+    const rulesWhere = {
+      AND: [
+        {
+          OR: [
+            { AND: [{ OR: [{ name: { contains: "drill" } }] }] },
+            {
+              AND: [
+                { OR: [{ name: { contains: "rtx" } }] },
+                {
+                  OR: [
+                    { name: { contains: "4090" } },
+                    { name: { contains: "4080" } },
+                  ],
+                },
+                { NOT: { name: { contains: "laptop" } } },
+              ],
+            },
+          ],
+        },
+        {
+          NOT: {
+            OR: [
+              { name: { contains: "used" } },
+              { name: { contains: "50\\%" } },
+            ],
+          },
+        },
+      ],
+    };
+    const rules = () => [
+      buildSearchRule({ value: "drill" }),
+      buildSearchRule({ value: "rtx+4090|4080+!laptop" }),
+      buildSearchRule({ value: "!used|50%" }),
+    ];
 
-    await repository.getForScraping(5, [
-      buildSearchRule({ value: "a++b" }),
-      buildSearchRule({ value: "sony" }),
-    ]);
+    it("flags matching ads before clearing the rest and returns both counts", async () => {
+      const { repository, delegate } = setup();
+      delegate.updateMany
+        .mockResolvedValueOnce({ count: 3 })
+        .mockResolvedValueOnce({ count: 7 });
 
-    expect(delegate.findMany.mock.calls[0][0].where).toEqual({
-      OR: [{ AND: [{ OR: [{ name: { contains: "sony" } }] }] }],
+      await expect(repository.matchSearchRules(rules())).resolves.toEqual({
+        matched: 3,
+        unmatched: 7,
+      });
+
+      expect(delegate.updateMany).toHaveBeenNthCalledWith(1, {
+        where: {
+          AND: [
+            { OR: [{ matchesRules: false }, { matchesRules: null }] },
+            rulesWhere,
+          ],
+        },
+        data: { matchesRules: true },
+      });
+      expect(delegate.updateMany).toHaveBeenNthCalledWith(2, {
+        where: {
+          AND: [
+            { OR: [{ matchesRules: true }, { matchesRules: null }] },
+            { NOT: rulesWhere },
+          ],
+        },
+        data: { matchesRules: false },
+      });
     });
-    expect(error).toHaveBeenCalledWith(
-      "AmazonAdRepository: skipped search rule a++b: Error: Zasada **a++b** zawiera pusty fragment"
-    );
-    error.mockRestore();
-  });
 
-  it("getForScraping skips the query when no rule has a positive member", async () => {
-    const { repository, delegate } = setup();
+    it("with onlyNew limits both updates to ads never matched", async () => {
+      const { repository, delegate } = setup();
+      delegate.updateMany.mockResolvedValue({ count: 0 });
 
-    await expect(
-      repository.getForScraping(5, [buildSearchRule({ value: "!used" })])
-    ).resolves.toEqual([]);
+      await repository.matchSearchRules(rules(), true);
 
-    expect(delegate.findMany).not.toHaveBeenCalled();
+      for (const [call] of delegate.updateMany.mock.calls) {
+        expect(call.where.AND[0]).toEqual({ matchesRules: null });
+        expect(call.where.AND).toHaveLength(2);
+      }
+    });
+
+    it("skips the match and clears every ad without a positive rule", async () => {
+      const { repository, delegate } = setup();
+      delegate.updateMany.mockResolvedValue({ count: 2 });
+
+      await expect(
+        repository.matchSearchRules([buildSearchRule({ value: "!used" })])
+      ).resolves.toEqual({ matched: 0, unmatched: 2 });
+
+      expect(delegate.updateMany).toHaveBeenCalledTimes(1);
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        where: { AND: [{ OR: [{ matchesRules: true }, { matchesRules: null }] }] },
+        data: { matchesRules: false },
+      });
+    });
+
+    it("builds a plain OR without global exclusions", async () => {
+      const { repository, delegate } = setup();
+      delegate.updateMany.mockResolvedValue({ count: 0 });
+
+      await repository.matchSearchRules([buildSearchRule({ value: "sony" })]);
+
+      expect(delegate.updateMany.mock.calls[0][0].where.AND[1]).toEqual({
+        OR: [{ AND: [{ OR: [{ name: { contains: "sony" } }] }] }],
+      });
+    });
+
+    it("skips and reports rules that fail to parse", async () => {
+      const { repository, delegate } = setup();
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      delegate.updateMany.mockResolvedValue({ count: 0 });
+
+      await repository.matchSearchRules([
+        buildSearchRule({ value: "a++b" }),
+        buildSearchRule({ value: "sony" }),
+      ]);
+
+      expect(delegate.updateMany.mock.calls[0][0].where.AND[1]).toEqual({
+        OR: [{ AND: [{ OR: [{ name: { contains: "sony" } }] }] }],
+      });
+      expect(error).toHaveBeenCalledWith(
+        "AmazonAdRepository: skipped search rule a++b: Error: Zasada **a++b** zawiera pusty fragment"
+      );
+      error.mockRestore();
+    });
   });
 
   it("updateScrapedAt runs a raw UPDATE for the given ids", async () => {
