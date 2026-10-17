@@ -49,92 +49,48 @@ describe("AmazonAdRepository", () => {
   });
 
   describe("matchSearchRules", () => {
-    const rulesWhere = {
-      AND: [
-        {
-          OR: [
-            { AND: [{ OR: [{ name: { contains: "drill" } }] }] },
-            {
-              AND: [
-                { OR: [{ name: { contains: "rtx" } }] },
-                {
-                  OR: [
-                    { name: { contains: "4090" } },
-                    { name: { contains: "4080" } },
-                  ],
-                },
-                { NOT: { name: { contains: "laptop" } } },
-              ],
-            },
-          ],
-        },
-        {
-          NOT: {
-            OR: [
-              { name: { contains: "used" } },
-              { name: { contains: "50\\%" } },
-            ],
-          },
-        },
-      ],
-    };
+    const select = { id: true, name: true, matchesRules: true };
+    const ad = (id: number, name: string, matchesRules: boolean | null) => ({
+      id,
+      name,
+      matchesRules,
+    });
     const rules = () => [
       buildSearchRule({ value: "drill" }),
-      buildSearchRule({ value: "rtx+4090|4080+!laptop" }),
-      buildSearchRule({ value: "!used|50%" }),
+      buildSearchRule({ value: "!used" }),
     ];
 
     it("rematches in id batches, flagging matches before clearing the rest, and sums the counts", async () => {
       const { repository, delegate } = setup(10);
       delegate.aggregate.mockResolvedValue({ _max: { id: 25 } });
-      delegate.updateMany.mockImplementation(async ({ data }) => ({
-        count: data.matchesRules ? 1 : 2,
+      delegate.findMany
+        .mockResolvedValueOnce([
+          ad(1, "Bosch drill", false),
+          ad(2, "Bosch drill", true),
+          ad(3, "Used drill", null),
+          ad(4, "Hammer", true),
+        ])
+        .mockResolvedValueOnce([ad(11, "Hammer", false)])
+        .mockResolvedValueOnce([ad(21, "Makita drill", null)]);
+      delegate.updateMany.mockImplementation(async ({ where }) => ({
+        count: where.id.in.length,
       }));
 
       await expect(repository.matchSearchRules(rules())).resolves.toEqual({
-        matched: 3,
-        unmatched: 6,
+        matched: 2,
+        unmatched: 2,
       });
 
       expect(delegate.aggregate).toHaveBeenCalledWith({ _max: { id: true } });
-      expect(delegate.updateMany).toHaveBeenCalledTimes(6);
-      expect(delegate.updateMany).toHaveBeenNthCalledWith(1, {
-        where: {
-          AND: [
-            {
-              AND: [
-                { id: { gt: 0, lte: 10 } },
-                { OR: [{ matchesRules: false }, { matchesRules: null }] },
-              ],
-            },
-            rulesWhere,
-          ],
-        },
-        data: { matchesRules: true },
-      });
-      expect(delegate.updateMany).toHaveBeenNthCalledWith(2, {
-        where: {
-          AND: [
-            {
-              AND: [
-                { id: { gt: 0, lte: 10 } },
-                { OR: [{ matchesRules: true }, { matchesRules: null }] },
-              ],
-            },
-            { NOT: rulesWhere },
-          ],
-        },
-        data: { matchesRules: false },
-      });
-      expect(
-        delegate.updateMany.mock.calls.map((call) => call[0].where.AND[0].AND[0])
-      ).toEqual([
-        { id: { gt: 0, lte: 10 } },
-        { id: { gt: 0, lte: 10 } },
-        { id: { gt: 10, lte: 20 } },
-        { id: { gt: 10, lte: 20 } },
-        { id: { gt: 20, lte: 30 } },
-        { id: { gt: 20, lte: 30 } },
+      expect(delegate.findMany.mock.calls).toEqual([
+        [{ where: { id: { gt: 0, lte: 10 } }, select }],
+        [{ where: { id: { gt: 10, lte: 20 } }, select }],
+        [{ where: { id: { gt: 20, lte: 30 } }, select }],
+      ]);
+      expect(delegate.updateMany.mock.calls).toEqual([
+        [{ where: { id: { in: [1] } }, data: { matchesRules: true } }],
+        [{ where: { id: { in: [3, 4] } }, data: { matchesRules: false } }],
+        [{ where: { id: { in: [21] } }, data: { matchesRules: true } }],
       ]);
     });
 
@@ -147,11 +103,16 @@ describe("AmazonAdRepository", () => {
         unmatched: 0,
       });
 
+      expect(delegate.findMany).not.toHaveBeenCalled();
       expect(delegate.updateMany).not.toHaveBeenCalled();
     });
 
-    it("with onlyNew updates the never matched ads in one go", async () => {
+    it("with onlyNew checks the never matched ads in one go", async () => {
       const { repository, delegate } = setup();
+      delegate.findMany.mockResolvedValue([
+        ad(1, "Bosch drill", null),
+        ad(2, "Hammer", null),
+      ]);
       delegate.updateMany.mockResolvedValue({ count: 1 });
 
       await expect(repository.matchSearchRules(rules(), true)).resolves.toEqual({
@@ -160,64 +121,49 @@ describe("AmazonAdRepository", () => {
       });
 
       expect(delegate.aggregate).not.toHaveBeenCalled();
-      expect(delegate.updateMany).toHaveBeenNthCalledWith(1, {
-        where: { AND: [{ matchesRules: null }, rulesWhere] },
-        data: { matchesRules: true },
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        where: { matchesRules: null },
+        select,
       });
-      expect(delegate.updateMany).toHaveBeenNthCalledWith(2, {
-        where: { AND: [{ matchesRules: null }, { NOT: rulesWhere }] },
-        data: { matchesRules: false },
-      });
+      expect(delegate.updateMany.mock.calls).toEqual([
+        [{ where: { id: { in: [1] } }, data: { matchesRules: true } }],
+        [{ where: { id: { in: [2] } }, data: { matchesRules: false } }],
+      ]);
     });
 
-    it("skips the match and clears every ad without a positive rule", async () => {
+    it("matches whole words unless the phrase has a wildcard", async () => {
       const { repository, delegate } = setup();
-      delegate.aggregate.mockResolvedValue({ _max: { id: 5 } });
-      delegate.updateMany.mockResolvedValue({ count: 2 });
+      delegate.findMany.mockResolvedValue([
+        ad(1, "Shaped balloon torebka", null),
+        ad(2, "Hape drewniana kuchnia", null),
+      ]);
+      delegate.updateMany.mockResolvedValue({ count: 1 });
 
-      await expect(
-        repository.matchSearchRules([buildSearchRule({ value: "!used" })])
-      ).resolves.toEqual({ matched: 0, unmatched: 2 });
+      await repository.matchSearchRules(
+        [buildSearchRule({ value: "hape+drewn*" })],
+        true
+      );
 
-      expect(delegate.updateMany).toHaveBeenCalledTimes(1);
-      expect(delegate.updateMany).toHaveBeenCalledWith({
-        where: {
-          AND: [
-            {
-              AND: [
-                { id: { gt: 0, lte: 20_000 } },
-                { OR: [{ matchesRules: true }, { matchesRules: null }] },
-              ],
-            },
-          ],
-        },
-        data: { matchesRules: false },
-      });
-    });
-
-    it("builds a plain OR without global exclusions", async () => {
-      const { repository, delegate } = setup();
-      delegate.updateMany.mockResolvedValue({ count: 0 });
-
-      await repository.matchSearchRules([buildSearchRule({ value: "sony" })], true);
-
-      expect(delegate.updateMany.mock.calls[0][0].where.AND[1]).toEqual({
-        OR: [{ AND: [{ OR: [{ name: { contains: "sony" } }] }] }],
-      });
+      expect(delegate.updateMany.mock.calls).toEqual([
+        [{ where: { id: { in: [2] } }, data: { matchesRules: true } }],
+        [{ where: { id: { in: [1] } }, data: { matchesRules: false } }],
+      ]);
     });
 
     it("skips and reports rules that fail to parse", async () => {
       const { repository, delegate } = setup();
       const error = vi.spyOn(console, "error").mockImplementation(() => {});
-      delegate.updateMany.mockResolvedValue({ count: 0 });
+      delegate.findMany.mockResolvedValue([ad(1, "Sony a++b", null)]);
+      delegate.updateMany.mockResolvedValue({ count: 1 });
 
       await repository.matchSearchRules(
-        [buildSearchRule({ value: "a++b" }), buildSearchRule({ value: "sony" })],
+        [buildSearchRule({ value: "a++b" }), buildSearchRule({ value: "bose" })],
         true
       );
 
-      expect(delegate.updateMany.mock.calls[0][0].where.AND[1]).toEqual({
-        OR: [{ AND: [{ OR: [{ name: { contains: "sony" } }] }] }],
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: [1] } },
+        data: { matchesRules: false },
       });
       expect(error).toHaveBeenCalledWith(
         "AmazonAdRepository: skipped search rule a++b: Error: Zasada **a++b** zawiera pusty fragment"

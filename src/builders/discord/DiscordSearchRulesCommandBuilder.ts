@@ -96,7 +96,9 @@ export class DiscordSearchRulesCommandBuilder extends DiscordCommandBuilder {
               "`a+b` – musi zawierać *a* i *b*",
               "`a|b` – musi zawierać *a* lub *b*",
               "`!a` – nie może zawierać *a*",
-              "Zasada złożona z samych `!` wyklucza ogłoszenia ze wszystkich zasad. Wielkość liter nie ma znaczenia.",
+              "Frazy pasują do całych słów:",
+              "`a*` – słowo zaczynające się od *a*, `*a` – kończące się na *a*, `*a*` – *a* w dowolnym miejscu słowa",
+              "Zasada złożona z samych `!` wyklucza ogłoszenia ze wszystkich zasad. Wielkość liter i polskie znaki nie mają znaczenia.",
             ].join("\n"),
             fields: [
               {

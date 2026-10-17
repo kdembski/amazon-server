@@ -54,6 +54,9 @@ describe("DiscordSearchRulesCommandBuilder", () => {
       expect(embed.title).toBe("Zasady wyszukiwania");
       expect(embed.description).toContain("pasuje do co najmniej jednej zasady");
       expect(embed.description).toContain("`!a` – nie może zawierać *a*");
+      expect(embed.description).toContain(
+        "`a*` – słowo zaczynające się od *a*, `*a` – kończące się na *a*, `*a*` – *a* w dowolnym miejscu słowa"
+      );
       expect(embed.fields).toEqual([
         { name: "Zasady", value: "`sony`, `rtx+4090+!laptop`, `a++b`" },
         { name: "Globalne wykluczenia", value: "`!used|refurb`" },
