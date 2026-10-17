@@ -31,7 +31,7 @@ export class HourlyStatsCronService {
     ];
 
     await Promise.all(logs).then((logs) => {
-      this.discordService.sendHourly(logs);
+      return this.discordService.sendHourly(logs);
     });
   }
 

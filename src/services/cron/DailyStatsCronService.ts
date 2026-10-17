@@ -31,7 +31,7 @@ export class DailyStatsCronService {
     const rates = await this.getRates();
     const scraped = await this.getScrapedCount();
 
-    this.discordService.sendDaily(adsCount, rates, scraped);
+    await this.discordService.sendDaily(adsCount, rates, scraped);
   }
 
   private async getAdsCount() {

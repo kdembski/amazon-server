@@ -31,27 +31,59 @@ describe("DiscordService", () => {
     );
   });
 
-  it("builds the webhook url from the env token and sends through it", () => {
+  it("builds the webhook url from the env token and sends through it", async () => {
     vi.stubEnv("DISCORD_LOGS_TOKEN", "123/abc");
+    webhookSend.mockResolvedValueOnce(undefined);
 
-    new DiscordService("DISCORD_LOGS_TOKEN").send("hello");
+    await new DiscordService("DISCORD_LOGS_TOKEN").send("hello");
 
     expect(WebhookClient).toHaveBeenCalledWith({
       url: "https://discord.com/api/webhooks/123/abc",
     });
+    expect(webhookSend).toHaveBeenCalledTimes(1);
     expect(webhookSend).toHaveBeenCalledWith("hello");
   });
 
-  it("logs instead of throwing when the webhook send fails synchronously", () => {
+  it("retries a failed send after the configured delays until it succeeds", async () => {
+    vi.stubEnv("DISCORD_LOGS_TOKEN", "123/abc");
+    vi.useFakeTimers();
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    webhookSend
+      .mockRejectedValueOnce(new Error("network"))
+      .mockImplementationOnce(() => {
+        throw new Error("sync");
+      })
+      .mockResolvedValueOnce(undefined);
+
+    const sending = new DiscordService("DISCORD_LOGS_TOKEN", [100, 200]).send(
+      "x"
+    );
+
+    await vi.advanceTimersByTimeAsync(99);
+    expect(webhookSend).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(webhookSend).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(200);
+    await sending;
+
+    expect(webhookSend).toHaveBeenCalledTimes(3);
+    expect(error).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it("logs every failure and resolves once all retries are exhausted", async () => {
     vi.stubEnv("DISCORD_LOGS_TOKEN", "123/abc");
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    webhookSend.mockImplementationOnce(() => {
-      throw new Error("network");
-    });
+    webhookSend
+      .mockRejectedValueOnce(new Error("network"))
+      .mockRejectedValueOnce(new Error("network"))
+      .mockRejectedValueOnce(new Error("network"));
 
-    expect(() =>
-      new DiscordService("DISCORD_LOGS_TOKEN").send("x")
-    ).not.toThrow();
-    expect(error).toHaveBeenCalledWith(expect.any(Error));
+    await expect(
+      new DiscordService("DISCORD_LOGS_TOKEN", [0, 0]).send("x")
+    ).resolves.toBeUndefined();
+
+    expect(webhookSend).toHaveBeenCalledTimes(3);
+    expect(error).toHaveBeenCalledTimes(3);
   });
 });

@@ -12,15 +12,13 @@ npx prisma generate       # after editing prisma/schema.prisma and before tests
 npx tsc --noEmit          # type-check; there is no linter
 npm run test:unit         # tests/unit, no database
 npm run test:coverage     # unit tests with coverage
-npm run test:integration  # tests/integration, needs TEST_DATABASE_URL
+npm run test:integration  # tests/integration, needs a running Docker
 ```
 
 ## Tests
 
-- Integration: set `TEST_DATABASE_URL` (shell or `.env.test.local`) to MySQL 8 at `127.0.0.1` with a
-  pre-created database whose name ends with `_test`. Before running, get the user's explicit consent to
-  reset that database and pass their exact message in `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION`.
-  Never write it yourself.
+- Integration: start Docker first; `globalSetup.ts` runs a throwaway `mysql:8` container via
+  Testcontainers, pushes the schema and stops the container afterwards.
 - Coverage: 100% lines/functions/statements, at most 4 uncovered branches, for `src/` except `index.ts`,
   `dtos`, `interfaces`, `types` and `declarations.d.ts`.
 - One test file per source file under the same relative path; mappers share `tests/unit/mappers/mappers.test.ts`.
