@@ -40,6 +40,7 @@ npm run test:integration  # tests/integration, needs a running Docker
 - In CLAUDE.md write only what to do, never why.
 - Keep the path aliases `@/*` → `src/*` and `@@prisma/*` → `prisma/*` in sync in `tsconfig.json` and
   `vite.config.ts`.
+- Write error messages in English.
 - Set `createdAt`/`updatedAt` in mappers. Do not add Prisma migrations or column defaults.
 - The app reads env vars only from the runtime environment, never from `.env` files.
 

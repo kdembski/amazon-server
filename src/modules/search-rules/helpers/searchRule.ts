@@ -20,12 +20,12 @@ const parsePhrase = (value: string, rawPhrase: string): SearchPhrase => {
   text = text.trim();
 
   if (!text) {
-    throw new Error(`Zasada **${value}** zawiera pusty fragment`);
+    throw new Error(`Search rule "${value}" contains an empty part`);
   }
 
   if (text.includes(WILDCARD)) {
     throw new Error(
-      `Zasada **${value}** może mieć * tylko na początku lub końcu frazy`
+      `Search rule "${value}" can have * only at the start or end of a phrase`
     );
   }
 

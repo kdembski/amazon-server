@@ -53,14 +53,14 @@ describe("parseSearchRule", () => {
     "rejects an empty fragment in %j",
     (value) => {
       expect(() => parseSearchRule(value)).toThrow(
-        `Zasada **${value}** zawiera pusty fragment`
+        `Search rule "${value}" contains an empty part`
       );
     }
   );
 
   it.each(["a*b", "**a", "a|b**"])("rejects * inside a phrase in %j", (value) => {
     expect(() => parseSearchRule(value)).toThrow(
-      `Zasada **${value}** może mieć * tylko na początku lub końcu frazy`
+      `Search rule "${value}" can have * only at the start or end of a phrase`
     );
   });
 });
