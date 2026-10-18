@@ -1,4 +1,4 @@
-import { ListingPrice } from "@/modules/anomalies/interfaces/Listing";
+import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AnomalyEvaluator } from "@/modules/anomalies/AnomalyEvaluator";
 
 export class ConversionErrorEvaluator extends AnomalyEvaluator {

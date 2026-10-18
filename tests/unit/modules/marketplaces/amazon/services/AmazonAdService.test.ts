@@ -5,10 +5,10 @@ import { AmazonAdPriceService } from "@/modules/marketplaces/amazon/services/Ama
 import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
 import { ConversionErrorManager } from "@/modules/anomalies/conversion-error/ConversionErrorManager";
 import { PricingErrorManager } from "@/modules/anomalies/pricing-error/PricingErrorManager";
-import { AmazonAdListingMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingMapper";
+import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingPriceMapper";
+import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import {
   buildAd,
-  buildListing,
   buildListingPrice,
   buildPrice,
 } from "../../../../../support/factories";
@@ -39,22 +39,19 @@ const setup = () => {
   };
   const log = fakeLogService();
   const anomalyManager = { check: vi.fn() };
-  const listing = buildListing();
   const listingPrices = [[buildListingPrice()]];
-  const listingMapper = {
-    map: vi.fn().mockReturnValue({ listing, countryPrices: listingPrices }),
-  };
+  const priceMapper = { map: vi.fn().mockReturnValue(listingPrices) };
 
   const service = new AmazonAdService(
     repository as unknown as AmazonAdRepository,
     priceService as unknown as AmazonAdPriceService,
     log.service,
-    anomalyManager as unknown as AnomalyManager,
+    anomalyManager as unknown as AnomalyManager<AmazonAdSelectDto>,
     undefined,
     undefined,
     undefined,
     undefined,
-    listingMapper as unknown as AmazonAdListingMapper
+    priceMapper as unknown as AmazonAdListingPriceMapper
   );
 
   return {
@@ -63,8 +60,7 @@ const setup = () => {
     priceService,
     log,
     anomalyManager,
-    listingMapper,
-    listing,
+    priceMapper,
     listingPrices,
   };
 };
@@ -105,14 +101,13 @@ describe("AmazonAdService.updatePrices", () => {
     await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalled());
   });
 
-  it("checks anomalies with the mapped listing and prices", async () => {
+  it("checks anomalies with the ad and the mapped prices", async () => {
     const {
       service,
       repository,
       priceService,
       anomalyManager,
-      listingMapper,
-      listing,
+      priceMapper,
       listingPrices,
     } = setup();
     const ad = buildAd({ id: 9 });
@@ -125,8 +120,8 @@ describe("AmazonAdService.updatePrices", () => {
     ]);
 
     await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalled());
-    expect(listingMapper.map).toHaveBeenCalledWith(ad, countryPrices);
-    expect(anomalyManager.check).toHaveBeenCalledWith(listing, listingPrices);
+    expect(priceMapper.map).toHaveBeenCalledWith(countryPrices);
+    expect(anomalyManager.check).toHaveBeenCalledWith(ad, listingPrices);
   });
 
   it("continues when a single price insert fails", async () => {

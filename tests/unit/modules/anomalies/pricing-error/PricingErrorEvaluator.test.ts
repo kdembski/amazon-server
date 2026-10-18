@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PricingErrorEvaluator } from "@/modules/anomalies/pricing-error/PricingErrorEvaluator";
-import { ListingPrice } from "@/modules/anomalies/interfaces/Listing";
+import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { buildListingPrice } from "../../../../support/factories";
 
 const evaluator = new PricingErrorEvaluator();

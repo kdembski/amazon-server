@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ConversionErrorEvaluator } from "@/modules/anomalies/conversion-error/ConversionErrorEvaluator";
-import { ListingPrice } from "@/modules/anomalies/interfaces/Listing";
+import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { buildListingPrice } from "../../../../support/factories";
 
 const evaluator = new ConversionErrorEvaluator();

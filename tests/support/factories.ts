@@ -5,10 +5,7 @@ import { AmazonAdCategorySelectDto } from "@/modules/marketplaces/amazon/dtos/Am
 import { CurrencySelectDto } from "@/modules/currency/dtos/CurrencyDtos";
 import { CurrencyExchangeRateSelectDto } from "@/modules/currency/dtos/CurrencyExchangeRateDtos";
 import { SearchRuleSelectDto } from "@/modules/search-rules/dtos/SearchRuleDtos";
-import {
-  Listing,
-  ListingPrice,
-} from "@/modules/anomalies/interfaces/Listing";
+import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 
 export const FIXED_DATE = new Date("2026-01-01T12:00:00.000Z");
 
@@ -101,15 +98,6 @@ export const buildPrice = (
     ...rest,
   };
 };
-
-export const buildListing = (overrides: Partial<Listing> = {}): Listing => ({
-  name: "Bosch drill",
-  externalId: "B000TEST01",
-  image: "https://img/1.jpg",
-  categoryName: "electronics",
-  getUrl: (code) => `https://www.amazon.${code}/dp/B000TEST01`,
-  ...overrides,
-});
 
 type ListingPriceOverrides = Partial<
   Omit<ListingPrice, "value" | "country">

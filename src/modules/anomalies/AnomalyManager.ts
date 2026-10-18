@@ -1,14 +1,14 @@
 import { AnomalyManagerI } from "@/modules/anomalies/interfaces/AnomalyManagerI";
-import { Listing, ListingPrice } from "@/modules/anomalies/interfaces/Listing";
+import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 
-export class AnomalyManager implements AnomalyManagerI {
+export class AnomalyManager<T> implements AnomalyManagerI<T> {
   private managers;
 
-  constructor(managers: AnomalyManagerI[]) {
+  constructor(managers: AnomalyManagerI<T>[]) {
     this.managers = managers;
   }
 
-  async check(listing: Listing, countryPrices: ListingPrice[][]) {
+  async check(listing: T, countryPrices: ListingPrice[][]) {
     const results = await Promise.allSettled(
       this.managers.map((manager) => manager.check(listing, countryPrices))
     );

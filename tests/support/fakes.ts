@@ -3,8 +3,6 @@ import type { Request, Response, Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import type { LogService } from "@/modules/monitoring/services/LogService";
 import type { DiscordService } from "@/shared/discord/DiscordService";
-import type { DiscordConversionErrorService } from "@/modules/anomalies/conversion-error/DiscordConversionErrorService";
-import type { DiscordPricingErrorService } from "@/modules/anomalies/pricing-error/DiscordPricingErrorService";
 import type { AmazonConversionErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorDiscordService";
 import type { AmazonPricingErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorDiscordService";
 
@@ -18,19 +16,6 @@ export function fakeLogService() {
     deleteOlderThan,
   } as unknown as LogService;
   return { service, create, getCountByEvent, deleteOlderThan };
-}
-
-export function fakeDiscordConversionErrorService() {
-  const send = vi.fn().mockResolvedValue(undefined);
-  const setChannel = vi.fn();
-  const service = { send, setChannel } as unknown as DiscordConversionErrorService;
-  return { service, send, setChannel };
-}
-
-export function fakeDiscordPricingErrorService() {
-  const send = vi.fn().mockResolvedValue(undefined);
-  const service = { send } as unknown as DiscordPricingErrorService;
-  return { service, send };
 }
 
 export function fakeAmazonConversionErrorDiscordService() {

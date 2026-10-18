@@ -1,39 +1,31 @@
 import { describe, expect, it, vi } from "vitest";
 import { ConversionErrorManager } from "@/modules/anomalies/conversion-error/ConversionErrorManager";
 import { ConversionErrorStrategy } from "@/modules/anomalies/conversion-error/ConversionErrorStrategy";
-import { ListingPrice } from "@/modules/anomalies/interfaces/Listing";
+import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
 import {
   buildCurrency,
-  buildListing,
   buildListingPrice,
   buildRate,
 } from "../../../../support/factories";
-import {
-  fakeDiscordConversionErrorService,
-  fakeLogService,
-} from "../../../../support/fakes";
 
 const setup = (channels = ["1", "4"]) => {
-  const log = fakeLogService();
-  const discord = fakeDiscordConversionErrorService();
+  const reporter = { report: vi.fn().mockResolvedValue(undefined) };
   const getPlnRates = vi.fn().mockResolvedValue([]);
   const getMatchingRules = vi
     .fn()
     .mockReturnValue(channels.map((channel) => ({ channel })));
   const manager = new ConversionErrorManager(
-    discord.service,
-    log.service,
+    reporter,
     { getPlnRates } as unknown as CurrencyExchangeRateService,
     { getMatchingRules } as unknown as ConversionErrorStrategy
   );
   return {
     manager,
-    log,
-    discord,
+    reporter,
     getPlnRates,
     getMatchingRules,
-    listing: buildListing(),
+    listing: { id: 1 },
   };
 };
 
@@ -115,7 +107,7 @@ describe("ConversionErrorManager", () => {
   });
 
   it("reports every rule matched by the strategy", async () => {
-    const { manager, log, discord, getMatchingRules, listing } = setup([
+    const { manager, reporter, getMatchingRules, listing } = setup([
       "2",
       "5",
     ]);
@@ -123,21 +115,17 @@ describe("ConversionErrorManager", () => {
     await manager.check(listing, threeCountries());
 
     const [matched] = getMatchingRules.mock.calls[0];
-    expect(log.create.mock.calls).toEqual([
-      [{ event: "conversion_error_2_sent" }],
-      [{ event: "conversion_error_5_sent" }],
+    expect(reporter.report.mock.calls).toEqual([
+      [listing, matched, "2"],
+      [listing, matched, "5"],
     ]);
-    expect(discord.setChannel.mock.calls).toEqual([["2"], ["5"]]);
-    expect(discord.send).toHaveBeenCalledTimes(2);
-    expect(discord.send).toHaveBeenCalledWith(listing, matched);
   });
 
   it("reports nothing when no rule matches", async () => {
-    const { manager, log, discord, listing } = setup([]);
+    const { manager, reporter, listing } = setup([]);
 
     await manager.check(listing, threeCountries());
 
-    expect(log.create).not.toHaveBeenCalled();
-    expect(discord.send).not.toHaveBeenCalled();
+    expect(reporter.report).not.toHaveBeenCalled();
   });
 });

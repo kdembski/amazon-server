@@ -6,7 +6,7 @@ import { AmazonAdCreateMapper } from "@/modules/marketplaces/amazon/mappers/Amaz
 import { AmazonAdUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdUpdateMapper";
 import { AmazonAdPriceCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdPriceCreateMapper";
 import { AmazonAdPriceUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdPriceUpdateMapper";
-import { AmazonAdListingMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingMapper";
+import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingPriceMapper";
 import { CountryCreateMapper } from "@/modules/currency/mappers/CountryCreateMapper";
 import { CountryUpdateMapper } from "@/modules/currency/mappers/CountryUpdateMapper";
 import { CurrencyCreateMapper } from "@/modules/currency/mappers/CurrencyCreateMapper";
@@ -168,30 +168,11 @@ describe("update mappers", () => {
   });
 });
 
-describe("AmazonAdListingMapper", () => {
-  const mapper = new AmazonAdListingMapper();
-
-  it("maps the ad to a listing with amazon links per country", () => {
-    const ad = buildAd({
-      asin: "B0X",
-      name: "Drill",
-      image: "img",
-      category: { id: 1, name: "tools", active: true },
-    });
-
-    const { listing } = mapper.map(ad, []);
-
-    expect(listing).toMatchObject({
-      name: "Drill",
-      externalId: "B0X",
-      image: "img",
-      categoryName: "tools",
-    });
-    expect(listing.getUrl("de")).toBe("https://www.amazon.de/dp/B0X");
-  });
+describe("AmazonAdListingPriceMapper", () => {
+  const mapper = new AmazonAdListingPriceMapper();
 
   it("marks only Amazon-dispatched prices as reportable", () => {
-    const { countryPrices } = mapper.map(buildAd(), [
+    const countryPrices = mapper.map([
       [
         buildPrice({ dispatchFrom: "Amazon" }),
         buildPrice({ dispatchFrom: "Seller" }),
@@ -218,7 +199,7 @@ describe("AmazonAdListingMapper", () => {
       }),
     });
 
-    const { countryPrices } = mapper.map(buildAd(), [[price]]);
+    const countryPrices = mapper.map([[price]]);
 
     expect(countryPrices).toStrictEqual([
       [

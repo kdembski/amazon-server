@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
-import { buildListing, buildListingPrice } from "../../../support/factories";
+import { buildListingPrice } from "../../../support/factories";
 
 const fakeManager = () => ({ check: vi.fn().mockResolvedValue(undefined) });
 
@@ -12,7 +12,7 @@ describe("AnomalyManager", () => {
   it("passes the listing and country prices to every given manager", async () => {
     const first = fakeManager();
     const second = fakeManager();
-    const listing = buildListing();
+    const listing = { id: 1 };
     const countryPrices = [
       [buildListingPrice(), buildListingPrice()],
       [buildListingPrice()],
@@ -28,7 +28,7 @@ describe("AnomalyManager", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
 
     await expect(
-      new AnomalyManager([]).check(buildListing(), [[buildListingPrice()]])
+      new AnomalyManager([]).check({ id: 1 }, [[buildListingPrice()]])
     ).resolves.toBeUndefined();
     expect(error).not.toHaveBeenCalled();
   });
@@ -39,7 +39,7 @@ describe("AnomalyManager", () => {
     const other = fakeManager();
     failing.check.mockRejectedValue(new Error("db down"));
 
-    await new AnomalyManager([failing, other]).check(buildListing(), [
+    await new AnomalyManager([failing, other]).check({ id: 1 }, [
       [buildListingPrice()],
     ]);
 
