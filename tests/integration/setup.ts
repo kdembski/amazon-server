@@ -20,7 +20,7 @@ vi.mock("discord.js", async () => {
   };
 });
 
-vi.mock("@/services/SystemService", () => ({
+vi.mock("@/shared/system/SystemService", () => ({
   SystemService: { getInstance: () => ({}) },
 }));
 

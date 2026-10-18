@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { AmazonAdCategoryRouter } from "@/routes/amazon/AmazonAdCategoryRouter";
 import { AmazonAdCategoryController } from "@/controllers/amazon/AmazonAdCategoryController";
-import { CreatableRouter } from "@/routes/crud/CreatableRouter";
-import { UpdatableRouter } from "@/routes/crud/UpdatableRouter";
-import { DeletableRouter } from "@/routes/crud/DeletableRouter";
+import { CreatableRouter } from "@/shared/crud/routes/CreatableRouter";
+import { UpdatableRouter } from "@/shared/crud/routes/UpdatableRouter";
+import { DeletableRouter } from "@/shared/crud/routes/DeletableRouter";
 import { fakeRouter, fakeSubRouter, routeTable } from "../../../support/fakes";
 
 const setup = () => {

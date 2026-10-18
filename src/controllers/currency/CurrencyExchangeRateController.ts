@@ -1,6 +1,6 @@
-import { CreatableController } from "@/controllers/crud/CreatableController";
-import { DeletableController } from "@/controllers/crud/DeletableController";
-import { UpdatableController } from "@/controllers/crud/UpdatableController";
+import { CreatableController } from "@/shared/crud/controllers/CreatableController";
+import { DeletableController } from "@/shared/crud/controllers/DeletableController";
+import { UpdatableController } from "@/shared/crud/controllers/UpdatableController";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
 
 export class CurrencyExchangeRateController {

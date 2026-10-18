@@ -1,9 +1,9 @@
 import { format } from "date-fns";
 import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
-import { DiscordService } from "@/services/discord/DiscordService";
+import { DiscordService } from "@/shared/discord/DiscordService";
 import { CurrencySelectDto } from "@/dtos/currency/CurrencyDtos";
-import { roundToTwoDecimals } from "@/helpers/number";
+import { roundToTwoDecimals } from "@/shared/utils/number";
 
 export class DiscordPricingErrorService {
   private service;

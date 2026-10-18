@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { DiscordLogService } from "@/services/discord/DiscordLogService";
 import { ScraperStatusService } from "@/services/ScraperStatusService";
-import { SystemService } from "@/services/SystemService";
-import { getSpacing } from "@/helpers/discord";
+import { SystemService } from "@/shared/system/SystemService";
+import { getSpacing } from "@/shared/discord/spacing";
 import { buildRate } from "../../../support/factories";
 import { fakeDiscordService } from "../../../support/fakes";
 

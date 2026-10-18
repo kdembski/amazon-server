@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { AmazonAdPriceRouter } from "@/routes/amazon/AmazonAdPriceRouter";
 import { AmazonAdPriceController } from "@/controllers/amazon/AmazonAdPriceController";
-import { CreatableRouter } from "@/routes/crud/CreatableRouter";
-import { UpdatableRouter } from "@/routes/crud/UpdatableRouter";
-import { DeletableRouter } from "@/routes/crud/DeletableRouter";
+import { CreatableRouter } from "@/shared/crud/routes/CreatableRouter";
+import { UpdatableRouter } from "@/shared/crud/routes/UpdatableRouter";
+import { DeletableRouter } from "@/shared/crud/routes/DeletableRouter";
 import { fakeRouter, fakeSubRouter, routeTable } from "../../../support/fakes";
 
 describe("AmazonAdPriceRouter", () => {

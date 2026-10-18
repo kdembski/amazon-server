@@ -1,9 +1,9 @@
 import { Router, Request } from "express";
 import { AmazonAdController } from "@/controllers/amazon/AmazonAdController";
-import { SubRouterI } from "@/interfaces/SubRouterI";
-import { CreatableRouter } from "@/routes/crud/CreatableRouter";
-import { DeletableRouter } from "@/routes/crud/DeletableRouter";
-import { SelectableRouter } from "@/routes/crud/SelectableRouter";
+import { SubRouterI } from "@/shared/http/interfaces/SubRouterI";
+import { CreatableRouter } from "@/shared/crud/routes/CreatableRouter";
+import { DeletableRouter } from "@/shared/crud/routes/DeletableRouter";
+import { SelectableRouter } from "@/shared/crud/routes/SelectableRouter";
 
 export class AmazonAdRouter implements SubRouterI {
   private controller;

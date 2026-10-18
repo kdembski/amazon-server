@@ -36,9 +36,9 @@ export default mergeConfig(
         include: ["src/**/*.ts"],
         exclude: [
           "src/index.ts",
-          "src/dtos/**",
-          "src/interfaces/**",
-          "src/types/**",
+          "src/**/dtos/**",
+          "src/**/interfaces/**",
+          "src/**/types/**",
           "src/declarations.d.ts",
         ],
         reporter: ["text", "html"],

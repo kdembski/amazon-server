@@ -1,5 +1,5 @@
 import { AmazonAdUpdateDto } from "@/dtos/amazon/AmazonAdDtos";
-import { ToUpdateInputMapperI } from "@/interfaces/crud/CRUDMapper";
+import { ToUpdateInputMapperI } from "@/shared/crud/interfaces/CRUDMapper";
 import { Prisma } from "@prisma/client";
 
 export class AmazonAdUpdateMapper

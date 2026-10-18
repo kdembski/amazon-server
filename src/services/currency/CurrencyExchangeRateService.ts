@@ -2,9 +2,9 @@ import { CurrencyExchangeRateUpdateDto } from "@/dtos/currency/CurrencyExchangeR
 import { CurrencyExchangeRateCreateMapper } from "@/mappers/currency/CurrencyExchangeRateCreateMapper";
 import { CurrencyExchangeRateUpdateMapper } from "@/mappers/currency/CurrencyExchangeRateUpdateMapper";
 import { CurrencyExchangeRateRepository } from "@/repositories/currency/CurrencyExchangeRateRepository";
-import { CreatableService } from "@/services/crud/CreatableService";
-import { DeletableService } from "@/services/crud/DeletableService";
-import { UpdatableService } from "@/services/crud/UpdatableService";
+import { CreatableService } from "@/shared/crud/services/CreatableService";
+import { DeletableService } from "@/shared/crud/services/DeletableService";
+import { UpdatableService } from "@/shared/crud/services/UpdatableService";
 
 export class CurrencyExchangeRateService {
   private repository;

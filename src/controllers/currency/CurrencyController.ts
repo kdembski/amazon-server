@@ -1,8 +1,8 @@
 import { Response } from "express";
-import { CreatableController } from "@/controllers/crud/CreatableController";
-import { DeletableController } from "@/controllers/crud/DeletableController";
-import { ResponseErrorService } from "@/services/ResponseErrorService";
-import { UpdatableController } from "@/controllers/crud/UpdatableController";
+import { CreatableController } from "@/shared/crud/controllers/CreatableController";
+import { DeletableController } from "@/shared/crud/controllers/DeletableController";
+import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
+import { UpdatableController } from "@/shared/crud/controllers/UpdatableController";
 import { CurrencyService } from "@/services/currency/CurrencyService";
 
 export class CurrencyController {

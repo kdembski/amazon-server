@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import { CreatableController } from "@/controllers/crud/CreatableController";
-import { DeletableController } from "@/controllers/crud/DeletableController";
-import { UpdatableController } from "@/controllers/crud/UpdatableController";
+import { CreatableController } from "@/shared/crud/controllers/CreatableController";
+import { DeletableController } from "@/shared/crud/controllers/DeletableController";
+import { UpdatableController } from "@/shared/crud/controllers/UpdatableController";
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
-import { ResponseErrorService } from "@/services/ResponseErrorService";
+import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
 
 export class AmazonAdPriceController {
   creatable;

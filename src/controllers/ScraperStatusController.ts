@@ -1,5 +1,5 @@
 import { ScraperStatusDto } from "@/dtos/ScraperStatusDtos";
-import { ResponseErrorService } from "@/services/ResponseErrorService";
+import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
 import { ScraperStatusService } from "@/services/ScraperStatusService";
 import { Request, Response } from "express";
 

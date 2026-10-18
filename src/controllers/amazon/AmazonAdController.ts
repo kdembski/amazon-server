@@ -1,8 +1,8 @@
 import { Response, Request } from "express";
-import { CreatableController } from "@/controllers/crud/CreatableController";
-import { DeletableController } from "@/controllers/crud/DeletableController";
-import { SelectableController } from "@/controllers/crud/SelectableController";
-import { ResponseErrorService } from "@/services/ResponseErrorService";
+import { CreatableController } from "@/shared/crud/controllers/CreatableController";
+import { DeletableController } from "@/shared/crud/controllers/DeletableController";
+import { SelectableController } from "@/shared/crud/controllers/SelectableController";
+import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
 import { AmazonAdService } from "@/services/amazon/AmazonAdService";
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 

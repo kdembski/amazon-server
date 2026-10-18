@@ -3,16 +3,16 @@ import {
   addSeparators,
   roundToOneDecimal,
   roundToTwoDecimals,
-} from "@/helpers/number";
-import { DiscordService } from "@/services/discord/DiscordService";
+} from "@/shared/utils/number";
+import { DiscordService } from "@/shared/discord/DiscordService";
 import { ScraperStatusService } from "@/services/ScraperStatusService";
 import {
   APIEmbedField,
   MessagePayload,
   WebhookMessageCreateOptions,
 } from "discord.js";
-import { SystemService } from "@/services/SystemService";
-import { getSpacing } from "@/helpers/discord";
+import { SystemService } from "@/shared/system/SystemService";
+import { getSpacing } from "@/shared/discord/spacing";
 
 export class DiscordLogService {
   private service;

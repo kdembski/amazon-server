@@ -1,5 +1,5 @@
 import { AmazonAdCreateDto } from "@/dtos/amazon/AmazonAdDtos";
-import { ToCreateInputMapperI } from "@/interfaces/crud/CRUDMapper";
+import { ToCreateInputMapperI } from "@/shared/crud/interfaces/CRUDMapper";
 import { Prisma } from "@prisma/client";
 
 export class AmazonAdCreateMapper

@@ -1,9 +1,9 @@
 import { CountryCreateMapper } from "@/mappers/currency/CountryCreateMapper";
 import { CountryUpdateMapper } from "@/mappers/currency/CountryUpdateMapper";
 import { CountryRepository } from "@/repositories/currency/CountryRepository";
-import { CreatableService } from "@/services/crud/CreatableService";
-import { DeletableService } from "@/services/crud/DeletableService";
-import { UpdatableService } from "@/services/crud/UpdatableService";
+import { CreatableService } from "@/shared/crud/services/CreatableService";
+import { DeletableService } from "@/shared/crud/services/DeletableService";
+import { UpdatableService } from "@/shared/crud/services/UpdatableService";
 
 export class CountryService {
   private repository;

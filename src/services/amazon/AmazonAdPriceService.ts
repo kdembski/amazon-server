@@ -1,9 +1,9 @@
 import { AmazonAdPriceCreateMapper } from "@/mappers/amazon/AmazonAdPriceCreateMapper";
 import { AmazonAdPriceUpdateMapper } from "@/mappers/amazon/AmazonAdPriceUpdateMapper";
 import { AmazonAdPriceRepository } from "@/repositories/amazon/AmazonAdPriceRepository";
-import { CreatableService } from "@/services/crud/CreatableService";
-import { DeletableService } from "@/services/crud/DeletableService";
-import { UpdatableService } from "@/services/crud/UpdatableService";
+import { CreatableService } from "@/shared/crud/services/CreatableService";
+import { DeletableService } from "@/shared/crud/services/DeletableService";
+import { UpdatableService } from "@/shared/crud/services/UpdatableService";
 
 export class AmazonAdPriceService {
   private repository;

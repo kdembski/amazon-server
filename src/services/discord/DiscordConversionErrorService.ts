@@ -1,7 +1,7 @@
 import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
-import { DiscordService } from "@/services/discord/DiscordService";
-import { roundToTwoDecimals } from "@/helpers/number";
+import { DiscordService } from "@/shared/discord/DiscordService";
+import { roundToTwoDecimals } from "@/shared/utils/number";
 
 export class DiscordConversionErrorService {
   private service;

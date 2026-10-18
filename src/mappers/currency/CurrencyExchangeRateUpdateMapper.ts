@@ -1,5 +1,5 @@
 import { CurrencyExchangeRateUpdateDto } from "@/dtos/currency/CurrencyExchangeRateDtos";
-import { ToUpdateInputMapperI } from "@/interfaces/crud/CRUDMapper";
+import { ToUpdateInputMapperI } from "@/shared/crud/interfaces/CRUDMapper";
 import { Prisma } from "@prisma/client";
 
 export class CurrencyExchangeRateUpdateMapper

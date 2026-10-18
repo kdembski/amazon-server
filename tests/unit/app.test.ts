@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { createApp } from "@/app";
+import { AppModule } from "@/shared/interfaces/AppModule";
 
-const { app, use, json, corsMiddleware, router } = vi.hoisted(() => {
+const { app, use, json, corsMiddleware } = vi.hoisted(() => {
   const use = vi.fn();
   return {
     use,
     app: { use },
     json: vi.fn(() => "json-middleware"),
     corsMiddleware: "cors-middleware",
-    router: "api-router",
   };
 });
 
@@ -19,16 +19,33 @@ vi.mock("express", () => ({
   ),
 }));
 vi.mock("cors", () => ({ default: vi.fn(() => corsMiddleware) }));
-vi.mock("@/routes", () => ({ useRouter: () => ({ router }) }));
+vi.mock("@/modules", () => ({ createModules: vi.fn(() => []) }));
 
 describe("createApp", () => {
-  it("mounts json, cors and the api router on a new express app, in that order", () => {
-    expect(createApp()).toBe(app);
+  it("mounts json, cors and every module router under its path, in module order", () => {
+    const router = (path: string) => ({
+      path,
+      build: () => ({ router: `${path}-router` }),
+    });
+    const modules = [
+      { routers: [router("/a"), router("/b")] },
+      { crons: [] },
+      { routers: [router("/c")] },
+    ];
 
+    expect(createApp(modules as unknown as AppModule[])).toBe(app);
     expect(use.mock.calls).toEqual([
       ["json-middleware"],
       ["cors-middleware"],
-      ["api-router"],
+      ["/a", "/a-router"],
+      ["/b", "/b-router"],
+      ["/c", "/c-router"],
     ]);
+  });
+
+  it("uses the default module list when none is given", () => {
+    createApp();
+
+    expect(use.mock.calls).toEqual([["json-middleware"], ["cors-middleware"]]);
   });
 });

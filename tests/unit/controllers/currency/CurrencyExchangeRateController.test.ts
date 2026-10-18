@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CurrencyExchangeRateController } from "@/controllers/currency/CurrencyExchangeRateController";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
-import { CreatableController } from "@/controllers/crud/CreatableController";
-import { UpdatableController } from "@/controllers/crud/UpdatableController";
-import { DeletableController } from "@/controllers/crud/DeletableController";
+import { CreatableController } from "@/shared/crud/controllers/CreatableController";
+import { UpdatableController } from "@/shared/crud/controllers/UpdatableController";
+import { DeletableController } from "@/shared/crud/controllers/DeletableController";
 
 describe("CurrencyExchangeRateController", () => {
   it("composes creatable, updatable and deletable controllers", () => {

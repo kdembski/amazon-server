@@ -1,7 +1,7 @@
 import { LogCreateMapper } from "@/mappers/LogCreateMapper";
 import { LogRepository } from "@/repositories/LogRepository";
-import { CreatableService } from "@/services/crud/CreatableService";
-import { DeletableService } from "@/services/crud/DeletableService";
+import { CreatableService } from "@/shared/crud/services/CreatableService";
+import { DeletableService } from "@/shared/crud/services/DeletableService";
 
 export class LogService {
   private repository;

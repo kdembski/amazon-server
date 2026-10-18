@@ -1,5 +1,5 @@
 import { ScraperStatusController } from "@/controllers/ScraperStatusController";
-import { SubRouterI } from "@/interfaces/SubRouterI";
+import { SubRouterI } from "@/shared/http/interfaces/SubRouterI";
 import { Router } from "express";
 
 export class ScraperStatusRouter implements SubRouterI {

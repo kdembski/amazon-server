@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { CountryController } from "@/controllers/currency/CountryController";
 import { CountryService } from "@/services/currency/CountryService";
-import { CreatableController } from "@/controllers/crud/CreatableController";
-import { UpdatableController } from "@/controllers/crud/UpdatableController";
-import { DeletableController } from "@/controllers/crud/DeletableController";
+import { CreatableController } from "@/shared/crud/controllers/CreatableController";
+import { UpdatableController } from "@/shared/crud/controllers/UpdatableController";
+import { DeletableController } from "@/shared/crud/controllers/DeletableController";
 import { fakeResponse } from "../../../support/fakes";
 
 const setup = () => {

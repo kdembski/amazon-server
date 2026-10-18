@@ -1,5 +1,5 @@
 import { LogCreateDto } from "@/dtos/LogDtos";
-import { ToCreateInputMapperI } from "@/interfaces/crud/CRUDMapper";
+import { ToCreateInputMapperI } from "@/shared/crud/interfaces/CRUDMapper";
 import { Prisma } from "@prisma/client";
 
 export class LogCreateMapper

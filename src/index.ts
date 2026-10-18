@@ -1,21 +1,14 @@
 import { createApp } from "@/app";
-import { CurrencyExchangeRateCronService } from "@/services/cron/CurrencyExchangeRateCronService";
-import { HourlyStatsCronService } from "@/services/cron/HourlyStatsCronService";
-import { DailyStatsCronService } from "@/services/cron/DailyStatsCronService";
-import { LogCleanupCronService } from "@/services/cron/LogCleanupCronService";
-import { SearchRuleMatchCronService } from "@/services/cron/SearchRuleMatchCronService";
+import { createModules } from "@/modules";
 
-const app = createApp();
+const modules = createModules();
+const app = createApp(modules);
 
 app.listen(process.env.PORT || 5001, () =>
   console.log("Amazon Server is running...")
 );
 
-new CurrencyExchangeRateCronService().schedule();
-new HourlyStatsCronService().schedule();
-new DailyStatsCronService().schedule();
-new LogCleanupCronService().schedule();
-new SearchRuleMatchCronService().schedule();
+modules.forEach((module) => module.crons?.forEach((cron) => cron.schedule()));
 
 process.on("uncaughtException", (err) => {
   console.error(err);

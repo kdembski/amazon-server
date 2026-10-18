@@ -2,7 +2,7 @@ import { vi } from "vitest";
 import type { Request, Response, Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import type { LogService } from "@/services/LogService";
-import type { DiscordService } from "@/services/discord/DiscordService";
+import type { DiscordService } from "@/shared/discord/DiscordService";
 import type { DiscordConversionErrorService } from "@/services/discord/DiscordConversionErrorService";
 import type { DiscordPricingErrorService } from "@/services/discord/DiscordPricingErrorService";
 

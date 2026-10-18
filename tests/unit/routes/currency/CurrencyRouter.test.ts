@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { CurrencyRouter } from "@/routes/currency/CurrencyRouter";
 import { CurrencyController } from "@/controllers/currency/CurrencyController";
-import { CreatableRouter } from "@/routes/crud/CreatableRouter";
-import { UpdatableRouter } from "@/routes/crud/UpdatableRouter";
-import { DeletableRouter } from "@/routes/crud/DeletableRouter";
+import { CreatableRouter } from "@/shared/crud/routes/CreatableRouter";
+import { UpdatableRouter } from "@/shared/crud/routes/UpdatableRouter";
+import { DeletableRouter } from "@/shared/crud/routes/DeletableRouter";
 import { fakeRouter, fakeSubRouter, routeTable } from "../../../support/fakes";
 
 describe("CurrencyRouter", () => {

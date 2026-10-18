@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { AmazonAdController } from "@/controllers/amazon/AmazonAdController";
 import { AmazonAdService } from "@/services/amazon/AmazonAdService";
-import { CreatableController } from "@/controllers/crud/CreatableController";
-import { SelectableController } from "@/controllers/crud/SelectableController";
-import { DeletableController } from "@/controllers/crud/DeletableController";
+import { CreatableController } from "@/shared/crud/controllers/CreatableController";
+import { SelectableController } from "@/shared/crud/controllers/SelectableController";
+import { DeletableController } from "@/shared/crud/controllers/DeletableController";
 import { fakeRequest, fakeResponse } from "../../../support/fakes";
 
 const setup = () => {

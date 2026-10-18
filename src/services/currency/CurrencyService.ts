@@ -1,9 +1,9 @@
 import { CurrencyCreateMapper } from "@/mappers/currency/CurrencyCreateMapper";
 import { CurrencyUpdateMapper } from "@/mappers/currency/CurrencyUpdateMapper";
 import { CurrencyRepository } from "@/repositories/currency/CurrencyRepository";
-import { CreatableService } from "@/services/crud/CreatableService";
-import { DeletableService } from "@/services/crud/DeletableService";
-import { UpdatableService } from "@/services/crud/UpdatableService";
+import { CreatableService } from "@/shared/crud/services/CreatableService";
+import { DeletableService } from "@/shared/crud/services/DeletableService";
+import { UpdatableService } from "@/shared/crud/services/UpdatableService";
 
 export class CurrencyService {
   private repository;

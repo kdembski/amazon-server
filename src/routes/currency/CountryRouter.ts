@@ -1,8 +1,8 @@
 import { CountryController } from "@/controllers/currency/CountryController";
-import { SubRouterI } from "@/interfaces/SubRouterI";
-import { CreatableRouter } from "@/routes/crud/CreatableRouter";
-import { DeletableRouter } from "@/routes/crud/DeletableRouter";
-import { UpdatableRouter } from "@/routes/crud/UpdatableRouter";
+import { SubRouterI } from "@/shared/http/interfaces/SubRouterI";
+import { CreatableRouter } from "@/shared/crud/routes/CreatableRouter";
+import { DeletableRouter } from "@/shared/crud/routes/DeletableRouter";
+import { UpdatableRouter } from "@/shared/crud/routes/UpdatableRouter";
 import { Router } from "express";
 
 export class CountryRouter implements SubRouterI {
