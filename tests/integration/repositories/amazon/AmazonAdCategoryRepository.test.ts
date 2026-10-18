@@ -44,7 +44,7 @@ describe("AmazonAdCategoryRepository (MySQL)", () => {
   it("rejects a repeated name with P2002", async () => {
     await seedCategory({ name: "audio" });
 
-    await expect(repository.create({ name: "audio" } as never)).rejects.toMatchObject({
+    await expect(seedCategory({ name: "audio" })).rejects.toMatchObject({
       code: "P2002",
     });
   });
