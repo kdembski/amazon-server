@@ -2,7 +2,7 @@
 
 Express + Prisma (MySQL) backend for Amazon price monitoring: scrapers (Docker containers) pull ASINs,
 post prices and report their status to `POST /scrapers/:name/status`; the server detects price anomalies,
-reports them to Discord webhooks and runs a Discord slash-command bot.
+reports them to Discord webhooks only.
 
 ## Commands
 
@@ -26,7 +26,7 @@ npm run test:integration  # tests/integration, needs a running Docker
 - Inject dependencies through constructor default parameters. Use `vi.mock` only for external modules,
   private-constructor singletons (`resetSingleton()`) and composition roots that build dependencies inline.
 - Unit fakes and factories: `tests/support`. Put cron job bodies in `run()`; `schedule()` only wires the `CronJob`.
-- Integration: `repositories/` and `services/` mirror `src/`; `http/` has one file per router, using
+- Integration: `repositories/`, `services/` and `cron/` mirror `src/` (`tests/integration/modules/currency/...`); `http/` has one file per router, using
   supertest on `createApp()`. Seed with `tests/support/integration/seed.ts` and use the returned ids. Wait
   for anomaly managers with `vi.waitFor`. Set env in `tests/integration/env.ts` with plain `process.env`
   assignments, not `vi.stubEnv`.
@@ -40,18 +40,35 @@ npm run test:integration  # tests/integration, needs a running Docker
 - In CLAUDE.md write only what to do, never why.
 - Keep the path aliases `@/*` → `src/*` and `@@prisma/*` → `prisma/*` in sync in `tsconfig.json` and
   `vite.config.ts`.
-- Write user-facing Discord bot text in Polish.
 - Set `createdAt`/`updatedAt` in mappers. Do not add Prisma migrations or column defaults.
 - The app reads env vars only from the runtime environment, never from `.env` files.
 
 ## Architecture
 
-- Each entity: `routes/` → `controllers/` → `services/` → `repositories/` (Prisma); `mappers/` turn DTOs
-  into Prisma inputs. Generic CRUD comes from composable `Selectable`/`Creatable`/`Updatable`/`Deletable`
-  (`*/crud`), exposed as public fields and mounted in the entity router's `build()`. Declare specific routes
-  before generic ones (`GET /scrap` before `GET /:id`). Register routers in `src/routes/index.ts`.
+- Layout: `src/shared/` (`crud`, `http`, `discord`, `system`, `utils`, `interfaces`) and `src/modules/`
+  (`currency`, `monitoring`, `search-rules`, `anomalies`, `marketplaces/<name>`). Put no code in other
+  top-level `src/` folders.
+- Inside a module keep the layers `routes/` → `controllers/` → `services/` → `repositories/` (Prisma);
+  `mappers/` turn DTOs into Prisma inputs; `dtos/`, `interfaces/` and `cron/` sit beside them. Generic CRUD
+  comes from composable `Selectable`/`Creatable`/`Updatable`/`Deletable` (`src/shared/crud`), exposed as
+  public fields and mounted in the entity router's `build()`. Declare specific routes before generic ones
+  (`GET /scrap` before `GET /:id`).
+- Export `create<Name>Module()` from `src/modules/<name>/index.ts` (returns `AppModule`: `routers`, `crons`)
+  and register it in `createModules()` in `src/modules.ts`.
+- Dependency direction: `marketplaces/*` → `anomalies`, `search-rules`, `monitoring`, `currency` → `shared`;
+  `anomalies` → `currency`, `monitoring`; `currency` → `monitoring`. `src/shared` imports nothing from
+  `src/modules`. `currency`, `monitoring`, `search-rules` and `anomalies` import nothing from
+  `src/modules/marketplaces`; pass marketplace implementations in from `src/modules.ts`.
+- Add a marketplace: (1) Prisma models and a `src/modules/marketplaces/<name>/` folder with the layers;
+  (2) a mapper to `Listing`/`ListingPrice` and a call to `AnomalyManager([...])` with the chosen detectors
+  after storing prices; (3) implementations of `SearchRuleTarget` and `DailyReportSection`;
+  (4) `create<Name>Module()` returning `MarketplaceModule`, added to `marketplaces` in `src/modules.ts`.
+- Anomaly detectors work on `Listing`/`ListingPrice` only; each marketplace passes its detectors to
+  `AnomalyManager`. Rule matching goes through `SearchRuleTarget`; the daily Discord report gets its
+  sections through `DailyReportSection`.
 - Cross-cutting services are `getInstance()` singletons. `*SelectDto` types derive from repository return
   types. Controller errors go through `ResponseErrorService` (P2002 → 422, P1001 → 503).
+- Change `SearchRule` rows only with SQL (skill `search-rules`); code only reads them.
 - Scraping: `GET /amazon/ads/scrap` hands out ads with `matchesRules = true`, oldest `scrapedAt` first, and
   stamps them; never filter it by `name LIKE`. `SearchRuleMatchCronService` runs every minute: it rematches
   every ad when the `SearchRule` values changed since the last run (and after each restart), otherwise only
@@ -60,6 +77,6 @@ npm run test:integration  # tests/integration, needs a running Docker
   phrases match whole words, `*` at a phrase edge matches part of a word). Match rules in JS with
   `createSearchRuleMatcher`, not in SQL.
   `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices, logs `ad_scraped` and
-  asynchronously runs the anomaly managers (`src/managers`), which log `*_sent` events and post to Discord.
-- `src/app.ts` builds the express app; `src/index.ts` adds `listen`, websockets, cron jobs
-  (`src/services/cron`) and the bot login.
+  asynchronously runs the anomaly managers (`src/modules/anomalies`), which log `*_sent` events and post to Discord.
+- `src/app.ts` builds the express app and mounts the routers of all modules; `src/index.ts` adds `listen`
+  and calls `schedule()` on the crons of all modules.

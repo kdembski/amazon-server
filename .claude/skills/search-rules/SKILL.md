@@ -1,6 +1,6 @@
 ---
 name: search-rules
-description: Use when asked to create, extend, review or fix SearchRule values (search rules, /rules bot command, matchesRules), to cover an Amazon category or product group with rules, or to explain why an ad was scraped or reported to Discord.
+description: Use when asked to create, extend, review or fix SearchRule values (search rules, matchesRules), to cover an Amazon category or product group with rules, or to explain why an ad was scraped or reported to Discord.
 ---
 
 # Search rules
