@@ -114,3 +114,18 @@ model SearchRule {
   value     String   @unique(map: "search_rule_value_UNIQUE") @db.VarChar(63)
   createdAt DateTime @db.Timestamp(2)
 }
+
+model ScraperMetric {
+  id          Int         @id @default(autoincrement())
+  scraper     String      @db.VarChar(63)
+  marketplace Marketplace
+  flow        String      @db.VarChar(15)
+  metric      String      @db.VarChar(63)
+  country     String?     @db.VarChar(7)
+  outcome     String?     @db.VarChar(31)
+  value       Float
+  periodStart DateTime    @db.Timestamp(2)
+  createdAt   DateTime    @db.Timestamp(2)
+
+  @@index([periodStart, metric])
+}

@@ -121,6 +121,23 @@ export function seedActivityEvent(
   });
 }
 
+export function seedScraperMetric(
+  overrides: Partial<Prisma.ScraperMetricUncheckedCreateInput> = {}
+) {
+  return prisma.scraperMetric.create({
+    data: {
+      scraper: "amazon-pdp",
+      marketplace: "amazon",
+      flow: "pdp",
+      metric: "requests",
+      value: 1,
+      periodStart: FIXED_DATE,
+      createdAt: FIXED_DATE,
+      ...overrides,
+    },
+  });
+}
+
 export function seedPln() {
   return prisma.currency.upsert({
     where: { code: "PLN" },
