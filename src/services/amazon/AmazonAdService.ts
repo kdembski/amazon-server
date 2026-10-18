@@ -6,7 +6,10 @@ import { DeletableService } from "@/shared/crud/services/DeletableService";
 import { SelectableService } from "@/shared/crud/services/SelectableService";
 import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
 import { LogService } from "@/modules/monitoring/services/LogService";
-import { AmazonAdAnomalyManager } from "@/managers/AmazonAdAnomalyManager";
+import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
+import { ConversionErrorManager } from "@/modules/anomalies/conversion-error/ConversionErrorManager";
+import { PricingErrorManager } from "@/modules/anomalies/pricing-error/PricingErrorManager";
+import { AmazonAdListingMapper } from "@/mappers/amazon/AmazonAdListingMapper";
 import { UpdatableService } from "@/shared/crud/services/UpdatableService";
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 
@@ -15,6 +18,7 @@ export class AmazonAdService {
   private priceService;
   private logService;
   private anomalyManager;
+  private listingMapper;
   private static isGetting = false;
   selectable;
   deletable;
@@ -25,11 +29,15 @@ export class AmazonAdService {
     repository = new AmazonAdRepository(),
     priceService = new AmazonAdPriceService(),
     logService = new LogService(),
-    anomalyManager = new AmazonAdAnomalyManager(),
+    anomalyManager = new AnomalyManager([
+      new ConversionErrorManager(),
+      new PricingErrorManager(),
+    ]),
     selectable = new SelectableService(repository),
     deletable = new DeletableService(repository),
     creatable = new CreatableService(repository, new AmazonAdCreateMapper()),
-    updatable = new UpdatableService(repository, new AmazonAdUpdateMapper())
+    updatable = new UpdatableService(repository, new AmazonAdUpdateMapper()),
+    listingMapper = new AmazonAdListingMapper()
   ) {
     this.repository = repository;
     this.priceService = priceService;
@@ -39,6 +47,7 @@ export class AmazonAdService {
     this.deletable = deletable;
     this.creatable = creatable;
     this.updatable = updatable;
+    this.listingMapper = listingMapper;
   }
 
   getAll() {
@@ -63,7 +72,10 @@ export class AmazonAdService {
         ad.id,
         prices.map((price) => price.countryId)
       )
-      .then((countryPrices) => this.anomalyManager.check(ad, countryPrices));
+      .then((countryPrices) => {
+        const mapped = this.listingMapper.map(ad, countryPrices);
+        return this.anomalyManager.check(mapped.listing, mapped.countryPrices);
+      });
   }
 
   async getForScraping(count: number): Promise<{ id: number; asin: string }[]> {

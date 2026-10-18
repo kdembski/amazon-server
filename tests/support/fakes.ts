@@ -3,8 +3,8 @@ import type { Request, Response, Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import type { LogService } from "@/modules/monitoring/services/LogService";
 import type { DiscordService } from "@/shared/discord/DiscordService";
-import type { DiscordConversionErrorService } from "@/services/discord/DiscordConversionErrorService";
-import type { DiscordPricingErrorService } from "@/services/discord/DiscordPricingErrorService";
+import type { DiscordConversionErrorService } from "@/modules/anomalies/conversion-error/DiscordConversionErrorService";
+import type { DiscordPricingErrorService } from "@/modules/anomalies/pricing-error/DiscordPricingErrorService";
 
 export function fakeLogService() {
   const create = vi.fn().mockResolvedValue({ id: 1 });

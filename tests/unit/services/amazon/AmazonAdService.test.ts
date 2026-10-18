@@ -2,9 +2,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AmazonAdService } from "@/services/amazon/AmazonAdService";
 import { AmazonAdRepository } from "@/repositories/amazon/AmazonAdRepository";
 import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
-import { AmazonAdAnomalyManager } from "@/managers/AmazonAdAnomalyManager";
-import { buildAd, buildPrice } from "../../../support/factories";
+import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
+import { ConversionErrorManager } from "@/modules/anomalies/conversion-error/ConversionErrorManager";
+import { PricingErrorManager } from "@/modules/anomalies/pricing-error/PricingErrorManager";
+import { AmazonAdListingMapper } from "@/mappers/amazon/AmazonAdListingMapper";
+import {
+  buildAd,
+  buildListing,
+  buildListingPrice,
+  buildPrice,
+} from "../../../support/factories";
 import { deferred, fakeLogService } from "../../../support/fakes";
+
+vi.mock("@/modules/anomalies/AnomalyManager");
+vi.mock("discord.js", async (importOriginal) => {
+  const original = await importOriginal<typeof import("discord.js")>();
+  return { ...original, WebhookClient: vi.fn(function () { return {}; }) };
+});
 
 type ScrapAd = { id: number; asin: string; name: string };
 
@@ -25,12 +39,22 @@ const setup = () => {
   };
   const log = fakeLogService();
   const anomalyManager = { check: vi.fn() };
+  const listing = buildListing();
+  const listingPrices = [[buildListingPrice()]];
+  const listingMapper = {
+    map: vi.fn().mockReturnValue({ listing, countryPrices: listingPrices }),
+  };
 
   const service = new AmazonAdService(
     repository as unknown as AmazonAdRepository,
     priceService as unknown as AmazonAdPriceService,
     log.service,
-    anomalyManager as unknown as AmazonAdAnomalyManager
+    anomalyManager as unknown as AnomalyManager,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    listingMapper as unknown as AmazonAdListingMapper
   );
 
   return {
@@ -39,6 +63,9 @@ const setup = () => {
     priceService,
     log,
     anomalyManager,
+    listingMapper,
+    listing,
+    listingPrices,
   };
 };
 
@@ -83,10 +110,30 @@ describe("AmazonAdService.updatePrices", () => {
     expect(priceService.getByAdAndCountry).toHaveBeenCalledWith(9, [1, 2]);
 
     await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalled());
-    expect(anomalyManager.check).toHaveBeenCalledWith(ad, [
-      [plNewest, plOlder],
-      [deNewest],
+  });
+
+  it("checks anomalies with the mapped listing and prices", async () => {
+    const {
+      service,
+      repository,
+      priceService,
+      anomalyManager,
+      listingMapper,
+      listing,
+      listingPrices,
+    } = setup();
+    const ad = buildAd({ id: 9 });
+    repository.getById.mockResolvedValue(ad);
+    const countryPrices = [[buildPrice(), buildPrice()], [buildPrice()]];
+    priceService.getByAdAndCountry.mockResolvedValue(countryPrices);
+
+    await service.updatePrices(9, [
+      { value: 1, adId: 9, countryId: 1, dispatchFrom: "Amazon" },
     ]);
+
+    await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalled());
+    expect(listingMapper.map).toHaveBeenCalledWith(ad, countryPrices);
+    expect(anomalyManager.check).toHaveBeenCalledWith(listing, listingPrices);
   });
 
   it("continues when a single price insert fails", async () => {
@@ -181,5 +228,18 @@ describe("AmazonAdService.getForScraping", () => {
     await vi.advanceTimersByTimeAsync(1000);
     await call2;
     expect(repository.getForScraping).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("AmazonAdService defaults", () => {
+  it("defaults to conversion and pricing error managers", () => {
+    vi.stubEnv("DISCORD_PRICING_ERROR_TOKEN", "t");
+
+    new AmazonAdService();
+
+    expect(AnomalyManager).toHaveBeenCalledWith([
+      expect.any(ConversionErrorManager),
+      expect.any(PricingErrorManager),
+    ]);
   });
 });

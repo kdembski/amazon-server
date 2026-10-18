@@ -1,0 +1,7 @@
+import { ListingPrice } from "@/modules/anomalies/interfaces/Listing";
+
+export class AnomalyEvaluator {
+  isReportable(prices: ListingPrice[]) {
+    return prices[0].country.active && prices[0].reportable;
+  }
+}
