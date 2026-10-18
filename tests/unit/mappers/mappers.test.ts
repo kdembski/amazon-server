@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LogCreateMapper } from "@/mappers/LogCreateMapper";
+import { LogCreateMapper } from "@/modules/monitoring/mappers/LogCreateMapper";
 import { AmazonAdCategoryCreateMapper } from "@/mappers/amazon/AmazonAdCategoryCreateMapper";
 import { AmazonAdCategoryUpdateMapper } from "@/mappers/amazon/AmazonAdCategoryUpdateMapper";
 import { AmazonAdCreateMapper } from "@/mappers/amazon/AmazonAdCreateMapper";

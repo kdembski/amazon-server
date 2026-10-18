@@ -4,7 +4,7 @@ import { AmazonAdAnomalyManagerI } from "@/interfaces/AmazonAdAnomalyManagerI";
 import { AmazonAdConversionErrorStrategy } from "@/managers/conversion-error/AmazonAdConversionErrorStrategy";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
 import { DiscordConversionErrorService } from "@/services/discord/DiscordConversionErrorService";
-import { LogService } from "@/services/LogService";
+import { LogService } from "@/modules/monitoring/services/LogService";
 import { StorageService } from "@/services/StorageService";
 
 export class AmazonAdConversionErrorManager implements AmazonAdAnomalyManagerI {

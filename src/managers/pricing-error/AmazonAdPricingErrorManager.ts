@@ -3,7 +3,7 @@ import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdAnomalyManagerI } from "@/interfaces/AmazonAdAnomalyManagerI";
 import { AmazonAdPricingErrorEvaluator } from "@/managers/pricing-error/AmazonAdPricingErrorEvaluator";
 import { DiscordPricingErrorService } from "@/services/discord/DiscordPricingErrorService";
-import { LogService } from "@/services/LogService";
+import { LogService } from "@/modules/monitoring/services/LogService";
 
 export class AmazonAdPricingErrorManager implements AmazonAdAnomalyManagerI {
   private discordService;

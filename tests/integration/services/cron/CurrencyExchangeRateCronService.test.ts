@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { CurrencyExchangeRateCronService } from "@/services/cron/CurrencyExchangeRateCronService";
-import { DiscordLogService } from "@/services/discord/DiscordLogService";
+import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { StorageService } from "@/services/StorageService";
 import { prisma } from "../../../support/integration/db";
 import { seedCurrency, seedPln, seedRate } from "../../../support/integration/seed";

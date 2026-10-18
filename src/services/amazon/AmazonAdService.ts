@@ -5,7 +5,7 @@ import { CreatableService } from "@/shared/crud/services/CreatableService";
 import { DeletableService } from "@/shared/crud/services/DeletableService";
 import { SelectableService } from "@/shared/crud/services/SelectableService";
 import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
-import { LogService } from "@/services/LogService";
+import { LogService } from "@/modules/monitoring/services/LogService";
 import { AmazonAdAnomalyManager } from "@/managers/AmazonAdAnomalyManager";
 import { UpdatableService } from "@/shared/crud/services/UpdatableService";
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";

@@ -33,27 +33,28 @@ vi.mock("@/routes/currency/CurrencyRouter", () =>
 vi.mock("@/routes/currency/CurrencyExchangeRateRouter", () =>
   fakeRouterModule("CurrencyExchangeRateRouter", "/currencies/rates")
 );
-vi.mock("@/routes/ScraperStatusRouter", () =>
-  fakeRouterModule("ScraperStatusRouter", "/scrapers")
-);
 vi.mock("@/services/cron/CurrencyExchangeRateCronService", () =>
   fakeCronModule("CurrencyExchangeRateCronService")
-);
-vi.mock("@/services/cron/HourlyStatsCronService", () =>
-  fakeCronModule("HourlyStatsCronService")
-);
-vi.mock("@/services/cron/DailyStatsCronService", () =>
-  fakeCronModule("DailyStatsCronService")
-);
-vi.mock("@/services/cron/LogCleanupCronService", () =>
-  fakeCronModule("LogCleanupCronService")
 );
 vi.mock("@/services/cron/SearchRuleMatchCronService", () =>
   fakeCronModule("SearchRuleMatchCronService")
 );
+vi.mock("@/modules/monitoring", () => ({
+  createMonitoringModule: vi.fn((sections: unknown[]) => ({
+    routers: [],
+    crons: [],
+    sections,
+  })),
+}));
+vi.mock("@/services/amazon/AmazonAdDailyReportSection", () =>
+  fakeCronModule("AmazonAdDailyReportSection")
+);
+vi.mock("@/services/currency/ExchangeRateDailyReportSection", () =>
+  fakeCronModule("ExchangeRateDailyReportSection")
+);
 
 describe("createModules", () => {
-  it("returns the legacy module with every router in order and all crons", () => {
+  it("returns the legacy module with its routers in order and crons", () => {
     const [legacy] = createModules();
 
     expect(legacy.routers!.map((r) => r.path)).toEqual([
@@ -63,8 +64,13 @@ describe("createModules", () => {
       "/countries",
       "/currencies",
       "/currencies/rates",
-      "/scrapers",
     ]);
-    expect(legacy.crons).toHaveLength(5);
+    expect(legacy.crons).toHaveLength(2);
+  });
+
+  it("adds the monitoring module with ad and exchange rate report sections", () => {
+    const monitoring = createModules()[1] as unknown as { sections: unknown[] };
+
+    expect(monitoring.sections).toHaveLength(2);
   });
 });

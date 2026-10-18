@@ -1,7 +1,7 @@
 import CurencyApi from "@everapi/freecurrencyapi-js";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
 import { CurrencyService } from "@/services/currency/CurrencyService";
-import { DiscordLogService } from "@/services/discord/DiscordLogService";
+import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { StorageService } from "@/services/StorageService";
 import { CronJob } from "cron";
 
