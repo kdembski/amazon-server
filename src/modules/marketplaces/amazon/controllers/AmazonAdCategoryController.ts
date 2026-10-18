@@ -1,4 +1,4 @@
-import { Response, Request } from "express";
+import { Response } from "express";
 import { CreatableController } from "@/shared/crud/controllers/CreatableController";
 import { DeletableController } from "@/shared/crud/controllers/DeletableController";
 import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
