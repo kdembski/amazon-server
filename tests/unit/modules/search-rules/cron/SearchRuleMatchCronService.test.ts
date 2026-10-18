@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { CronJob } from "cron";
-import { SearchRuleMatchCronService } from "@/services/cron/SearchRuleMatchCronService";
-import { SearchRuleMatchService } from "@/services/search-rule/SearchRuleMatchService";
+import { SearchRuleMatchCronService } from "@/modules/search-rules/cron/SearchRuleMatchCronService";
+import { SearchRuleMatchService } from "@/modules/search-rules/services/SearchRuleMatchService";
 
 vi.mock("cron", () => ({
   CronJob: vi.fn(function () {

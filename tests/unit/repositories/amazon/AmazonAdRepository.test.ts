@@ -1,7 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { Prisma } from "@prisma/client";
 import { AmazonAdRepository } from "@/repositories/amazon/AmazonAdRepository";
-import { buildSearchRule } from "../../../support/factories";
 import { fakePrisma } from "../../../support/fakes";
 
 const setup = (matchBatchSize?: number) => {
@@ -55,10 +54,10 @@ describe("AmazonAdRepository", () => {
       name,
       matchesRules,
     });
-    const rules = () => [
-      buildSearchRule({ value: "drill" }),
-      buildSearchRule({ value: "!used" }),
-    ];
+    const matches = (name: string) => {
+      const lower = name.toLowerCase();
+      return lower.includes("drill") && !lower.includes("used");
+    };
 
     it("rematches in id batches, flagging matches before clearing the rest, and sums the counts", async () => {
       const { repository, delegate } = setup(10);
@@ -76,7 +75,7 @@ describe("AmazonAdRepository", () => {
         count: where.id.in.length,
       }));
 
-      await expect(repository.matchSearchRules(rules())).resolves.toEqual({
+      await expect(repository.matchSearchRules(matches)).resolves.toEqual({
         matched: 2,
         unmatched: 2,
       });
@@ -98,7 +97,7 @@ describe("AmazonAdRepository", () => {
       const { repository, delegate } = setup();
       delegate.aggregate.mockResolvedValue({ _max: { id: null } });
 
-      await expect(repository.matchSearchRules(rules())).resolves.toEqual({
+      await expect(repository.matchSearchRules(matches)).resolves.toEqual({
         matched: 0,
         unmatched: 0,
       });
@@ -115,7 +114,7 @@ describe("AmazonAdRepository", () => {
       ]);
       delegate.updateMany.mockResolvedValue({ count: 1 });
 
-      await expect(repository.matchSearchRules(rules(), true)).resolves.toEqual({
+      await expect(repository.matchSearchRules(matches, true)).resolves.toEqual({
         matched: 1,
         unmatched: 1,
       });
@@ -129,46 +128,6 @@ describe("AmazonAdRepository", () => {
         [{ where: { id: { in: [1] } }, data: { matchesRules: true } }],
         [{ where: { id: { in: [2] } }, data: { matchesRules: false } }],
       ]);
-    });
-
-    it("matches whole words unless the phrase has a wildcard", async () => {
-      const { repository, delegate } = setup();
-      delegate.findMany.mockResolvedValue([
-        ad(1, "Shaped balloon torebka", null),
-        ad(2, "Hape drewniana kuchnia", null),
-      ]);
-      delegate.updateMany.mockResolvedValue({ count: 1 });
-
-      await repository.matchSearchRules(
-        [buildSearchRule({ value: "hape+drewn*" })],
-        true
-      );
-
-      expect(delegate.updateMany.mock.calls).toEqual([
-        [{ where: { id: { in: [2] } }, data: { matchesRules: true } }],
-        [{ where: { id: { in: [1] } }, data: { matchesRules: false } }],
-      ]);
-    });
-
-    it("skips and reports rules that fail to parse", async () => {
-      const { repository, delegate } = setup();
-      const error = vi.spyOn(console, "error").mockImplementation(() => {});
-      delegate.findMany.mockResolvedValue([ad(1, "Sony a++b", null)]);
-      delegate.updateMany.mockResolvedValue({ count: 1 });
-
-      await repository.matchSearchRules(
-        [buildSearchRule({ value: "a++b" }), buildSearchRule({ value: "bose" })],
-        true
-      );
-
-      expect(delegate.updateMany).toHaveBeenCalledWith({
-        where: { id: { in: [1] } },
-        data: { matchesRules: false },
-      });
-      expect(error).toHaveBeenCalledWith(
-        "AmazonAdRepository: skipped search rule a++b: Error: Zasada **a++b** zawiera pusty fragment"
-      );
-      error.mockRestore();
     });
   });
 

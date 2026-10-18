@@ -1,10 +1,5 @@
 import { Prisma } from "@prisma/client";
 import { PrismaClient } from "@@prisma/PrismaClient";
-import { SearchRuleSelectDto } from "@/dtos/search-rule/SearchRuleDtos";
-import {
-  createSearchRuleMatcher,
-  parseSearchRule,
-} from "@/helpers/searchRule";
 
 export class AmazonAdRepository {
   private delegate;
@@ -60,9 +55,7 @@ export class AmazonAdRepository {
   // Ads with matchesRules = null have not been checked yet; onlyNew limits the
   // check to them. A full rematch walks the table in id ranges so each UPDATE
   // commits quickly and only briefly locks the rows /scrap stamps.
-  async matchSearchRules(searchRules: SearchRuleSelectDto[], onlyNew = false) {
-    const matches = createSearchRuleMatcher(this.parseSearchRules(searchRules));
-
+  async matchSearchRules(matches: (name: string) => boolean, onlyNew = false) {
     if (onlyNew) {
       return this.updateMatches(matches, { matchesRules: null });
     }
@@ -150,18 +143,5 @@ export class AmazonAdRepository {
       data: { matchesRules },
     });
     return count;
-  }
-
-  private parseSearchRules(searchRules: SearchRuleSelectDto[]) {
-    return searchRules.flatMap((searchRule) => {
-      try {
-        return [parseSearchRule(searchRule.value)];
-      } catch (e) {
-        console.error(
-          `AmazonAdRepository: skipped search rule ${searchRule.value}: ${e}`
-        );
-        return [];
-      }
-    });
   }
 }

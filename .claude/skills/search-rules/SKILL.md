@@ -8,7 +8,7 @@ description: Use when asked to create, extend, review or fix SearchRule values (
 ## Overview
 
 `SearchRule` rows decide which ads get scraped: `SearchRuleMatchCronService` sets `AmazonAd.matchesRules`
-with `createSearchRuleMatcher` from `src/helpers/searchRule.ts`. Rules are data in the production database,
+with `createSearchRuleMatcher` from `src/modules/search-rules/helpers/searchRule.ts`. Rules are data in the production database,
 delivered to the user as SQL. Verify every rule set with the production matcher before handing it over.
 
 ## Syntax

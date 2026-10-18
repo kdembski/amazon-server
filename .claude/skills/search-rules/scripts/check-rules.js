@@ -16,7 +16,7 @@ import {
   createSearchRuleMatcher,
   isGlobalExclusion,
   parseSearchRule,
-} from "../../../../src/helpers/searchRule.ts";
+} from "../../../../src/modules/search-rules/helpers/searchRule.ts";
 
 const MAX_RULE_LENGTH = 63;
 const CHEAP = 40;

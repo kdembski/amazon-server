@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { SearchRuleService } from "@/services/search-rule/SearchRuleService";
-import { SearchRuleRepository } from "@/repositories/search-rule/SearchRuleRepository";
+import { SearchRuleService } from "@/modules/search-rules/services/SearchRuleService";
+import { SearchRuleRepository } from "@/modules/search-rules/repositories/SearchRuleRepository";
 
 describe("SearchRuleService", () => {
   it("delegates getAll", async () => {

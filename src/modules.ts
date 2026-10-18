@@ -5,7 +5,8 @@ import { AmazonAdPriceRouter } from "@/routes/amazon/AmazonAdPriceRouter";
 import { createCurrencyModule } from "@/modules/currency";
 import { createMonitoringModule } from "@/modules/monitoring";
 import { AmazonAdDailyReportSection } from "@/services/amazon/AmazonAdDailyReportSection";
-import { SearchRuleMatchCronService } from "@/services/cron/SearchRuleMatchCronService";
+import { createSearchRulesModule } from "@/modules/search-rules";
+import { AmazonAdRepository } from "@/repositories/amazon/AmazonAdRepository";
 
 export function createModules(): AppModule[] {
   const currency = createCurrencyModule();
@@ -15,12 +16,12 @@ export function createModules(): AppModule[] {
       new AmazonAdRouter(),
       new AmazonAdPriceRouter(),
     ],
-    crons: [new SearchRuleMatchCronService()],
   };
 
   return [
     currency,
     legacy,
+    createSearchRulesModule([new AmazonAdRepository()]),
     createMonitoringModule([
       new AmazonAdDailyReportSection(),
       currency.dailyReportSection,

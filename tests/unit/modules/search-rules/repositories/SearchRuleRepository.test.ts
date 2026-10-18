@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { SearchRuleRepository } from "@/repositories/search-rule/SearchRuleRepository";
-import { fakePrisma } from "../../../support/fakes";
+import { SearchRuleRepository } from "@/modules/search-rules/repositories/SearchRuleRepository";
+import { fakePrisma } from "../../../../support/fakes";
 
 describe("SearchRuleRepository", () => {
   it("reads by id and all", async () => {

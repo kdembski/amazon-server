@@ -1,10 +1,10 @@
-import { SearchRuleMatchService } from "@/services/search-rule/SearchRuleMatchService";
+import { SearchRuleMatchService } from "@/modules/search-rules/services/SearchRuleMatchService";
 import { CronJob } from "cron";
 
 export class SearchRuleMatchCronService {
   private matchService;
 
-  constructor(matchService = new SearchRuleMatchService()) {
+  constructor(matchService: SearchRuleMatchService) {
     this.matchService = matchService;
   }
 

@@ -56,7 +56,7 @@ npm run test:integration  # tests/integration, needs a running Docker
   stamps them; never filter it by `name LIKE`. `SearchRuleMatchCronService` runs every minute: it rematches
   every ad when the `SearchRule` values changed since the last run (and after each restart), otherwise only
   ads with `matchesRules = null`. New ads start with `matchesRules: null`. Rule syntax lives in
-  `src/helpers/searchRule.ts` (`+` and, `|` or, `!` not; a rule of only `!` members excludes globally;
+  `src/modules/search-rules/helpers/searchRule.ts` (`+` and, `|` or, `!` not; a rule of only `!` members excludes globally;
   phrases match whole words, `*` at a phrase edge matches part of a word). Match rules in JS with
   `createSearchRuleMatcher`, not in SQL.
   `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices, logs `ad_scraped` and

@@ -4,7 +4,7 @@ import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdCategorySelectDto } from "@/dtos/amazon/AmazonAdCategoryDtos";
 import { CurrencySelectDto } from "@/modules/currency/dtos/CurrencyDtos";
 import { CurrencyExchangeRateSelectDto } from "@/modules/currency/dtos/CurrencyExchangeRateDtos";
-import { SearchRuleSelectDto } from "@/dtos/search-rule/SearchRuleDtos";
+import { SearchRuleSelectDto } from "@/modules/search-rules/dtos/SearchRuleDtos";
 
 export const FIXED_DATE = new Date("2026-01-01T12:00:00.000Z");
 

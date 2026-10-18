@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { SearchRuleMatchService } from "@/services/search-rule/SearchRuleMatchService";
+import { SearchRuleMatchService } from "@/modules/search-rules/services/SearchRuleMatchService";
+import { AmazonAdRepository } from "@/repositories/amazon/AmazonAdRepository";
 import { AmazonAdService } from "@/services/amazon/AmazonAdService";
-import { prisma } from "../../../support/integration/db";
-import { seedAd, seedSearchRule } from "../../../support/integration/seed";
+import { prisma } from "../../../../support/integration/db";
+import { seedAd, seedSearchRule } from "../../../../support/integration/seed";
 
 const flags = async () => {
   const rows = await prisma.amazonAd.findMany({ orderBy: { id: "asc" } });
@@ -12,7 +13,7 @@ const flags = async () => {
 describe("SearchRuleMatchService (MySQL)", () => {
   it("flags ads on the first run, then picks up new ads and rule changes made anywhere", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
-    const service = new SearchRuleMatchService();
+    const service = new SearchRuleMatchService([new AmazonAdRepository()]);
     await seedAd({ name: "Sony WH-1000XM5" });
     await seedAd({ name: "Bose QC45" });
     await seedSearchRule({ value: "sony" });
@@ -45,7 +46,7 @@ describe("SearchRuleMatchService (MySQL)", () => {
     const adService = new AmazonAdService();
 
     expect(await adService.getForScraping(10)).toEqual([]);
-    await new SearchRuleMatchService().sync();
+    await new SearchRuleMatchService([new AmazonAdRepository()]).sync();
 
     expect((await adService.getForScraping(10)).map((ad) => ad.id)).toEqual([sony.id]);
   });

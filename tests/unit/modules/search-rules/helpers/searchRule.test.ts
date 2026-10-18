@@ -3,7 +3,7 @@ import {
   createSearchRuleMatcher,
   isGlobalExclusion,
   parseSearchRule,
-} from "@/helpers/searchRule";
+} from "@/modules/search-rules/helpers/searchRule";
 
 const word = (text: string) => ({ text, wordStart: true, wordEnd: true });
 

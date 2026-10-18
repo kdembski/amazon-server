@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { SearchRuleRepository } from "@/repositories/search-rule/SearchRuleRepository";
-import { prisma } from "../../../support/integration/db";
-import { seedSearchRule } from "../../../support/integration/seed";
+import { SearchRuleRepository } from "@/modules/search-rules/repositories/SearchRuleRepository";
+import { prisma } from "../../../../support/integration/db";
+import { seedSearchRule } from "../../../../support/integration/seed";
 
 const repository = new SearchRuleRepository(prisma);
 
