@@ -28,21 +28,17 @@ export class CurrencyExchangeRateCronService {
     new CronJob("00 00 20 * * *", () => this.run()).start();
   }
 
-  run(): Promise<void> {
-    return this.currencyApi
-      .latest({
+  async run(): Promise<void> {
+    try {
+      const response = await this.currencyApi.latest({
         base_currency: this.targetCode,
         currencies: this.sourceCodes.join(","),
-      })
-      .then(async (response: any) => {
-        await this.updateCurrencyExchangeRates(response.data);
-        await this.exchangeRateService.refreshPlnRates();
-      })
-      .catch((e: any) => {
-        this.discordService.send(
-          "Currency exchange rates error: " + e.message
-        );
       });
+      await this.updateCurrencyExchangeRates(response.data);
+      await this.exchangeRateService.refreshPlnRates();
+    } catch (e: any) {
+      this.discordService.send("Currency exchange rates error: " + e.message);
+    }
   }
 
   private async updateCurrencyExchangeRates(rates: Record<string, number>) {
