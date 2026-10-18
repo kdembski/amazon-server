@@ -2,29 +2,25 @@ import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdAnomalyManagerI } from "@/interfaces/AmazonAdAnomalyManagerI";
 import { AmazonAdConversionErrorStrategy } from "@/managers/conversion-error/AmazonAdConversionErrorStrategy";
-import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
+import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
 import { DiscordConversionErrorService } from "@/services/discord/DiscordConversionErrorService";
 import { LogService } from "@/modules/monitoring/services/LogService";
-import { StorageService } from "@/services/StorageService";
 
 export class AmazonAdConversionErrorManager implements AmazonAdAnomalyManagerI {
   private discordService;
   private logService;
   private exchangeRateService;
-  private storageService;
   private strategy;
 
   constructor(
     discordService = new DiscordConversionErrorService(),
     logService = new LogService(),
     exchangeRateService = new CurrencyExchangeRateService(),
-    storageService = StorageService.getInstance(),
     strategy = new AmazonAdConversionErrorStrategy()
   ) {
     this.discordService = discordService;
     this.logService = logService;
     this.exchangeRateService = exchangeRateService;
-    this.storageService = storageService;
     this.strategy = strategy;
   }
 
@@ -58,7 +54,7 @@ export class AmazonAdConversionErrorManager implements AmazonAdAnomalyManagerI {
 
   // Returns copies: the same price objects are passed to the other error managers.
   private async toPln(prices: AmazonAdPriceSelectDto[]) {
-    const rates = await this.getPlnExchangeRates();
+    const rates = await this.exchangeRateService.getPlnRates();
 
     return prices.map((price) => {
       const { currencyId } = price.country;
@@ -67,18 +63,6 @@ export class AmazonAdConversionErrorManager implements AmazonAdAnomalyManagerI {
 
       return { ...price, value: price.value.times(rate.value) };
     });
-  }
-
-  private async getPlnExchangeRates() {
-    const storedRates = this.storageService.state.plnExchangeRates;
-
-    if (!storedRates) {
-      const rates = await this.exchangeRateService.getByTargetCode("PLN");
-      this.storageService.state.plnExchangeRates = rates;
-      return rates;
-    }
-
-    return storedRates;
   }
 
   private sortPrices(prices: AmazonAdPriceSelectDto[]) {

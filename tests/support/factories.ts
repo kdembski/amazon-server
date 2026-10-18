@@ -2,8 +2,8 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdCategorySelectDto } from "@/dtos/amazon/AmazonAdCategoryDtos";
-import { CurrencySelectDto } from "@/dtos/currency/CurrencyDtos";
-import { CurrencyExchangeRateSelectDto } from "@/dtos/currency/CurrencyExchangeRateDtos";
+import { CurrencySelectDto } from "@/modules/currency/dtos/CurrencyDtos";
+import { CurrencyExchangeRateSelectDto } from "@/modules/currency/dtos/CurrencyExchangeRateDtos";
 import { SearchRuleSelectDto } from "@/dtos/search-rule/SearchRuleDtos";
 
 export const FIXED_DATE = new Date("2026-01-01T12:00:00.000Z");

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { AmazonAdDailyReportSection } from "@/services/amazon/AmazonAdDailyReportSection";
-import { ExchangeRateDailyReportSection } from "@/services/currency/ExchangeRateDailyReportSection";
+import { ExchangeRateDailyReportSection } from "@/modules/currency/services/ExchangeRateDailyReportSection";
 import { getSpacing } from "@/shared/discord/spacing";
 import {
   seedAd,

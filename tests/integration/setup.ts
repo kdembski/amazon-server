@@ -2,7 +2,7 @@ import "./env";
 import { afterAll, beforeEach, vi } from "vitest";
 import { prisma, truncateAll } from "../support/integration/db";
 import { discordInbox } from "../support/integration/discordInbox";
-import { StorageService } from "@/services/StorageService";
+import { PlnExchangeRateCache } from "@/modules/currency/services/PlnExchangeRateCache";
 
 vi.mock("discord.js", async () => {
   const { discordInbox } = await import("../support/integration/discordInbox");
@@ -27,8 +27,8 @@ vi.mock("@/shared/system/SystemService", () => ({
 beforeEach(async () => {
   await truncateAll();
   // Managers built by useRouter() hold the instance captured at app start, so
-  // the state is reset in place.
-  StorageService.getInstance().state = {};
+  // the cache is reset in place.
+  PlnExchangeRateCache.getInstance().rates = undefined;
   discordInbox.length = 0;
 });
 

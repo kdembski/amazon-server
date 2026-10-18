@@ -6,12 +6,12 @@ import { AmazonAdCreateMapper } from "@/mappers/amazon/AmazonAdCreateMapper";
 import { AmazonAdUpdateMapper } from "@/mappers/amazon/AmazonAdUpdateMapper";
 import { AmazonAdPriceCreateMapper } from "@/mappers/amazon/AmazonAdPriceCreateMapper";
 import { AmazonAdPriceUpdateMapper } from "@/mappers/amazon/AmazonAdPriceUpdateMapper";
-import { CountryCreateMapper } from "@/mappers/currency/CountryCreateMapper";
-import { CountryUpdateMapper } from "@/mappers/currency/CountryUpdateMapper";
-import { CurrencyCreateMapper } from "@/mappers/currency/CurrencyCreateMapper";
-import { CurrencyUpdateMapper } from "@/mappers/currency/CurrencyUpdateMapper";
-import { CurrencyExchangeRateCreateMapper } from "@/mappers/currency/CurrencyExchangeRateCreateMapper";
-import { CurrencyExchangeRateUpdateMapper } from "@/mappers/currency/CurrencyExchangeRateUpdateMapper";
+import { CountryCreateMapper } from "@/modules/currency/mappers/CountryCreateMapper";
+import { CountryUpdateMapper } from "@/modules/currency/mappers/CountryUpdateMapper";
+import { CurrencyCreateMapper } from "@/modules/currency/mappers/CurrencyCreateMapper";
+import { CurrencyUpdateMapper } from "@/modules/currency/mappers/CurrencyUpdateMapper";
+import { CurrencyExchangeRateCreateMapper } from "@/modules/currency/mappers/CurrencyExchangeRateCreateMapper";
+import { CurrencyExchangeRateUpdateMapper } from "@/modules/currency/mappers/CurrencyExchangeRateUpdateMapper";
 
 const NOW = new Date("2026-03-04T05:06:07.000Z");
 

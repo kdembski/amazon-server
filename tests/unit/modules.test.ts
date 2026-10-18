@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createModules } from "@/modules";
+import { createCurrencyModule } from "@/modules/currency";
 
 const { fakeRouterModule, fakeCronModule } = vi.hoisted(() => {
   const fakeRouterModule = (exportName: string, path: string) => ({
@@ -24,18 +25,13 @@ vi.mock("@/routes/amazon/AmazonAdRouter", () =>
 vi.mock("@/routes/amazon/AmazonAdPriceRouter", () =>
   fakeRouterModule("AmazonAdPriceRouter", "/amazon/ads/prices")
 );
-vi.mock("@/routes/currency/CountryRouter", () =>
-  fakeRouterModule("CountryRouter", "/countries")
-);
-vi.mock("@/routes/currency/CurrencyRouter", () =>
-  fakeRouterModule("CurrencyRouter", "/currencies")
-);
-vi.mock("@/routes/currency/CurrencyExchangeRateRouter", () =>
-  fakeRouterModule("CurrencyExchangeRateRouter", "/currencies/rates")
-);
-vi.mock("@/services/cron/CurrencyExchangeRateCronService", () =>
-  fakeCronModule("CurrencyExchangeRateCronService")
-);
+vi.mock("@/modules/currency", () => ({
+  createCurrencyModule: vi.fn(() => ({
+    routers: [],
+    crons: [],
+    dailyReportSection: { id: "currency-section" },
+  })),
+}));
 vi.mock("@/services/cron/SearchRuleMatchCronService", () =>
   fakeCronModule("SearchRuleMatchCronService")
 );
@@ -49,28 +45,31 @@ vi.mock("@/modules/monitoring", () => ({
 vi.mock("@/services/amazon/AmazonAdDailyReportSection", () =>
   fakeCronModule("AmazonAdDailyReportSection")
 );
-vi.mock("@/services/currency/ExchangeRateDailyReportSection", () =>
-  fakeCronModule("ExchangeRateDailyReportSection")
-);
 
 describe("createModules", () => {
-  it("returns the legacy module with its routers in order and crons", () => {
-    const [legacy] = createModules();
+  it("returns the currency module first", () => {
+    const [currency] = createModules();
+
+    expect(currency).toBe(
+      vi.mocked(createCurrencyModule).mock.results.at(-1)!.value
+    );
+  });
+
+  it("returns the legacy module with its routers in order and the search rule cron", () => {
+    const legacy = createModules()[1];
 
     expect(legacy.routers!.map((r) => r.path)).toEqual([
       "/amazon/ads/categories",
       "/amazon/ads",
       "/amazon/ads/prices",
-      "/countries",
-      "/currencies",
-      "/currencies/rates",
     ]);
-    expect(legacy.crons).toHaveLength(2);
+    expect(legacy.crons).toHaveLength(1);
   });
 
-  it("adds the monitoring module with ad and exchange rate report sections", () => {
-    const monitoring = createModules()[1] as unknown as { sections: unknown[] };
+  it("adds the monitoring module with the ad section first and the currency section second", () => {
+    const monitoring = createModules()[2] as unknown as { sections: unknown[] };
 
     expect(monitoring.sections).toHaveLength(2);
+    expect(monitoring.sections[1]).toEqual({ id: "currency-section" });
   });
 });

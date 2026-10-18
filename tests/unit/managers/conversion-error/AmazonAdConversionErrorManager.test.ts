@@ -2,8 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { AmazonAdConversionErrorManager } from "@/managers/conversion-error/AmazonAdConversionErrorManager";
 import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdConversionErrorStrategy } from "@/managers/conversion-error/AmazonAdConversionErrorStrategy";
-import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
-import { StorageService } from "@/services/StorageService";
+import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
 import {
   buildAd,
   buildCurrency,
@@ -19,25 +18,22 @@ import {
 const setup = (channels = ["1", "4"]) => {
   const log = fakeLogService();
   const discord = fakeDiscordConversionErrorService();
-  const getByTargetCode = vi.fn().mockResolvedValue([]);
+  const getPlnRates = vi.fn().mockResolvedValue([]);
   const getMatchingRules = vi
     .fn()
     .mockReturnValue(channels.map((channel) => ({ channel })));
-  const storage = { state: {} } as StorageService;
   const manager = new AmazonAdConversionErrorManager(
     discord.service,
     log.service,
-    { getByTargetCode } as unknown as CurrencyExchangeRateService,
-    storage,
+    { getPlnRates } as unknown as CurrencyExchangeRateService,
     { getMatchingRules } as unknown as AmazonAdConversionErrorStrategy
   );
   return {
     manager,
     log,
     discord,
-    getByTargetCode,
+    getPlnRates,
     getMatchingRules,
-    storage,
     ad: buildAd(),
   };
 };
@@ -46,19 +42,19 @@ const threeCountries = () => [[buildPrice()], [buildPrice()], [buildPrice()]];
 
 describe("AmazonAdConversionErrorManager", () => {
   it("ignores ads with fewer than 3 countries", async () => {
-    const { manager, getByTargetCode, getMatchingRules, ad } = setup();
+    const { manager, getPlnRates, getMatchingRules, ad } = setup();
 
     await manager.check(ad, [[buildPrice(), buildPrice()], [buildPrice()]]);
 
-    expect(getByTargetCode).not.toHaveBeenCalled();
+    expect(getPlnRates).not.toHaveBeenCalled();
     expect(getMatchingRules).not.toHaveBeenCalled();
   });
 
   it("matches rules on the newest prices converted to PLN and sorted ascending", async () => {
-    const { manager, getByTargetCode, getMatchingRules, ad } = setup();
+    const { manager, getPlnRates, getMatchingRules, ad } = setup();
     const eur = buildCurrency({ code: "EUR" });
     const pln = buildCurrency({ code: "PLN" });
-    getByTargetCode.mockResolvedValue([
+    getPlnRates.mockResolvedValue([
       buildRate({ source: eur, target: pln, value: 4.5 }),
     ]);
 
@@ -81,7 +77,7 @@ describe("AmazonAdConversionErrorManager", () => {
       [plnPrice],
     ]);
 
-    expect(getByTargetCode).toHaveBeenCalledWith("PLN");
+    expect(getPlnRates).toHaveBeenCalled();
     const [matched] = getMatchingRules.mock.calls[0] as [AmazonAdPriceSelectDto[]];
     expect(matched.map((p) => p.value.toNumber())).toEqual([30, 45, 100]);
     expect(matched[0]).toBe(plnPrice);
@@ -89,9 +85,9 @@ describe("AmazonAdConversionErrorManager", () => {
   });
 
   it("does not modify the given prices", async () => {
-    const { manager, getByTargetCode, ad } = setup();
+    const { manager, getPlnRates, ad } = setup();
     const eur = buildCurrency({ code: "EUR" });
-    getByTargetCode.mockResolvedValue([buildRate({ source: eur, value: 4.5 })]);
+    getPlnRates.mockResolvedValue([buildRate({ source: eur, value: 4.5 })]);
     const eurPrice = buildPrice({
       value: 10,
       country: buildPriceCountry({ currencyId: eur.id, currency: eur }),
@@ -107,27 +103,6 @@ describe("AmazonAdConversionErrorManager", () => {
 
     expect(eurPrice.value.toNumber()).toBe(10);
     expect(countryPrices.map(([price]) => price)).toEqual(order);
-  });
-
-  it("caches rates in storage and does not refetch", async () => {
-    const { manager, getByTargetCode, storage, ad } = setup();
-    const rates = [buildRate()];
-    getByTargetCode.mockResolvedValue(rates);
-
-    await manager.check(ad, threeCountries());
-    await manager.check(ad, threeCountries());
-
-    expect(storage.state.plnExchangeRates).toBe(rates);
-    expect(getByTargetCode).toHaveBeenCalledTimes(1);
-  });
-
-  it("uses rates already present in storage", async () => {
-    const { manager, getByTargetCode, storage, ad } = setup();
-    storage.state.plnExchangeRates = [];
-
-    await manager.check(ad, threeCountries());
-
-    expect(getByTargetCode).not.toHaveBeenCalled();
   });
 
   it("reports every rule matched by the strategy", async () => {
