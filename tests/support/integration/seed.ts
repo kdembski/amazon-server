@@ -107,11 +107,17 @@ export function seedSearchRule(
   });
 }
 
-export function seedLog(
-  overrides: Partial<Prisma.LogUncheckedCreateInput> = {}
+export function seedActivityEvent(
+  overrides: Partial<Prisma.ActivityEventUncheckedCreateInput> = {}
 ) {
-  return prisma.log.create({
-    data: { event: "ad_scraped", createdAt: FIXED_DATE, ...overrides },
+  return prisma.activityEvent.create({
+    data: {
+      type: "ad_scraped",
+      marketplace: "amazon",
+      data: { asin: "B000SEED00" },
+      createdAt: FIXED_DATE,
+      ...overrides,
+    },
   });
 }
 

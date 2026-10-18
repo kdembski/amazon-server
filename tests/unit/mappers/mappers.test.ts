@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LogCreateMapper } from "@/modules/monitoring/mappers/LogCreateMapper";
+import { ActivityEventCreateMapper } from "@/modules/monitoring/mappers/ActivityEventCreateMapper";
 import { AmazonAdCategoryCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCategoryCreateMapper";
 import { AmazonAdCategoryUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCategoryUpdateMapper";
 import { AmazonAdCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCreateMapper";
@@ -34,10 +34,15 @@ afterEach(() => {
 describe("create mappers", () => {
   it.each([
     {
-      name: "LogCreateMapper",
-      map: (dto: any) => new LogCreateMapper().toCreateInput(dto),
-      dto: { event: "ad_scraped", data: "x" },
-      expected: { event: "ad_scraped", data: "x", createdAt: NOW },
+      name: "ActivityEventCreateMapper",
+      map: (dto: any) => new ActivityEventCreateMapper().toCreateInput(dto),
+      dto: { type: "ad_scraped", marketplace: "amazon", data: { asin: "B0X" } },
+      expected: {
+        type: "ad_scraped",
+        marketplace: "amazon",
+        data: { asin: "B0X" },
+        createdAt: NOW,
+      },
     },
     {
       name: "AmazonAdCategoryCreateMapper",

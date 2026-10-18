@@ -107,10 +107,17 @@ describe("AmazonAdService (MySQL)", () => {
       ]);
 
       expect(await prisma.amazonAdPrice.count({ where: { adId: ad.id } })).toBe(2);
-      expect(await prisma.log.count({ where: { event: "ad_scraped" } })).toBe(1);
+      const scraped = await prisma.activityEvent.findMany({ where: { type: "ad_scraped" } });
+      expect(scraped).toEqual([
+        expect.objectContaining({ marketplace: "amazon", data: { asin: ad.asin } }),
+      ]);
       // The anomaly managers run after updatePrices resolves.
       await vi.waitFor(() => expect(pricing.send).toHaveBeenCalledTimes(1));
-      expect(await prisma.log.count({ where: { event: "pricing_error_sent" } })).toBe(1);
+      const pricingErrors = await prisma.activityEvent.findMany({
+        where: { type: "pricing_error_sent" },
+      });
+      expect(pricingErrors).toHaveLength(1);
+      expect(pricingErrors[0].data).toMatchObject({ asin: ad.asin });
       const [sentListing, sentGroups] = pricing.send.mock.calls[0] as [
         AmazonAdSelectDto,
         ListingPrice[][]
@@ -135,13 +142,19 @@ describe("AmazonAdService (MySQL)", () => {
       // 40 PLN (se) vs 1000 PLN (pl): channel 3 (90 %) and channel 4 (0-50 PLN).
       await vi.waitFor(() => expect(conversion.send).toHaveBeenCalledTimes(2));
       expect(conversion.setChannel.mock.calls.map((c) => c[0]).sort()).toEqual(["3", "4"]);
-      const events = await prisma.log.findMany({
-        where: { event: { startsWith: "conversion_error" } },
+      const events = await prisma.activityEvent.findMany({
+        where: { type: "conversion_error_sent" },
       });
-      expect(events.map((e) => e.event).sort()).toEqual([
-        "conversion_error_3_sent",
-        "conversion_error_4_sent",
-      ]);
+      const channels = events.map((e) => (e.data as { channel: string }).channel);
+      expect(channels.sort()).toEqual(["3", "4"]);
+      expect(events[0].data).toMatchObject({
+        asin: ad.asin,
+        prices: [
+          { country: "se", value: "40" },
+          { country: "pl", value: "1000" },
+          { country: "de", value: "1290" },
+        ],
+      });
       const [, sentPrices] = conversion.send.mock.calls[0] as [
         AmazonAdSelectDto,
         ListingPrice[]

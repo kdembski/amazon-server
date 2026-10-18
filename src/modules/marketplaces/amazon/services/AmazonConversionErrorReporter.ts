@@ -2,25 +2,34 @@ import { ConversionErrorReporter } from "@/modules/anomalies/interfaces/AnomalyR
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { AmazonConversionErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorDiscordService";
-import { LogService } from "@/modules/monitoring/services/LogService";
+import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 
 export class AmazonConversionErrorReporter
   implements ConversionErrorReporter<AmazonAdSelectDto>
 {
-  private logService;
+  private activityEventService;
   private discordService;
 
   constructor(
-    logService = new LogService(),
+    activityEventService = new ActivityEventService(),
     discordService = new AmazonConversionErrorDiscordService()
   ) {
-    this.logService = logService;
+    this.activityEventService = activityEventService;
     this.discordService = discordService;
   }
 
   async report(ad: AmazonAdSelectDto, prices: ListingPrice[], channel: string) {
-    await this.logService.creatable.create({
-      event: `conversion_error_${channel}_sent`,
+    await this.activityEventService.creatable.create({
+      type: "conversion_error_sent",
+      marketplace: "amazon",
+      data: {
+        asin: ad.asin,
+        channel,
+        prices: prices.map((price) => ({
+          country: price.country.code,
+          value: price.value.toString(),
+        })),
+      },
     });
 
     this.discordService.setChannel(channel);

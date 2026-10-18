@@ -10,7 +10,7 @@ export const TABLES = [
   "Country",
   "Currency",
   "CurrencyExchangeRate",
-  "Log",
+  "ActivityEvent",
   "SearchRule",
 ] as const;
 

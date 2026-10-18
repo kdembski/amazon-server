@@ -2,7 +2,7 @@ import { AppModule } from "@/shared/interfaces/AppModule";
 import { ScraperStatusRouter } from "@/modules/monitoring/routes/ScraperStatusRouter";
 import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCronService";
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
-import { LogCleanupCronService } from "@/modules/monitoring/cron/LogCleanupCronService";
+import { ActivityEventCleanupCronService } from "@/modules/monitoring/cron/ActivityEventCleanupCronService";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
 
 export function createMonitoringModule(
@@ -13,7 +13,7 @@ export function createMonitoringModule(
     crons: [
       new HourlyStatsCronService(),
       new DailyStatsCronService(sections),
-      new LogCleanupCronService(),
+      new ActivityEventCleanupCronService(),
     ],
   };
 }

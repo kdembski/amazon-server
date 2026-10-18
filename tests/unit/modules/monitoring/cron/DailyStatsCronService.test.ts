@@ -3,7 +3,7 @@ import { CronJob } from "cron";
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
-import { fakeLogService } from "../../../../support/fakes";
+import { fakeActivityEventService } from "../../../../support/fakes";
 
 vi.mock("cron", () => ({
   CronJob: vi.fn(function () {
@@ -17,7 +17,7 @@ const setup = () => {
   const field2 = { name: "Second", value: "2" };
   const getField1 = vi.fn().mockResolvedValue(field1);
   const getField2 = vi.fn().mockResolvedValue(field2);
-  const log = fakeLogService();
+  const log = fakeActivityEventService();
   const service = new DailyStatsCronService(
     [{ getField: getField1 }, { getField: getField2 }] as DailyReportSection[],
     { sendDaily } as unknown as DiscordLogService,
@@ -52,13 +52,13 @@ describe("DailyStatsCronService", () => {
       setup();
     const dayBefore = new Date("2026-06-01T20:00:00Z");
     const now = new Date("2026-06-02T20:00:00Z");
-    log.getCountByEvent.mockResolvedValue(777);
+    log.getCount.mockResolvedValue(777);
 
     await service.run();
 
     expect(getField1).toHaveBeenCalledWith(dayBefore, now);
     expect(getField2).toHaveBeenCalledWith(dayBefore, now);
-    expect(log.getCountByEvent).toHaveBeenCalledWith(
+    expect(log.getCount).toHaveBeenCalledWith(
       "ad_scraped",
       dayBefore,
       now

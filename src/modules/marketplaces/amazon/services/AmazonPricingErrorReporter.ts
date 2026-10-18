@@ -2,24 +2,35 @@ import { PricingErrorReporter } from "@/modules/anomalies/interfaces/AnomalyRepo
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { AmazonPricingErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorDiscordService";
-import { LogService } from "@/modules/monitoring/services/LogService";
+import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 
 export class AmazonPricingErrorReporter
   implements PricingErrorReporter<AmazonAdSelectDto>
 {
-  private logService;
+  private activityEventService;
   private discordService;
 
   constructor(
-    logService = new LogService(),
+    activityEventService = new ActivityEventService(),
     discordService = new AmazonPricingErrorDiscordService()
   ) {
-    this.logService = logService;
+    this.activityEventService = activityEventService;
     this.discordService = discordService;
   }
 
   async report(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][]) {
-    await this.logService.creatable.create({ event: "pricing_error_sent" });
+    await this.activityEventService.creatable.create({
+      type: "pricing_error_sent",
+      marketplace: "amazon",
+      data: {
+        asin: ad.asin,
+        prices: countryPrices.map(([newest]) => ({
+          country: newest.country.code,
+          value: newest.value.toString(),
+          currency: newest.country.currencyCode,
+        })),
+      },
+    });
     this.discordService.send(ad, countryPrices);
   }
 }

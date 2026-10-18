@@ -7,7 +7,7 @@ import { getSpacing } from "@/shared/discord/spacing";
 import {
   seedAd,
   seedCurrency,
-  seedLog,
+  seedActivityEvent,
   seedPln,
   seedRate,
 } from "../../../../support/integration/seed";
@@ -32,8 +32,8 @@ describe("DailyStatsCronService (MySQL)", () => {
     const eur = await seedCurrency({ code: "EUR" });
     await seedRate({ sourceId: eur.id, targetId: pln.id, value: 4.3 });
     await seedRate({ sourceId: pln.id, targetId: pln.id, value: 1 });
-    await seedLog({ event: "ad_scraped", createdAt: hoursAgo(2) });
-    await seedLog({ event: "ad_scraped", createdAt: hoursAgo(30) });
+    await seedActivityEvent({ type: "ad_scraped", createdAt: hoursAgo(2) });
+    await seedActivityEvent({ type: "ad_scraped", createdAt: hoursAgo(30) });
 
     await service.run();
 

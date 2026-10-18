@@ -5,7 +5,7 @@ import { CreatableService } from "@/shared/crud/services/CreatableService";
 import { DeletableService } from "@/shared/crud/services/DeletableService";
 import { SelectableService } from "@/shared/crud/services/SelectableService";
 import { AmazonAdPriceService } from "@/modules/marketplaces/amazon/services/AmazonAdPriceService";
-import { LogService } from "@/modules/monitoring/services/LogService";
+import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
 import { ConversionErrorManager } from "@/modules/anomalies/conversion-error/ConversionErrorManager";
 import { PricingErrorManager } from "@/modules/anomalies/pricing-error/PricingErrorManager";
@@ -19,7 +19,7 @@ import { AmazonAdPriceCreateDto } from "@/modules/marketplaces/amazon/dtos/Amazo
 export class AmazonAdService {
   private repository;
   private priceService;
-  private logService;
+  private activityEventService;
   private anomalyManager;
   private priceMapper;
   private static isGetting = false;
@@ -31,7 +31,7 @@ export class AmazonAdService {
   constructor(
     repository = new AmazonAdRepository(),
     priceService = new AmazonAdPriceService(),
-    logService = new LogService(),
+    activityEventService = new ActivityEventService(),
     anomalyManager = new AnomalyManager<AmazonAdSelectDto>([
       new ConversionErrorManager(new AmazonConversionErrorReporter()),
       new PricingErrorManager(new AmazonPricingErrorReporter()),
@@ -44,7 +44,7 @@ export class AmazonAdService {
   ) {
     this.repository = repository;
     this.priceService = priceService;
-    this.logService = logService;
+    this.activityEventService = activityEventService;
     this.anomalyManager = anomalyManager;
     this.selectable = selectable;
     this.deletable = deletable;
@@ -67,8 +67,12 @@ export class AmazonAdService {
     );
     await Promise.allSettled(promises);
 
-    await this.logService.creatable.create({ event: "ad_scraped" });
     const ad = await this.selectable.getById(id);
+    await this.activityEventService.creatable.create({
+      type: "ad_scraped",
+      marketplace: "amazon",
+      data: { asin: ad.asin },
+    });
 
     this.priceService
       .getByAdAndCountry(

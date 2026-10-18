@@ -3,11 +3,11 @@ import { AmazonConversionErrorReporter } from "@/modules/marketplaces/amazon/ser
 import { buildAd, buildListingPrice } from "../../../../../support/factories";
 import {
   fakeAmazonConversionErrorDiscordService,
-  fakeLogService,
+  fakeActivityEventService,
 } from "../../../../../support/fakes";
 
 const setup = () => {
-  const log = fakeLogService();
+  const log = fakeActivityEventService();
   const discord = fakeAmazonConversionErrorDiscordService();
   const reporter = new AmazonConversionErrorReporter(
     log.service,
@@ -17,15 +17,27 @@ const setup = () => {
 };
 
 describe("AmazonConversionErrorReporter", () => {
-  it("logs the event and sends the embed to the rule's channel", async () => {
+  it("logs the event with the PLN prices and sends the embed to the rule's channel", async () => {
     const { reporter, log, discord } = setup();
-    const ad = buildAd();
-    const prices = [buildListingPrice({ value: 412.5 })];
+    const ad = buildAd({ asin: "B000TEST01" });
+    const prices = [
+      buildListingPrice({ value: 412.5, country: { code: "de" } }),
+      buildListingPrice({ value: 500, country: { code: "pl" } }),
+    ];
 
     await reporter.report(ad, prices, "3");
 
     expect(log.create).toHaveBeenCalledWith({
-      event: "conversion_error_3_sent",
+      type: "conversion_error_sent",
+      marketplace: "amazon",
+      data: {
+        asin: "B000TEST01",
+        channel: "3",
+        prices: [
+          { country: "de", value: "412.5" },
+          { country: "pl", value: "500" },
+        ],
+      },
     });
     expect(discord.setChannel).toHaveBeenCalledWith("3");
     expect(discord.send).toHaveBeenCalledWith(ad, prices);
