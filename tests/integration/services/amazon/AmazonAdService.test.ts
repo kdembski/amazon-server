@@ -1,9 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { AmazonAdService } from "@/services/amazon/AmazonAdService";
+import { AmazonAdAnomalyManager } from "@/managers/AmazonAdAnomalyManager";
 import { AmazonAdConversionErrorManager } from "@/managers/conversion-error/AmazonAdConversionErrorManager";
-import { AmazonAdConversionErrorPercentageManager } from "@/managers/conversion-error/AmazonAdConversionErrorPercentageManager";
-import { AmazonAdConversionErrorRangeManager } from "@/managers/conversion-error/AmazonAdConversionErrorRangeManager";
-import { AmazonAdPricingErrorManager } from "@/managers/AmazonAdPricingErrorManager";
+import { AmazonAdPricingErrorManager } from "@/managers/pricing-error/AmazonAdPricingErrorManager";
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { FIXED_DATE } from "../../../support/factories";
@@ -29,11 +28,10 @@ const buildAdService = () => {
     undefined,
     undefined,
     undefined,
-    new AmazonAdConversionErrorManager(
-      new AmazonAdConversionErrorPercentageManager(undefined, undefined, conversion.service),
-      new AmazonAdConversionErrorRangeManager(undefined, undefined, conversion.service)
-    ),
-    new AmazonAdPricingErrorManager(pricing.service)
+    new AmazonAdAnomalyManager(
+      new AmazonAdConversionErrorManager(conversion.service),
+      new AmazonAdPricingErrorManager(pricing.service)
+    )
   );
   return { service, pricing, conversion };
 };
@@ -148,6 +146,28 @@ describe("AmazonAdService (MySQL)", () => {
         ["de", 1290],
       ]);
       expect(pricing.send).not.toHaveBeenCalled();
+    });
+
+    it("reports a pricing error in the market currency while the conversion check runs", async () => {
+      const { service, pricing } = buildAdService();
+      const ad = await seedAd();
+      const pl = await seedMarket({ countryCode: "pl", currencyCode: "PLN" });
+      const de = await seedMarket({ countryCode: "de", currencyCode: "EUR", rateToPln: 4.3 });
+      const se = await seedMarket({ countryCode: "se", currencyCode: "SEK", rateToPln: 0.4 });
+      await seedPrice({ adId: ad.id, countryId: de.country.id, value: 100, createdAt: FIXED_DATE });
+
+      await service.updatePrices(ad.id, [
+        { adId: ad.id, countryId: pl.country.id, value: 500, dispatchFrom: "Amazon" },
+        { adId: ad.id, countryId: de.country.id, value: 40, dispatchFrom: "Amazon" },
+        { adId: ad.id, countryId: se.country.id, value: 1000, dispatchFrom: "Amazon" },
+      ]);
+
+      await vi.waitFor(() => expect(pricing.send).toHaveBeenCalledTimes(1));
+      const [, sentGroups] = pricing.send.mock.calls[0] as [
+        AmazonAdSelectDto,
+        AmazonAdPriceSelectDto[][]
+      ];
+      expect(sentGroups.map((g) => g.map((p) => p.value.toNumber()))).toEqual([[40, 100]]);
     });
   });
 });

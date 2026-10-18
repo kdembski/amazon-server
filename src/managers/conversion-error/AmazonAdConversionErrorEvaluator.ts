@@ -1,6 +1,7 @@
 import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
+import { AmazonAdAnomalyEvaluator } from "@/managers/AmazonAdAnomalyEvaluator";
 
-export class AmazonAdConversionErrorEvaluator {
+export class AmazonAdConversionErrorEvaluator extends AmazonAdAnomalyEvaluator {
   isOverPercentageDifference(
     prices: AmazonAdPriceSelectDto[],
     percentage: number
@@ -18,10 +19,5 @@ export class AmazonAdConversionErrorEvaluator {
     if (min && max) return price.gte(min) && price.lte(max);
     if (min) return price.gte(min);
     if (max) return price.lte(max);
-  }
-
-  isAmazonDispatch(prices: AmazonAdPriceSelectDto[]) {
-    const dispatchFrom = prices[0].dispatchFrom;
-    return dispatchFrom && dispatchFrom === "Amazon";
   }
 }

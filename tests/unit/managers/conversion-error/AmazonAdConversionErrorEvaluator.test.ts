@@ -50,17 +50,3 @@ describe("isInRange", () => {
     ).toBeUndefined();
   });
 });
-
-describe("isAmazonDispatch", () => {
-  it("is truthy only for 'Amazon'", () => {
-    expect(
-      evaluator.isAmazonDispatch([buildPrice({ dispatchFrom: "Amazon" })])
-    ).toBe(true);
-    expect(
-      evaluator.isAmazonDispatch([buildPrice({ dispatchFrom: "Seller X" })])
-    ).toBe(false);
-    expect(
-      evaluator.isAmazonDispatch([buildPrice({ dispatchFrom: null })])
-    ).toBeFalsy();
-  });
-});

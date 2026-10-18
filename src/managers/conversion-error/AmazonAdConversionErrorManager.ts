@@ -1,49 +1,71 @@
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
-import { AmazonAdConversionErrorPercentageManager } from "@/managers/conversion-error/AmazonAdConversionErrorPercentageManager";
-import { AmazonAdConversionErrorRangeManager } from "@/managers/conversion-error/AmazonAdConversionErrorRangeManager";
+import { AmazonAdAnomalyManagerI } from "@/interfaces/AmazonAdAnomalyManagerI";
+import { AmazonAdConversionErrorStrategy } from "@/managers/conversion-error/AmazonAdConversionErrorStrategy";
 import { CurrencyExchangeRateService } from "@/services/currency/CurrencyExchangeRateService";
+import { DiscordConversionErrorService } from "@/services/discord/DiscordConversionErrorService";
+import { LogService } from "@/services/LogService";
 import { StorageService } from "@/services/StorageService";
 
-export class AmazonAdConversionErrorManager {
-  private percentageManager;
-  private rangeManager;
+export class AmazonAdConversionErrorManager implements AmazonAdAnomalyManagerI {
+  private discordService;
+  private logService;
   private exchangeRateService;
   private storageService;
+  private strategy;
 
   constructor(
-    percentageManager = new AmazonAdConversionErrorPercentageManager(),
-    rangeManager = new AmazonAdConversionErrorRangeManager(),
+    discordService = new DiscordConversionErrorService(),
+    logService = new LogService(),
     exchangeRateService = new CurrencyExchangeRateService(),
-    storageService = StorageService.getInstance()
+    storageService = StorageService.getInstance(),
+    strategy = new AmazonAdConversionErrorStrategy()
   ) {
-    this.percentageManager = percentageManager;
-    this.rangeManager = rangeManager;
+    this.discordService = discordService;
+    this.logService = logService;
     this.exchangeRateService = exchangeRateService;
     this.storageService = storageService;
+    this.strategy = strategy;
   }
 
-  async check(ad: AmazonAdSelectDto, prices: AmazonAdPriceSelectDto[]) {
-    if (prices.length < 3) return;
+  async check(
+    ad: AmazonAdSelectDto,
+    countryPrices: AmazonAdPriceSelectDto[][]
+  ) {
+    if (countryPrices.length < 3) return;
 
-    await this.unifyCurrencies(prices);
+    const newestPrices = countryPrices.map((prices) => prices[0]);
+    const prices = await this.toPln(newestPrices);
     this.sortPrices(prices);
 
-    if (!prices[0].country.active) return;
-
-    this.percentageManager.check(ad, prices);
-    this.rangeManager.check(ad, prices);
+    for (const rule of this.strategy.getMatchingRules(prices)) {
+      await this.report(ad, prices, rule.channel);
+    }
   }
 
-  private async unifyCurrencies(prices: AmazonAdPriceSelectDto[]) {
+  private async report(
+    ad: AmazonAdSelectDto,
+    prices: AmazonAdPriceSelectDto[],
+    channel: string
+  ) {
+    await this.logService.creatable.create({
+      event: `conversion_error_${channel}_sent`,
+    });
+
+    this.discordService.setChannel(channel);
+    this.discordService.send(ad, prices);
+  }
+
+  // Returns copies: the same price objects are passed to the other error managers.
+  private async toPln(prices: AmazonAdPriceSelectDto[]) {
     const rates = await this.getPlnExchangeRates();
 
-    prices.forEach((price) => {
+    return prices.map((price) => {
       const { currencyId } = price.country;
       const rate = rates.find((rate) => rate.sourceId === currencyId);
-      if (!rate) return;
+      if (!rate) return price;
 
-      price.value = price.value.times(rate.value);
+      return { ...price, value: price.value.times(rate.value) };
     });
   }
 

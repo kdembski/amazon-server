@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { AmazonAdPricingErrorManager } from "@/managers/AmazonAdPricingErrorManager";
-import { buildAd, buildPrice, buildPriceCountry } from "../../support/factories";
+import { AmazonAdPricingErrorManager } from "@/managers/pricing-error/AmazonAdPricingErrorManager";
+import { buildAd, buildPrice, buildPriceCountry } from "../../../support/factories";
 import {
   fakeDiscordPricingErrorService,
   fakeLogService,
-} from "../../support/fakes";
+} from "../../../support/fakes";
 
 const setup = () => {
   const discord = fakeDiscordPricingErrorService();

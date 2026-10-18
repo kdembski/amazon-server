@@ -2,8 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AmazonAdService } from "@/services/amazon/AmazonAdService";
 import { AmazonAdRepository } from "@/repositories/amazon/AmazonAdRepository";
 import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
-import { AmazonAdConversionErrorManager } from "@/managers/conversion-error/AmazonAdConversionErrorManager";
-import { AmazonAdPricingErrorManager } from "@/managers/AmazonAdPricingErrorManager";
+import { AmazonAdAnomalyManager } from "@/managers/AmazonAdAnomalyManager";
 import { buildAd, buildPrice } from "../../../support/factories";
 import { deferred, fakeLogService } from "../../../support/fakes";
 
@@ -25,15 +24,13 @@ const setup = () => {
     getByAdAndCountry: vi.fn().mockResolvedValue([]),
   };
   const log = fakeLogService();
-  const conversion = { check: vi.fn() };
-  const pricing = { check: vi.fn() };
+  const anomalyManager = { check: vi.fn() };
 
   const service = new AmazonAdService(
     repository as unknown as AmazonAdRepository,
     priceService as unknown as AmazonAdPriceService,
     log.service,
-    conversion as unknown as AmazonAdConversionErrorManager,
-    pricing as unknown as AmazonAdPricingErrorManager
+    anomalyManager as unknown as AmazonAdAnomalyManager
   );
 
   return {
@@ -41,8 +38,7 @@ const setup = () => {
     repository,
     priceService,
     log,
-    conversion,
-    pricing,
+    anomalyManager,
   };
 };
 
@@ -61,9 +57,8 @@ describe("AmazonAdService delegation", () => {
 });
 
 describe("AmazonAdService.updatePrices", () => {
-  it("stores prices, logs ad_scraped and runs both anomaly managers", async () => {
-    const { service, repository, priceService, log, conversion, pricing } =
-      setup();
+  it("stores prices, logs ad_scraped and runs the error manager", async () => {
+    const { service, repository, priceService, log, anomalyManager } = setup();
     const ad = buildAd({ id: 9 });
     repository.getById.mockResolvedValue(ad);
     const plNewest = buildPrice();
@@ -87,9 +82,8 @@ describe("AmazonAdService.updatePrices", () => {
     expect(repository.getById).toHaveBeenCalledWith(9);
     expect(priceService.getByAdAndCountry).toHaveBeenCalledWith(9, [1, 2]);
 
-    await vi.waitFor(() => expect(pricing.check).toHaveBeenCalled());
-    expect(conversion.check).toHaveBeenCalledWith(ad, [plNewest, deNewest]);
-    expect(pricing.check).toHaveBeenCalledWith(ad, [
+    await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalled());
+    expect(anomalyManager.check).toHaveBeenCalledWith(ad, [
       [plNewest, plOlder],
       [deNewest],
     ]);

@@ -6,8 +6,7 @@ import { DeletableService } from "@/services/crud/DeletableService";
 import { SelectableService } from "@/services/crud/SelectableService";
 import { AmazonAdPriceService } from "@/services/amazon/AmazonAdPriceService";
 import { LogService } from "@/services/LogService";
-import { AmazonAdConversionErrorManager } from "@/managers/conversion-error/AmazonAdConversionErrorManager";
-import { AmazonAdPricingErrorManager } from "@/managers/AmazonAdPricingErrorManager";
+import { AmazonAdAnomalyManager } from "@/managers/AmazonAdAnomalyManager";
 import { UpdatableService } from "@/services/crud/UpdatableService";
 import { AmazonAdPriceCreateDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 
@@ -15,8 +14,7 @@ export class AmazonAdService {
   private repository;
   private priceService;
   private logService;
-  private amazonAdConversionErrorManager;
-  private amazonAdPricingErrorManager;
+  private anomalyManager;
   private static isGetting = false;
   selectable;
   deletable;
@@ -27,8 +25,7 @@ export class AmazonAdService {
     repository = new AmazonAdRepository(),
     priceService = new AmazonAdPriceService(),
     logService = new LogService(),
-    amazonAdConversionErrorManager = new AmazonAdConversionErrorManager(),
-    amazonAdPricingErrorManager = new AmazonAdPricingErrorManager(),
+    anomalyManager = new AmazonAdAnomalyManager(),
     selectable = new SelectableService(repository),
     deletable = new DeletableService(repository),
     creatable = new CreatableService(repository, new AmazonAdCreateMapper()),
@@ -37,8 +34,7 @@ export class AmazonAdService {
     this.repository = repository;
     this.priceService = priceService;
     this.logService = logService;
-    this.amazonAdConversionErrorManager = amazonAdConversionErrorManager;
-    this.amazonAdPricingErrorManager = amazonAdPricingErrorManager;
+    this.anomalyManager = anomalyManager;
     this.selectable = selectable;
     this.deletable = deletable;
     this.creatable = creatable;
@@ -67,11 +63,7 @@ export class AmazonAdService {
         ad.id,
         prices.map((price) => price.countryId)
       )
-      .then((countryPrices) => {
-        const mostRecentPrices = countryPrices.map((prices) => prices[0]);
-        this.amazonAdConversionErrorManager.check(ad, [...mostRecentPrices]);
-        this.amazonAdPricingErrorManager.check(ad, [...countryPrices]);
-      });
+      .then((countryPrices) => this.anomalyManager.check(ad, countryPrices));
   }
 
   async getForScraping(count: number): Promise<{ id: number; asin: string }[]> {
