@@ -11,3 +11,23 @@ export interface ScraperMetricsDto {
   periodStart: string;
   metrics: ScraperMetricDto[];
 }
+
+export interface ScraperMetricSum {
+  scraper: string;
+  metric: string;
+  outcome: string | null;
+  value: number;
+}
+
+export interface ScraperMetricSummary {
+  scraper: string;
+  itemsPerSecond: number;
+  itemsPerSecondDiff: number;
+  pending: number | null;
+  requests: number;
+  wastedPercent: number;
+  captchaPercent: number;
+  kbPerItem: number | null;
+  reusePercent: number;
+  attemptsPerItem: number | null;
+}

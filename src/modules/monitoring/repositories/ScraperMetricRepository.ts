@@ -1,5 +1,16 @@
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { Prisma } from "@prisma/client";
+import { ScraperMetricSum } from "@/modules/monitoring/dtos/ScraperMetricDtos";
+
+const SUMMARY_METRICS = [
+  "requests",
+  "responses",
+  "items",
+  "item_attempts",
+  "connections",
+  "bytes_in",
+  "bytes_out",
+];
 
 export class ScraperMetricRepository {
   private prisma;
@@ -13,6 +24,40 @@ export class ScraperMetricRepository {
   async createMany(data: Prisma.ScraperMetricCreateManyInput[]) {
     const { count } = await this.delegate.createMany({ data });
     return count;
+  }
+
+  async sumByScraper(from: Date, to: Date): Promise<ScraperMetricSum[]> {
+    const groups = await this.delegate.groupBy({
+      by: ["scraper", "metric", "outcome"],
+      where: {
+        periodStart: { gte: from, lt: to },
+        metric: { in: SUMMARY_METRICS },
+      },
+      _sum: { value: true },
+    });
+
+    return groups.map((group) => ({
+      scraper: group.scraper,
+      metric: group.metric,
+      outcome: group.outcome,
+      value: group._sum.value ?? 0,
+    }));
+  }
+
+  async latestByScraper(metric: string, from: Date, to: Date) {
+    const rows = await this.delegate.findMany({
+      where: { metric, periodStart: { gte: from, lt: to } },
+      orderBy: { periodStart: "desc" },
+      select: { scraper: true, value: true },
+    });
+
+    const latest: Record<string, number> = {};
+    for (const row of rows) {
+      if (!(row.scraper in latest)) {
+        latest[row.scraper] = row.value;
+      }
+    }
+    return latest;
   }
 
   async deleteOlderThan(date: Date, batchSize = 10_000) {

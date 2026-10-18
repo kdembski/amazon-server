@@ -3,6 +3,7 @@ import { ScraperRouter } from "@/modules/monitoring/routes/ScraperRouter";
 import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCronService";
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
 import { ActivityEventCleanupCronService } from "@/modules/monitoring/cron/ActivityEventCleanupCronService";
+import { ScraperMetricCleanupCronService } from "@/modules/monitoring/cron/ScraperMetricCleanupCronService";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
 
 export function createMonitoringModule(
@@ -14,6 +15,7 @@ export function createMonitoringModule(
       new HourlyStatsCronService(),
       new DailyStatsCronService(sections),
       new ActivityEventCleanupCronService(),
+      new ScraperMetricCleanupCronService(),
     ],
   };
 }

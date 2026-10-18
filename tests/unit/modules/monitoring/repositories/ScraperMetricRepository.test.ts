@@ -42,4 +42,62 @@ describe("ScraperMetricRepository", () => {
     );
     expect(values).toEqual([date, 2]);
   });
+
+  it("sumByScraper groups the KPI metrics in the window and maps null sums to 0", async () => {
+    const db = fakePrisma();
+    db.scraperMetric.groupBy.mockResolvedValue([
+      { scraper: "amazon-pdp", metric: "requests", outcome: "ok", _sum: { value: 5 } },
+      { scraper: "amazon-pdp", metric: "connections", outcome: null, _sum: { value: null } },
+    ]);
+    const repository = new ScraperMetricRepository(db.prisma);
+    const from = new Date(0);
+    const to = new Date(10);
+
+    expect(await repository.sumByScraper(from, to)).toEqual([
+      { scraper: "amazon-pdp", metric: "requests", outcome: "ok", value: 5 },
+      { scraper: "amazon-pdp", metric: "connections", outcome: null, value: 0 },
+    ]);
+
+    expect(db.scraperMetric.groupBy).toHaveBeenCalledWith({
+      by: ["scraper", "metric", "outcome"],
+      where: {
+        periodStart: { gte: from, lt: to },
+        metric: {
+          in: [
+            "requests",
+            "responses",
+            "items",
+            "item_attempts",
+            "connections",
+            "bytes_in",
+            "bytes_out",
+          ],
+        },
+      },
+      _sum: { value: true },
+    });
+  });
+
+  it("latestByScraper takes the newest value of each scraper", async () => {
+    const db = fakePrisma();
+    db.scraperMetric.findMany.mockResolvedValue([
+      { scraper: "amazon-pdp", value: 210 },
+      { scraper: "amazon-plp", value: 3 },
+      { scraper: "amazon-pdp", value: 100 },
+    ]);
+    const repository = new ScraperMetricRepository(db.prisma);
+    const from = new Date(0);
+    const to = new Date(10);
+
+    expect(await repository.latestByScraper("pending", from, to)).toEqual({
+      "amazon-pdp": 210,
+      "amazon-plp": 3,
+    });
+
+    expect(db.scraperMetric.findMany).toHaveBeenCalledWith({
+      where: { metric: "pending", periodStart: { gte: from, lt: to } },
+      orderBy: { periodStart: "desc" },
+      select: { scraper: true, value: true },
+    });
+  });
 });
