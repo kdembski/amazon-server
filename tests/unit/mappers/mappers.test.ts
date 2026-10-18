@@ -1,18 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LogCreateMapper } from "@/mappers/LogCreateMapper";
-import { AmazonAdCategoryCreateMapper } from "@/mappers/amazon/AmazonAdCategoryCreateMapper";
-import { AmazonAdCategoryUpdateMapper } from "@/mappers/amazon/AmazonAdCategoryUpdateMapper";
-import { AmazonAdCreateMapper } from "@/mappers/amazon/AmazonAdCreateMapper";
-import { AmazonAdUpdateMapper } from "@/mappers/amazon/AmazonAdUpdateMapper";
-import { AmazonAdPriceCreateMapper } from "@/mappers/amazon/AmazonAdPriceCreateMapper";
-import { AmazonAdPriceUpdateMapper } from "@/mappers/amazon/AmazonAdPriceUpdateMapper";
-import { SearchRuleCreateMapper } from "@/mappers/search-rule/SearchRuleCreateMapper";
-import { CountryCreateMapper } from "@/mappers/currency/CountryCreateMapper";
-import { CountryUpdateMapper } from "@/mappers/currency/CountryUpdateMapper";
-import { CurrencyCreateMapper } from "@/mappers/currency/CurrencyCreateMapper";
-import { CurrencyUpdateMapper } from "@/mappers/currency/CurrencyUpdateMapper";
-import { CurrencyExchangeRateCreateMapper } from "@/mappers/currency/CurrencyExchangeRateCreateMapper";
-import { CurrencyExchangeRateUpdateMapper } from "@/mappers/currency/CurrencyExchangeRateUpdateMapper";
+import { LogCreateMapper } from "@/modules/monitoring/mappers/LogCreateMapper";
+import { AmazonAdCategoryCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCategoryCreateMapper";
+import { AmazonAdCategoryUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCategoryUpdateMapper";
+import { AmazonAdCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCreateMapper";
+import { AmazonAdUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdUpdateMapper";
+import { AmazonAdPriceCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdPriceCreateMapper";
+import { AmazonAdPriceUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdPriceUpdateMapper";
+import { AmazonAdListingMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingMapper";
+import { CountryCreateMapper } from "@/modules/currency/mappers/CountryCreateMapper";
+import { CountryUpdateMapper } from "@/modules/currency/mappers/CountryUpdateMapper";
+import { CurrencyCreateMapper } from "@/modules/currency/mappers/CurrencyCreateMapper";
+import { CurrencyUpdateMapper } from "@/modules/currency/mappers/CurrencyUpdateMapper";
+import { CurrencyExchangeRateCreateMapper } from "@/modules/currency/mappers/CurrencyExchangeRateCreateMapper";
+import { CurrencyExchangeRateUpdateMapper } from "@/modules/currency/mappers/CurrencyExchangeRateUpdateMapper";
+import {
+  buildAd,
+  buildCurrency,
+  buildPrice,
+  buildPriceCountry,
+} from "../../support/factories";
 
 const NOW = new Date("2026-03-04T05:06:07.000Z");
 
@@ -70,12 +76,6 @@ describe("create mappers", () => {
         createdAt: NOW,
         updatedAt: NOW,
       },
-    },
-    {
-      name: "SearchRuleCreateMapper",
-      map: (dto: any) => new SearchRuleCreateMapper().toCreateInput(dto),
-      dto: { value: "used" },
-      expected: { value: "used", createdAt: NOW },
     },
     {
       name: "CountryCreateMapper",
@@ -165,5 +165,76 @@ describe("update mappers", () => {
     },
   ])("$name maps dto to update input", ({ map, dto, expected }) => {
     expect(map(dto)).toStrictEqual(expected);
+  });
+});
+
+describe("AmazonAdListingMapper", () => {
+  const mapper = new AmazonAdListingMapper();
+
+  it("maps the ad to a listing with amazon links per country", () => {
+    const ad = buildAd({
+      asin: "B0X",
+      name: "Drill",
+      image: "img",
+      category: { id: 1, name: "tools", active: true },
+    });
+
+    const { listing } = mapper.map(ad, []);
+
+    expect(listing).toMatchObject({
+      name: "Drill",
+      externalId: "B0X",
+      image: "img",
+      categoryName: "tools",
+    });
+    expect(listing.getUrl("de")).toBe("https://www.amazon.de/dp/B0X");
+  });
+
+  it("marks only Amazon-dispatched prices as reportable", () => {
+    const { countryPrices } = mapper.map(buildAd(), [
+      [
+        buildPrice({ dispatchFrom: "Amazon" }),
+        buildPrice({ dispatchFrom: "Seller" }),
+      ],
+      [buildPrice({ dispatchFrom: null })],
+    ]);
+
+    expect(
+      countryPrices.map((prices) => prices.map((price) => price.reportable))
+    ).toEqual([[true, false], [false]]);
+  });
+
+  it("copies value, createdAt, country fields and currency code", () => {
+    const eur = buildCurrency({ code: "EUR" });
+    const price = buildPrice({
+      value: 12.5,
+      createdAt: new Date("2026-02-03T04:05:06.000Z"),
+      country: buildPriceCountry({
+        name: "Germany",
+        code: "de",
+        active: false,
+        currencyId: eur.id,
+        currency: eur,
+      }),
+    });
+
+    const { countryPrices } = mapper.map(buildAd(), [[price]]);
+
+    expect(countryPrices).toStrictEqual([
+      [
+        {
+          value: price.value,
+          createdAt: new Date("2026-02-03T04:05:06.000Z"),
+          reportable: true,
+          country: {
+            name: "Germany",
+            code: "de",
+            active: false,
+            currencyId: eur.id,
+            currencyCode: "EUR",
+          },
+        },
+      ],
+    ]);
   });
 });

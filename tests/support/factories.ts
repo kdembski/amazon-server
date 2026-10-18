@@ -1,11 +1,14 @@
 import { Decimal } from "@prisma/client/runtime/library";
-import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
-import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
-import { AmazonAdCategorySelectDto } from "@/dtos/amazon/AmazonAdCategoryDtos";
-import { CountrySelectDto } from "@/dtos/currency/CountryDtos";
-import { CurrencySelectDto } from "@/dtos/currency/CurrencyDtos";
-import { CurrencyExchangeRateSelectDto } from "@/dtos/currency/CurrencyExchangeRateDtos";
-import { SearchRuleSelectDto } from "@/dtos/search-rule/SearchRuleDtos";
+import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
+import { AmazonAdPriceSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
+import { AmazonAdCategorySelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdCategoryDtos";
+import { CurrencySelectDto } from "@/modules/currency/dtos/CurrencyDtos";
+import { CurrencyExchangeRateSelectDto } from "@/modules/currency/dtos/CurrencyExchangeRateDtos";
+import { SearchRuleSelectDto } from "@/modules/search-rules/dtos/SearchRuleDtos";
+import {
+  Listing,
+  ListingPrice,
+} from "@/modules/anomalies/interfaces/Listing";
 
 export const FIXED_DATE = new Date("2026-01-01T12:00:00.000Z");
 
@@ -19,19 +22,6 @@ export const buildCurrency = (
   name: "Polish zloty",
   code: "PLN",
   symbol: "zł",
-  createdAt: FIXED_DATE,
-  updatedAt: FIXED_DATE,
-  ...overrides,
-});
-
-export const buildCountry = (
-  overrides: Partial<CountrySelectDto> = {}
-): CountrySelectDto => ({
-  id: nextId(),
-  name: "Poland",
-  code: "pl",
-  currencyId: buildCurrency().id,
-  active: true,
   createdAt: FIXED_DATE,
   updatedAt: FIXED_DATE,
   ...overrides,
@@ -108,6 +98,42 @@ export const buildPrice = (
     createdAt: FIXED_DATE,
     updatedAt: FIXED_DATE,
     country: resolvedCountry,
+    ...rest,
+  };
+};
+
+export const buildListing = (overrides: Partial<Listing> = {}): Listing => ({
+  name: "Bosch drill",
+  externalId: "B000TEST01",
+  image: "https://img/1.jpg",
+  categoryName: "electronics",
+  getUrl: (code) => `https://www.amazon.${code}/dp/B000TEST01`,
+  ...overrides,
+});
+
+type ListingPriceOverrides = Partial<
+  Omit<ListingPrice, "value" | "country">
+> & {
+  value?: number | Decimal;
+  country?: Partial<ListingPrice["country"]>;
+};
+
+export const buildListingPrice = (
+  overrides: ListingPriceOverrides = {}
+): ListingPrice => {
+  const { value, country, ...rest } = overrides;
+  return {
+    value: new Decimal(value ?? 100),
+    createdAt: FIXED_DATE,
+    reportable: true,
+    country: {
+      name: "Poland",
+      code: "pl",
+      active: true,
+      currencyId: 1,
+      currencyCode: "PLN",
+      ...country,
+    },
     ...rest,
   };
 };

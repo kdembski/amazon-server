@@ -1,0 +1,18 @@
+import { CurrencyExchangeRateUpdateDto } from "@/modules/currency/dtos/CurrencyExchangeRateDtos";
+import { ToUpdateInputMapperI } from "@/shared/crud/interfaces/CRUDMapper";
+import { Prisma } from "@prisma/client";
+
+export class CurrencyExchangeRateUpdateMapper
+  implements
+    ToUpdateInputMapperI<
+      CurrencyExchangeRateUpdateDto,
+      Prisma.CurrencyExchangeRateUpdateInput
+    >
+{
+  toUpdateInput(dto: CurrencyExchangeRateUpdateDto) {
+    return {
+      value: dto.value,
+      updatedAt: new Date(Date.now()),
+    };
+  }
+}

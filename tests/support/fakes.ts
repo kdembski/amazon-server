@@ -1,24 +1,21 @@
 import { vi } from "vitest";
 import type { Request, Response, Router } from "express";
 import type { PrismaClient } from "@prisma/client";
-import type { CacheType, ChatInputCommandInteraction } from "discord.js";
-import type { LogService } from "@/services/LogService";
-import type { DiscordService } from "@/services/discord/DiscordService";
-import type { DiscordConversionErrorService } from "@/services/discord/DiscordConversionErrorService";
-import type { DiscordPricingErrorService } from "@/services/discord/DiscordPricingErrorService";
+import type { LogService } from "@/modules/monitoring/services/LogService";
+import type { DiscordService } from "@/shared/discord/DiscordService";
+import type { DiscordConversionErrorService } from "@/modules/anomalies/conversion-error/DiscordConversionErrorService";
+import type { DiscordPricingErrorService } from "@/modules/anomalies/pricing-error/DiscordPricingErrorService";
 
 export function fakeLogService() {
   const create = vi.fn().mockResolvedValue({ id: 1 });
   const getCountByEvent = vi.fn().mockResolvedValue(0);
-  const getByEvent = vi.fn().mockResolvedValue([]);
   const deleteOlderThan = vi.fn().mockResolvedValue(0);
   const service = {
     creatable: { create },
     getCountByEvent,
-    getByEvent,
     deleteOlderThan,
   } as unknown as LogService;
-  return { service, create, getCountByEvent, getByEvent, deleteOlderThan };
+  return { service, create, getCountByEvent, deleteOlderThan };
 }
 
 export function fakeDiscordConversionErrorService() {
@@ -68,33 +65,6 @@ export function fakeRequest(
     body: undefined,
     ...overrides,
   } as unknown as Request<any, any, any, any>;
-}
-
-export function fakeInteraction(
-  opts: {
-    subcommand?: string;
-    strings?: Record<string, string>;
-    commandName?: string;
-    replied?: boolean;
-    deferred?: boolean;
-    isChatInputCommand?: boolean;
-  } = {}
-) {
-  const reply = vi.fn().mockResolvedValue(undefined);
-  const followUp = vi.fn().mockResolvedValue(undefined);
-  const interaction = {
-    commandName: opts.commandName ?? "",
-    replied: opts.replied ?? false,
-    deferred: opts.deferred ?? false,
-    isChatInputCommand: () => opts.isChatInputCommand ?? true,
-    options: {
-      getSubcommand: () => opts.subcommand ?? "",
-      getString: (name: string) => opts.strings?.[name] ?? null,
-    },
-    reply,
-    followUp,
-  } as unknown as ChatInputCommandInteraction<CacheType>;
-  return { interaction, reply, followUp };
 }
 
 export type RouteCall = { method: string; path?: string; handler: unknown };
