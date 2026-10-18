@@ -24,14 +24,6 @@ vi.mock("@/services/SystemService", () => ({
   SystemService: { getInstance: () => ({}) },
 }));
 
-vi.mock("hercai", () => ({
-  Hercai: class {
-    question() {
-      return Promise.resolve({ reply: "" });
-    }
-  },
-}));
-
 beforeEach(async () => {
   await truncateAll();
   // Managers built by useRouter() hold the instance captured at app start, so

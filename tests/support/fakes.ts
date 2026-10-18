@@ -9,15 +9,13 @@ import type { DiscordPricingErrorService } from "@/services/discord/DiscordPrici
 export function fakeLogService() {
   const create = vi.fn().mockResolvedValue({ id: 1 });
   const getCountByEvent = vi.fn().mockResolvedValue(0);
-  const getByEvent = vi.fn().mockResolvedValue([]);
   const deleteOlderThan = vi.fn().mockResolvedValue(0);
   const service = {
     creatable: { create },
     getCountByEvent,
-    getByEvent,
     deleteOlderThan,
   } as unknown as LogService;
-  return { service, create, getCountByEvent, getByEvent, deleteOlderThan };
+  return { service, create, getCountByEvent, deleteOlderThan };
 }
 
 export function fakeDiscordConversionErrorService() {

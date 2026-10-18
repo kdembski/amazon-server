@@ -3,19 +3,13 @@ import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { DiscordService } from "@/services/discord/DiscordService";
 import { CurrencySelectDto } from "@/dtos/currency/CurrencyDtos";
-import { AiChatService } from "@/services/AiChatService";
 import { roundToTwoDecimals } from "@/helpers/number";
 
 export class DiscordPricingErrorService {
   private service;
-  private aiChatService;
 
-  constructor(
-    service = new DiscordService("DISCORD_PRICING_ERROR_TOKEN"),
-    aiChatService = AiChatService.getInstance()
-  ) {
+  constructor(service = new DiscordService("DISCORD_PRICING_ERROR_TOKEN")) {
     this.service = service;
-    this.aiChatService = aiChatService;
   }
 
   async send(ad: AmazonAdSelectDto, marketplaces: AmazonAdPriceSelectDto[][]) {

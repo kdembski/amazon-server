@@ -10,18 +10,6 @@ export class LogRepository {
     this.delegate = prisma.log;
   }
 
-  getByEvent(event: string, from?: Date, to?: Date) {
-    return this.delegate.findMany({
-      where: {
-        event,
-        createdAt: {
-          lte: to,
-          gte: from,
-        },
-      },
-    });
-  }
-
   getCountByEvent(event: string, from?: Date, to?: Date) {
     return this.delegate.count({
       where: {

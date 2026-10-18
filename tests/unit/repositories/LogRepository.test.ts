@@ -13,11 +13,9 @@ describe("LogRepository", () => {
     const from = new Date(1);
     const to = new Date(2);
 
-    await repository.getByEvent("ad_scraped", from, to);
     await repository.getCountByEvent("ad_scraped", from, to);
 
     const where = { event: "ad_scraped", createdAt: { lte: to, gte: from } };
-    expect(delegate.findMany).toHaveBeenCalledWith({ where });
     expect(delegate.count).toHaveBeenCalledWith({ where });
   });
 

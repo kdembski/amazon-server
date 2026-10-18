@@ -8,9 +8,9 @@ const repository = new LogRepository(prisma);
 const minute = (n: number) => new Date(FIXED_DATE.getTime() + n * 60_000);
 
 describe("LogRepository (MySQL)", () => {
-  it("getByEvent and getCountByEvent filter by event and inclusive date bounds", async () => {
-    const early = await seedLog({ event: "ad_scraped", createdAt: minute(0) });
-    const mid = await seedLog({ event: "ad_scraped", createdAt: minute(5) });
+  it("getCountByEvent filters by event and inclusive date bounds", async () => {
+    await seedLog({ event: "ad_scraped", createdAt: minute(0) });
+    await seedLog({ event: "ad_scraped", createdAt: minute(5) });
     await seedLog({ event: "ad_scraped", createdAt: minute(10) });
     await seedLog({ event: "pricing_error_sent", createdAt: minute(5) });
 
@@ -18,9 +18,6 @@ describe("LogRepository (MySQL)", () => {
     expect(await repository.getCountByEvent("ad_scraped", minute(0), minute(5))).toBe(2);
     expect(await repository.getCountByEvent("ad_scraped", minute(6))).toBe(1);
     expect(await repository.getCountByEvent("missing")).toBe(0);
-    expect(
-      (await repository.getByEvent("ad_scraped", minute(0), minute(5))).map((l) => l.id)
-    ).toEqual([early.id, mid.id]);
   });
 
   it("deleteOlderThan removes rows strictly before the date across batches", async () => {

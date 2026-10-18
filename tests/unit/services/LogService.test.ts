@@ -4,7 +4,6 @@ import { LogRepository } from "@/repositories/LogRepository";
 
 const setup = () => {
   const repository = {
-    getByEvent: vi.fn().mockResolvedValue([]),
     getCountByEvent: vi.fn().mockResolvedValue(0),
     deleteOlderThan: vi.fn().mockResolvedValue(3),
     create: vi.fn().mockResolvedValue({}),
@@ -15,13 +14,11 @@ const setup = () => {
 };
 
 describe("LogService", () => {
-  it("delegates getByEvent and getCountByEvent", async () => {
+  it("delegates getCountByEvent", async () => {
     const { service, repository } = setup();
     const from = new Date(1);
     const to = new Date(2);
-    await service.getByEvent("ad_scraped", from, to);
     await service.getCountByEvent("ad_scraped", from, to);
-    expect(repository.getByEvent).toHaveBeenCalledWith("ad_scraped", from, to);
     expect(repository.getCountByEvent).toHaveBeenCalledWith(
       "ad_scraped",
       from,

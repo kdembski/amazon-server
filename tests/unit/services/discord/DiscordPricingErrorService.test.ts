@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { format } from "date-fns";
 import { DiscordPricingErrorService } from "@/services/discord/DiscordPricingErrorService";
-import { AiChatService } from "@/services/AiChatService";
 import {
   buildAd,
   buildCurrency,
@@ -10,12 +9,11 @@ import {
 } from "../../../support/factories";
 import { fakeDiscordService } from "../../../support/fakes";
 
-const aiChat = {} as AiChatService;
 
 describe("DiscordPricingErrorService", () => {
   it("renders price history oldest-first with a link on the newest price", async () => {
     const discord = fakeDiscordService();
-    const service = new DiscordPricingErrorService(discord.service, aiChat);
+    const service = new DiscordPricingErrorService(discord.service);
     const ad = buildAd({
       asin: "B0X",
       name: "Drill",
@@ -68,7 +66,7 @@ describe("DiscordPricingErrorService", () => {
     vi.stubEnv("NODE_ENV", "development");
     const discord = fakeDiscordService();
 
-    await new DiscordPricingErrorService(discord.service, aiChat).send(
+    await new DiscordPricingErrorService(discord.service).send(
       buildAd(),
       [[buildPrice()]]
     );
@@ -78,8 +76,7 @@ describe("DiscordPricingErrorService", () => {
 
   it("getDifference rounds the percentage to the next price and is undefined for the last one", () => {
     const service = new DiscordPricingErrorService(
-      fakeDiscordService().service,
-      aiChat
+      fakeDiscordService().service
     );
     const prices = [buildPrice({ value: 33 }), buildPrice({ value: 100 })];
 
@@ -89,8 +86,7 @@ describe("DiscordPricingErrorService", () => {
 
   it("getFullText omits the difference when it is missing or zero", () => {
     const service = new DiscordPricingErrorService(
-      fakeDiscordService().service,
-      aiChat
+      fakeDiscordService().service
     );
 
     expect(service.getFullText("**1.00 EUR**")).toBe("**1.00 EUR**");
