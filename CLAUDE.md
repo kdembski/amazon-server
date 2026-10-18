@@ -33,6 +33,7 @@ npm run test:integration  # tests/integration, needs a running Docker
 
 ## Rules
 
+- Before every commit, stop and wait for the user to review the changes; commit only after their approval.
 - Commit messages: short English sentence starting with a capitalised past-tense verb (`Added ...`,
   `Fixed ...`). No `Co-Authored-By` or other attribution in commits or PR descriptions.
 - Comments only for logic the code does not show (non-obvious constraint, ordering, external behaviour).
