@@ -1,7 +1,7 @@
 import { Decimal } from "@prisma/client/runtime/library";
-import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
-import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
-import { AmazonAdCategorySelectDto } from "@/dtos/amazon/AmazonAdCategoryDtos";
+import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
+import { AmazonAdPriceSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
+import { AmazonAdCategorySelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdCategoryDtos";
 import { CurrencySelectDto } from "@/modules/currency/dtos/CurrencyDtos";
 import { CurrencyExchangeRateSelectDto } from "@/modules/currency/dtos/CurrencyExchangeRateDtos";
 import { SearchRuleSelectDto } from "@/modules/search-rules/dtos/SearchRuleDtos";

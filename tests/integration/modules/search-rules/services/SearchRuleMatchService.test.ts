@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { SearchRuleMatchService } from "@/modules/search-rules/services/SearchRuleMatchService";
-import { AmazonAdRepository } from "@/repositories/amazon/AmazonAdRepository";
-import { AmazonAdService } from "@/services/amazon/AmazonAdService";
+import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
+import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
 import { prisma } from "../../../../support/integration/db";
 import { seedAd, seedSearchRule } from "../../../../support/integration/seed";
 

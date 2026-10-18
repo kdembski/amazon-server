@@ -1,30 +1,20 @@
 import { AppModule } from "@/shared/interfaces/AppModule";
-import { AmazonAdCategoryRouter } from "@/routes/amazon/AmazonAdCategoryRouter";
-import { AmazonAdRouter } from "@/routes/amazon/AmazonAdRouter";
-import { AmazonAdPriceRouter } from "@/routes/amazon/AmazonAdPriceRouter";
 import { createCurrencyModule } from "@/modules/currency";
 import { createMonitoringModule } from "@/modules/monitoring";
-import { AmazonAdDailyReportSection } from "@/services/amazon/AmazonAdDailyReportSection";
 import { createSearchRulesModule } from "@/modules/search-rules";
-import { AmazonAdRepository } from "@/repositories/amazon/AmazonAdRepository";
+import { createAmazonModule } from "@/modules/marketplaces/amazon";
 
 export function createModules(): AppModule[] {
   const currency = createCurrencyModule();
-  const legacy: AppModule = {
-    routers: [
-      new AmazonAdCategoryRouter(),
-      new AmazonAdRouter(),
-      new AmazonAdPriceRouter(),
-    ],
-  };
+  const marketplaces = [createAmazonModule()];
 
   return [
     currency,
-    legacy,
-    createSearchRulesModule([new AmazonAdRepository()]),
+    createSearchRulesModule(marketplaces.map((m) => m.searchRuleTarget)),
     createMonitoringModule([
-      new AmazonAdDailyReportSection(),
+      ...marketplaces.map((m) => m.dailyReportSection),
       currency.dailyReportSection,
     ]),
+    ...marketplaces,
   ];
 }
