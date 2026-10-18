@@ -5,6 +5,8 @@ import type { LogService } from "@/modules/monitoring/services/LogService";
 import type { DiscordService } from "@/shared/discord/DiscordService";
 import type { DiscordConversionErrorService } from "@/modules/anomalies/conversion-error/DiscordConversionErrorService";
 import type { DiscordPricingErrorService } from "@/modules/anomalies/pricing-error/DiscordPricingErrorService";
+import type { AmazonConversionErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorDiscordService";
+import type { AmazonPricingErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorDiscordService";
 
 export function fakeLogService() {
   const create = vi.fn().mockResolvedValue({ id: 1 });
@@ -28,6 +30,22 @@ export function fakeDiscordConversionErrorService() {
 export function fakeDiscordPricingErrorService() {
   const send = vi.fn().mockResolvedValue(undefined);
   const service = { send } as unknown as DiscordPricingErrorService;
+  return { service, send };
+}
+
+export function fakeAmazonConversionErrorDiscordService() {
+  const send = vi.fn().mockResolvedValue(undefined);
+  const setChannel = vi.fn();
+  const service = {
+    send,
+    setChannel,
+  } as unknown as AmazonConversionErrorDiscordService;
+  return { service, send, setChannel };
+}
+
+export function fakeAmazonPricingErrorDiscordService() {
+  const send = vi.fn().mockResolvedValue(undefined);
+  const service = { send } as unknown as AmazonPricingErrorDiscordService;
   return { service, send };
 }
 
