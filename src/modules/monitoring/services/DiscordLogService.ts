@@ -1,10 +1,5 @@
-import {
-  addSeparators,
-  roundToOneDecimal,
-  roundToTwoDecimals,
-} from "@/shared/utils/number";
+import { addSeparators, roundToOneDecimal } from "@/shared/utils/number";
 import { DiscordService } from "@/shared/discord/DiscordService";
-import { ScraperStatusService } from "@/modules/monitoring/services/ScraperStatusService";
 import {
   APIEmbedField,
   MessagePayload,
@@ -15,16 +10,13 @@ import { getSpacing } from "@/shared/discord/spacing";
 
 export class DiscordLogService {
   private service;
-  private scrapersStatusService;
   private systemService;
 
   constructor(
     service = new DiscordService("DISCORD_LOGS_TOKEN"),
-    scrapersStatusService = ScraperStatusService.getInstance(),
     systemService = SystemService.getInstance()
   ) {
     this.service = service;
-    this.scrapersStatusService = scrapersStatusService;
     this.systemService = systemService;
   }
 
@@ -33,8 +25,6 @@ export class DiscordLogService {
   }
 
   async sendHourly(logs: number[]) {
-    const statuses = this.getScraperStatuses();
-    const speedSum = this.getScrapersSpeedSum();
     const cpu = this.systemService.getCpuUsage();
     const ram = await this.systemService.getMemoryUsage();
 
@@ -52,13 +42,6 @@ export class DiscordLogService {
         `hist: **${logs[7]}**`,
       ].join(getSpacing(4)),
     });
-
-    if (statuses) {
-      fields.push({
-        name: `Scrapers ${speedSum ? `*(${speedSum}/s)*` : ""}`,
-        value: statuses,
-      });
-    }
 
     fields.push({
       name: "Server",
@@ -94,57 +77,5 @@ export class DiscordLogService {
     };
 
     return this.service.send({ embeds: [embed] });
-  }
-
-  private getSpeedIcon(speed: number) {
-    if (speed <= 0.1) return "<:rd:1345009441191362613>";
-    if (speed <= 1) return "<:yw:1345009442579681291>";
-    return "<:gn:1345009439916294154>";
-  }
-
-  private getSpeedDiff(diff: number) {
-    if (diff > -0.01 && diff < 0.01) return "*(0.00)*";
-    if (diff > 0) return `*(+${roundToTwoDecimals(diff)})*`;
-    return `*(${roundToTwoDecimals(diff)})*`;
-  }
-
-  private getSpeedDiffIcon(diff: number) {
-    if (diff >= 0.02) return "<:au:1369710756358258748>";
-    if (diff <= -0.02) return "<:ad:1369710758241374219>";
-    return `${getSpacing(3)}-${getSpacing(3)}`;
-  }
-
-  private getScrapersSpeedSum() {
-    const statuses = Object.values(this.scrapersStatusService.statuses);
-    if (!statuses?.length) return;
-
-    const sum = statuses.reduce((accum: number, status) => {
-      return (accum += status.speed);
-    }, 0);
-    return roundToOneDecimal(sum);
-  }
-
-  private getScraperStatuses() {
-    const statuses = Object.entries(this.scrapersStatusService.statuses);
-    if (!statuses?.length) return;
-
-    statuses.sort((a, b) => (a[0] > b[0] ? 1 : -1));
-
-    const content = statuses
-      .map(([name, status]) => {
-        const { speed, pending, speedDiff } = status;
-        const speedDiffValue = this.getSpeedDiff(speedDiff);
-        const speedDiffIcon = this.getSpeedDiffIcon(speedDiff);
-        const speedValue = `**${roundToOneDecimal(speed)}/s**`;
-
-        return [
-          `${this.getSpeedIcon(speed)} ${name}`,
-          `${speedValue} ${speedDiffValue} ${speedDiffIcon}`,
-          `${addSeparators(pending)}`,
-        ].join(getSpacing(4));
-      })
-      .join("\n");
-
-    return content.substring(0, 1023);
   }
 }

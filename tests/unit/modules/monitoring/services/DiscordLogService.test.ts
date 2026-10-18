@@ -1,23 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
-import { ScraperStatusService } from "@/modules/monitoring/services/ScraperStatusService";
 import { SystemService } from "@/shared/system/SystemService";
 import { getSpacing } from "@/shared/discord/spacing";
 import { fakeDiscordService } from "../../../../support/fakes";
 
 const SP4 = getSpacing(4);
-const RED = "<:rd:1345009441191362613>";
-const YELLOW = "<:yw:1345009442579681291>";
-const GREEN = "<:gn:1345009439916294154>";
-const UP = "<:au:1369710756358258748>";
-const DOWN = "<:ad:1369710758241374219>";
-const FLAT = `${getSpacing(3)}-${getSpacing(3)}`;
 
-type Status = { speed: number; pending: number; speedDiff: number };
-
-const setup = (statuses: Record<string, Status> = {}) => {
+const setup = () => {
   const discord = fakeDiscordService();
-  const scrapers = { statuses } as unknown as ScraperStatusService;
   const getDiskSpace = vi
     .fn()
     .mockResolvedValue({ used: 10, total: 100, percentage: 10 });
@@ -26,7 +16,7 @@ const setup = (statuses: Record<string, Status> = {}) => {
     getMemoryUsage: async () => 56,
     getDiskSpace,
   } as unknown as SystemService;
-  const service = new DiscordLogService(discord.service, scrapers, system);
+  const service = new DiscordLogService(discord.service, system);
   const lastEmbed = () => discord.send.mock.calls.at(-1)![0].embeds[0];
   return { service, discord, getDiskSpace, lastEmbed };
 };
@@ -40,7 +30,7 @@ describe("DiscordLogService.send", () => {
 });
 
 describe("DiscordLogService.sendHourly", () => {
-  it("renders channel counts and server stats without scrapers", async () => {
+  it("renders channel counts and server stats", async () => {
     const { service, lastEmbed } = setup();
 
     await service.sendHourly([1234, 1, 2, 3, 4, 5, 6, 7]);
@@ -65,38 +55,7 @@ describe("DiscordLogService.sendHourly", () => {
       ],
     });
   });
-
-  it("renders scrapers sorted by name with speed icons and diffs", async () => {
-    const { service, lastEmbed } = setup({
-      b: { speed: 0.08, pending: 1500, speedDiff: 0.03 },
-      a: { speed: 0.5, pending: 2, speedDiff: 0.005 },
-      c: { speed: 2, pending: 0, speedDiff: -0.05 },
-    });
-
-    await service.sendHourly([0, 0, 0, 0, 0, 0, 0, 0]);
-
-    const scrapers = lastEmbed().fields[1];
-    expect(scrapers.name).toBe("Scrapers *(2.6/s)*");
-    expect(scrapers.value).toBe(
-      [
-        [`${YELLOW} a`, `**0.5/s** *(0.00)* ${FLAT}`, "2"].join(SP4),
-        [`${RED} b`, `**0.1/s** *(+0.03)* ${UP}`, "1 500"].join(SP4),
-        [`${GREEN} c`, `**2.0/s** *(-0.05)* ${DOWN}`, "0"].join(SP4),
-      ].join("\n")
-    );
-  });
-
-  it("truncates the scrapers field to 1023 characters", async () => {
-    const { service, lastEmbed } = setup({
-      ["x".repeat(1100)]: { speed: 1, pending: 1, speedDiff: 0 },
-    });
-
-    await service.sendHourly([0, 0, 0, 0, 0, 0, 0, 0]);
-
-    expect(lastEmbed().fields[1].value).toHaveLength(1023);
-  });
 });
-
 
 describe("DiscordLogService.sendDaily", () => {
   const sectionFields = [

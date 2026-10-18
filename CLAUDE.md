@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Express + Prisma (MySQL) backend for Amazon price monitoring: scrapers (Docker containers) pull ASINs,
-post prices and report their status to `POST /scrapers/:name/status`; the server detects price anomalies
+post prices and report minute metrics to `POST /scrapers/:name/metrics`; the server detects price anomalies
 and reports them to Discord webhooks.
 
 ## Commands

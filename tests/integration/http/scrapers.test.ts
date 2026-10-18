@@ -54,10 +54,10 @@ describe("/scrapers", () => {
     expect(await prisma.scraperMetric.count()).toBe(0);
   });
 
-  it("POST /:name/status still answers 200", async () => {
+  it("POST /:name/status no longer exists", async () => {
     await request(app)
       .post("/scrapers/amazon-pdp/status")
       .send({ speed: 1, pending: 2 })
-      .expect(200);
+      .expect(404);
   });
 });
