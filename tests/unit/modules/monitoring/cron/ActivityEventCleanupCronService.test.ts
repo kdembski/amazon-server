@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CronJob } from "cron";
-import { LogCleanupCronService } from "@/modules/monitoring/cron/LogCleanupCronService";
-import { fakeLogService } from "../../../../support/fakes";
+import { ActivityEventCleanupCronService } from "@/modules/monitoring/cron/ActivityEventCleanupCronService";
+import { fakeActivityEventService } from "../../../../support/fakes";
 
 vi.mock("cron", () => ({
   CronJob: vi.fn(function () {
@@ -10,12 +10,12 @@ vi.mock("cron", () => ({
 }));
 
 const setup = () => {
-  const log = fakeLogService();
-  const service = new LogCleanupCronService(log.service);
+  const log = fakeActivityEventService();
+  const service = new ActivityEventCleanupCronService(log.service);
   return { service, log };
 };
 
-describe("LogCleanupCronService", () => {
+describe("ActivityEventCleanupCronService", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-01T03:30:00Z"));

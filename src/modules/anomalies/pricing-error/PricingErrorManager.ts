@@ -1,25 +1,21 @@
 import { AnomalyManagerI } from "@/modules/anomalies/interfaces/AnomalyManagerI";
-import { Listing, ListingPrice } from "@/modules/anomalies/interfaces/Listing";
+import { PricingErrorReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
+import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { PricingErrorEvaluator } from "@/modules/anomalies/pricing-error/PricingErrorEvaluator";
-import { DiscordPricingErrorService } from "@/modules/anomalies/pricing-error/DiscordPricingErrorService";
-import { LogService } from "@/modules/monitoring/services/LogService";
 
-export class PricingErrorManager implements AnomalyManagerI {
-  private discordService;
-  private logService;
+export class PricingErrorManager<T> implements AnomalyManagerI<T> {
+  private reporter;
   private evaluator;
 
   constructor(
-    discordService = new DiscordPricingErrorService(),
-    logService = new LogService(),
+    reporter: PricingErrorReporter<T>,
     evaluator = new PricingErrorEvaluator()
   ) {
-    this.discordService = discordService;
-    this.logService = logService;
+    this.reporter = reporter;
     this.evaluator = evaluator;
   }
 
-  async check(listing: Listing, countryPrices: ListingPrice[][]) {
+  async check(listing: T, countryPrices: ListingPrice[][]) {
     const countryPricesToSend = countryPrices.filter(
       (prices) =>
         this.evaluator.isOverPercentageDifference(prices) &&
@@ -28,7 +24,6 @@ export class PricingErrorManager implements AnomalyManagerI {
 
     if (!countryPricesToSend.length) return;
 
-    await this.logService.creatable.create({ event: "pricing_error_sent" });
-    this.discordService.send(listing, countryPricesToSend);
+    await this.reporter.report(listing, countryPricesToSend);
   }
 }

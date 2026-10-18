@@ -1,28 +1,29 @@
 import { describe, expect, it, vi } from "vitest";
-import { LogService } from "@/modules/monitoring/services/LogService";
-import { LogRepository } from "@/modules/monitoring/repositories/LogRepository";
+import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
+import { ActivityEventRepository } from "@/modules/monitoring/repositories/ActivityEventRepository";
 
 const setup = () => {
   const repository = {
-    getCountByEvent: vi.fn().mockResolvedValue(0),
+    getCount: vi.fn().mockResolvedValue(0),
     deleteOlderThan: vi.fn().mockResolvedValue(3),
     create: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue({}),
   };
-  const service = new LogService(repository as unknown as LogRepository);
+  const service = new ActivityEventService(repository as unknown as ActivityEventRepository);
   return { service, repository };
 };
 
-describe("LogService", () => {
-  it("delegates getCountByEvent", async () => {
+describe("ActivityEventService", () => {
+  it("delegates getCount", async () => {
     const { service, repository } = setup();
     const from = new Date(1);
     const to = new Date(2);
-    await service.getCountByEvent("ad_scraped", from, to);
-    expect(repository.getCountByEvent).toHaveBeenCalledWith(
-      "ad_scraped",
+    await service.getCount("conversion_error_sent", from, to, "2");
+    expect(repository.getCount).toHaveBeenCalledWith(
+      "conversion_error_sent",
       from,
-      to
+      to,
+      "2"
     );
   });
 
@@ -36,10 +37,19 @@ describe("LogService", () => {
 
   it("wires creatable and deletable to the repository", async () => {
     const { service, repository } = setup();
-    await service.creatable.create({ event: "x" });
+    await service.creatable.create({
+      type: "ad_scraped",
+      marketplace: "amazon",
+      data: { asin: "B0X" },
+    });
     await service.deletable.delete(1);
     expect(repository.create).toHaveBeenCalledWith(
-      expect.objectContaining({ event: "x", createdAt: expect.any(Date) })
+      expect.objectContaining({
+        type: "ad_scraped",
+        marketplace: "amazon",
+        data: { asin: "B0X" },
+        createdAt: expect.any(Date),
+      })
     );
     expect(repository.delete).toHaveBeenCalledWith(1);
   });

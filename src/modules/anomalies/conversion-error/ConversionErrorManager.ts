@@ -1,29 +1,25 @@
 import { AnomalyManagerI } from "@/modules/anomalies/interfaces/AnomalyManagerI";
-import { Listing, ListingPrice } from "@/modules/anomalies/interfaces/Listing";
+import { ConversionErrorReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
+import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { ConversionErrorStrategy } from "@/modules/anomalies/conversion-error/ConversionErrorStrategy";
-import { DiscordConversionErrorService } from "@/modules/anomalies/conversion-error/DiscordConversionErrorService";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
-import { LogService } from "@/modules/monitoring/services/LogService";
 
-export class ConversionErrorManager implements AnomalyManagerI {
-  private discordService;
-  private logService;
+export class ConversionErrorManager<T> implements AnomalyManagerI<T> {
+  private reporter;
   private exchangeRateService;
   private strategy;
 
   constructor(
-    discordService = new DiscordConversionErrorService(),
-    logService = new LogService(),
+    reporter: ConversionErrorReporter<T>,
     exchangeRateService = new CurrencyExchangeRateService(),
     strategy = new ConversionErrorStrategy()
   ) {
-    this.discordService = discordService;
-    this.logService = logService;
+    this.reporter = reporter;
     this.exchangeRateService = exchangeRateService;
     this.strategy = strategy;
   }
 
-  async check(listing: Listing, countryPrices: ListingPrice[][]) {
+  async check(listing: T, countryPrices: ListingPrice[][]) {
     if (countryPrices.length < 3) return;
 
     const newestPrices = countryPrices.map((prices) => prices[0]);
@@ -31,21 +27,8 @@ export class ConversionErrorManager implements AnomalyManagerI {
     this.sortPrices(prices);
 
     for (const rule of this.strategy.getMatchingRules(prices)) {
-      await this.report(listing, prices, rule.channel);
+      await this.reporter.report(listing, prices, rule.channel);
     }
-  }
-
-  private async report(
-    listing: Listing,
-    prices: ListingPrice[],
-    channel: string
-  ) {
-    await this.logService.creatable.create({
-      event: `conversion_error_${channel}_sent`,
-    });
-
-    this.discordService.setChannel(channel);
-    this.discordService.send(listing, prices);
   }
 
   // Returns copies: the same price objects are passed to the other error managers.

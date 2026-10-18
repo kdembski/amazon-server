@@ -1,19 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 import { format } from "date-fns";
-import { DiscordPricingErrorService } from "@/modules/anomalies/pricing-error/DiscordPricingErrorService";
-import { buildListing, buildListingPrice } from "../../../../support/factories";
-import { fakeDiscordService } from "../../../../support/fakes";
+import { AmazonPricingErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorDiscordService";
+import { buildAd, buildListingPrice } from "../../../../../support/factories";
+import { fakeDiscordService } from "../../../../../support/fakes";
 
-describe("DiscordPricingErrorService", () => {
+describe("AmazonPricingErrorDiscordService", () => {
   it("renders price history oldest-first with a link on the newest price", async () => {
     const discord = fakeDiscordService();
-    const service = new DiscordPricingErrorService(discord.service);
-    const listing = buildListing({
+    const service = new AmazonPricingErrorDiscordService(discord.service);
+    const ad = buildAd({
       name: "Drill",
-      externalId: "B0X",
+      asin: "B0X",
       image: "img",
-      categoryName: "tools",
-      getUrl: (code) => `https://shop.${code}/item/B0X`,
+      category: { id: 1, name: "tools", active: true },
     });
     const country = {
       name: "Germany",
@@ -31,7 +30,7 @@ describe("DiscordPricingErrorService", () => {
       createdAt: new Date("2026-01-01T09:30:00"),
     });
 
-    await service.send(listing, [[newest, older]]);
+    await service.send(ad, [[newest, older]]);
 
     const newestDate = format(newest.createdAt, "d MMM HH:mm");
     const olderDate = format(older.createdAt, "d MMM HH:mm");
@@ -46,7 +45,7 @@ describe("DiscordPricingErrorService", () => {
               name: "Germany",
               value: [
                 `${olderDate} – **100.00 EUR**`,
-                `${newestDate} – [**50.00 EUR** *(-50%)*](https://shop.de/item/B0X)`,
+                `${newestDate} – [**50.00 EUR** *(-50%)*](https://www.amazon.de/dp/B0X)`,
               ].join("\n"),
             },
           ],
@@ -61,7 +60,7 @@ describe("DiscordPricingErrorService", () => {
     vi.stubEnv("NODE_ENV", "development");
     const discord = fakeDiscordService();
 
-    await new DiscordPricingErrorService(discord.service).send(buildListing(), [
+    await new AmazonPricingErrorDiscordService(discord.service).send(buildAd(), [
       [buildListingPrice()],
     ]);
 
@@ -69,7 +68,7 @@ describe("DiscordPricingErrorService", () => {
   });
 
   it("getDifference rounds the percentage to the next price and is undefined for the last one", () => {
-    const service = new DiscordPricingErrorService(
+    const service = new AmazonPricingErrorDiscordService(
       fakeDiscordService().service
     );
     const prices = [
@@ -82,7 +81,7 @@ describe("DiscordPricingErrorService", () => {
   });
 
   it("getFullText omits the difference when it is missing or zero", () => {
-    const service = new DiscordPricingErrorService(
+    const service = new AmazonPricingErrorDiscordService(
       fakeDiscordService().service
     );
 

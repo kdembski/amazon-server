@@ -33,6 +33,7 @@ npm run test:integration  # tests/integration, needs a running Docker
 
 ## Rules
 
+- Before every commit, stop and wait for the user to review the changes; commit only after their approval.
 - Commit messages: short English sentence starting with a capitalised past-tense verb (`Added ...`,
   `Fixed ...`). No `Co-Authored-By` or other attribution in commits or PR descriptions.
 - Comments only for logic the code does not show (non-obvious constraint, ordering, external behaviour).
@@ -58,15 +59,15 @@ npm run test:integration  # tests/integration, needs a running Docker
   marketplaces live at `src/modules/marketplaces/<name>/index.ts` and return `MarketplaceModule`.
   Register it in `createModules()` in `src/modules.ts`.
 - Dependency direction: `marketplaces/*` → `anomalies`, `search-rules`, `monitoring`, `currency` → `shared`;
-  `anomalies` → `currency`, `monitoring`; `currency` → `monitoring`. `src/shared` imports nothing from
+  `anomalies` → `currency`; `currency` → `monitoring`. `src/shared` imports nothing from
   `src/modules`. `currency`, `monitoring`, `search-rules` and `anomalies` import nothing from
   `src/modules/marketplaces`; pass marketplace implementations in from `src/modules.ts`.
 - Add a marketplace: (1) Prisma models and a `src/modules/marketplaces/<name>/` folder with the layers;
-  (2) a mapper to `Listing`/`ListingPrice` and a call to `AnomalyManager([...])` with the chosen detectors
-  after storing prices; (3) implementations of `SearchRuleTarget` and `DailyReportSection`;
+  (2) a mapper to `ListingPrice`, implementations of `ConversionErrorReporter`/`PricingErrorReporter` that
+  store an event and post to Discord, and a call to `AnomalyManager([...])` with the managers of the chosen
+  detectors after storing prices; (3) implementations of `SearchRuleTarget` and `DailyReportSection`;
   (4) `create<Name>Module()` returning `MarketplaceModule`, added to `marketplaces` in `src/modules.ts`.
-- Anomaly detectors work on `Listing`/`ListingPrice` only; each marketplace passes its detectors to
-  `AnomalyManager`. Rule matching goes through `SearchRuleTarget`; the daily Discord report gets its
+- Anomaly detectors work on `ListingPrice` only; each marketplace passes its reporters to the managers. Rule matching goes through `SearchRuleTarget`; the daily Discord report gets its
   sections through `DailyReportSection`.
 - Cross-cutting services are `getInstance()` singletons. `*SelectDto` types derive from repository return
   types. Controller errors go through `ResponseErrorService` (P2002 → 422, P1001 → 503).
@@ -78,7 +79,8 @@ npm run test:integration  # tests/integration, needs a running Docker
   `src/modules/search-rules/helpers/searchRule.ts` (`+` and, `|` or, `!` not; a rule of only `!` members
   excludes globally; phrases match whole words, `*` at a phrase edge matches part of a word). Match rules in JS with
   `createSearchRuleMatcher`, not in SQL.
-  `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices, logs `ad_scraped` and
-  asynchronously runs the anomaly managers (`src/modules/anomalies`), which log `*_sent` events and post to Discord.
+  `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices, stores an `ad_scraped`
+  `ActivityEvent` and asynchronously runs the anomaly managers (`src/modules/anomalies`); their marketplace reporters
+  store `*_sent` events and post to Discord.
 - `src/app.ts` builds the express app and mounts the routers of all modules; `src/index.ts` adds `listen`
   and calls `schedule()` on the crons of all modules.

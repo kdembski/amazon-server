@@ -1,4 +1,4 @@
-import { LogService } from "@/modules/monitoring/services/LogService";
+import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
 import { CronJob } from "cron";
@@ -6,16 +6,16 @@ import { CronJob } from "cron";
 export class DailyStatsCronService {
   private sections;
   private discordService;
-  private logService;
+  private activityEventService;
 
   constructor(
     sections: DailyReportSection[],
     discordService = new DiscordLogService(),
-    logService = new LogService()
+    activityEventService = new ActivityEventService()
   ) {
     this.sections = sections;
     this.discordService = discordService;
-    this.logService = logService;
+    this.activityEventService = activityEventService;
   }
 
   schedule() {
@@ -27,7 +27,7 @@ export class DailyStatsCronService {
     const fields = await Promise.all(
       this.sections.map((section) => section.getField(dayBefore, now))
     );
-    const scraped = await this.logService.getCountByEvent(
+    const scraped = await this.activityEventService.getCount(
       "ad_scraped",
       dayBefore,
       now

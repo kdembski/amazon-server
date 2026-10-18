@@ -89,11 +89,24 @@ model CurrencyExchangeRate {
   @@index([targetId], map: "currency_exchange_rate_target_id_fk")
 }
 
-model Log {
-  id        Int      @id @default(autoincrement())
-  event     String   @db.VarChar(63)
-  data      String?  @db.VarChar(1023)
-  createdAt DateTime @db.Timestamp(2)
+enum Marketplace {
+  amazon
+}
+
+enum ActivityEventType {
+  ad_scraped
+  conversion_error_sent
+  pricing_error_sent
+}
+
+model ActivityEvent {
+  id          Int               @id @default(autoincrement())
+  type        ActivityEventType
+  marketplace Marketplace
+  data        Json
+  createdAt   DateTime          @db.Timestamp(2)
+
+  @@index([type, createdAt])
 }
 
 model SearchRule {

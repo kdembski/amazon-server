@@ -1,5 +1,5 @@
-import { Listing, ListingPrice } from "@/modules/anomalies/interfaces/Listing";
+import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 
-export interface AnomalyManagerI {
-  check(listing: Listing, countryPrices: ListingPrice[][]): Promise<void>;
+export interface AnomalyManagerI<T> {
+  check(listing: T, countryPrices: ListingPrice[][]): Promise<void>;
 }

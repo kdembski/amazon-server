@@ -3,11 +3,14 @@ import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAd
 import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
 import { ConversionErrorManager } from "@/modules/anomalies/conversion-error/ConversionErrorManager";
 import { PricingErrorManager } from "@/modules/anomalies/pricing-error/PricingErrorManager";
-import { Listing, ListingPrice } from "@/modules/anomalies/interfaces/Listing";
+import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
+import { AmazonConversionErrorReporter } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorReporter";
+import { AmazonPricingErrorReporter } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorReporter";
 import { FIXED_DATE } from "../../../../../support/factories";
 import {
-  fakeDiscordConversionErrorService,
-  fakeDiscordPricingErrorService,
+  fakeAmazonConversionErrorDiscordService,
+  fakeAmazonPricingErrorDiscordService,
 } from "../../../../../support/fakes";
 import { prisma } from "../../../../../support/integration/db";
 import {
@@ -21,15 +24,19 @@ import {
 // Real repositories and services (constructor defaults), only the Discord
 // senders are faked. `undefined` positional arguments keep the defaults.
 const buildAdService = () => {
-  const pricing = fakeDiscordPricingErrorService();
-  const conversion = fakeDiscordConversionErrorService();
+  const pricing = fakeAmazonPricingErrorDiscordService();
+  const conversion = fakeAmazonConversionErrorDiscordService();
   const service = new AmazonAdService(
     undefined,
     undefined,
     undefined,
-    new AnomalyManager([
-      new ConversionErrorManager(conversion.service),
-      new PricingErrorManager(pricing.service),
+    new AnomalyManager<AmazonAdSelectDto>([
+      new ConversionErrorManager(
+        new AmazonConversionErrorReporter(undefined, conversion.service)
+      ),
+      new PricingErrorManager(
+        new AmazonPricingErrorReporter(undefined, pricing.service)
+      ),
     ])
   );
   return { service, pricing, conversion };
@@ -100,15 +107,22 @@ describe("AmazonAdService (MySQL)", () => {
       ]);
 
       expect(await prisma.amazonAdPrice.count({ where: { adId: ad.id } })).toBe(2);
-      expect(await prisma.log.count({ where: { event: "ad_scraped" } })).toBe(1);
+      const scraped = await prisma.activityEvent.findMany({ where: { type: "ad_scraped" } });
+      expect(scraped).toEqual([
+        expect.objectContaining({ marketplace: "amazon", data: { asin: ad.asin } }),
+      ]);
       // The anomaly managers run after updatePrices resolves.
       await vi.waitFor(() => expect(pricing.send).toHaveBeenCalledTimes(1));
-      expect(await prisma.log.count({ where: { event: "pricing_error_sent" } })).toBe(1);
+      const pricingErrors = await prisma.activityEvent.findMany({
+        where: { type: "pricing_error_sent" },
+      });
+      expect(pricingErrors).toHaveLength(1);
+      expect(pricingErrors[0].data).toMatchObject({ asin: ad.asin });
       const [sentListing, sentGroups] = pricing.send.mock.calls[0] as [
-        Listing,
+        AmazonAdSelectDto,
         ListingPrice[][]
       ];
-      expect(sentListing.externalId).toBe(ad.asin);
+      expect(sentListing.asin).toBe(ad.asin);
       expect(sentGroups.map((g) => g.map((p) => p.value.toNumber()))).toEqual([[40, 100]]);
     });
 
@@ -128,15 +142,21 @@ describe("AmazonAdService (MySQL)", () => {
       // 40 PLN (se) vs 1000 PLN (pl): channel 3 (90 %) and channel 4 (0-50 PLN).
       await vi.waitFor(() => expect(conversion.send).toHaveBeenCalledTimes(2));
       expect(conversion.setChannel.mock.calls.map((c) => c[0]).sort()).toEqual(["3", "4"]);
-      const events = await prisma.log.findMany({
-        where: { event: { startsWith: "conversion_error" } },
+      const events = await prisma.activityEvent.findMany({
+        where: { type: "conversion_error_sent" },
       });
-      expect(events.map((e) => e.event).sort()).toEqual([
-        "conversion_error_3_sent",
-        "conversion_error_4_sent",
-      ]);
+      const channels = events.map((e) => (e.data as { channel: string }).channel);
+      expect(channels.sort()).toEqual(["3", "4"]);
+      expect(events[0].data).toMatchObject({
+        asin: ad.asin,
+        prices: [
+          { country: "se", value: "40" },
+          { country: "pl", value: "1000" },
+          { country: "de", value: "1290" },
+        ],
+      });
       const [, sentPrices] = conversion.send.mock.calls[0] as [
-        Listing,
+        AmazonAdSelectDto,
         ListingPrice[]
       ];
       expect(sentPrices.map((p) => [p.country.code, p.value.toNumber()])).toEqual([
@@ -163,7 +183,7 @@ describe("AmazonAdService (MySQL)", () => {
 
       await vi.waitFor(() => expect(pricing.send).toHaveBeenCalledTimes(1));
       const [, sentGroups] = pricing.send.mock.calls[0] as [
-        Listing,
+        AmazonAdSelectDto,
         ListingPrice[][]
       ];
       expect(sentGroups.map((g) => g.map((p) => p.value.toNumber()))).toEqual([[40, 100]]);

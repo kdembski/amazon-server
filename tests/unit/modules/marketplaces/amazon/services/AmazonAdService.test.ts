@@ -5,14 +5,14 @@ import { AmazonAdPriceService } from "@/modules/marketplaces/amazon/services/Ama
 import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
 import { ConversionErrorManager } from "@/modules/anomalies/conversion-error/ConversionErrorManager";
 import { PricingErrorManager } from "@/modules/anomalies/pricing-error/PricingErrorManager";
-import { AmazonAdListingMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingMapper";
+import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingPriceMapper";
+import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import {
   buildAd,
-  buildListing,
   buildListingPrice,
   buildPrice,
 } from "../../../../../support/factories";
-import { deferred, fakeLogService } from "../../../../../support/fakes";
+import { deferred, fakeActivityEventService } from "../../../../../support/fakes";
 
 vi.mock("@/modules/anomalies/AnomalyManager");
 vi.mock("discord.js", async (importOriginal) => {
@@ -37,24 +37,21 @@ const setup = () => {
     creatable: { create: vi.fn().mockResolvedValue({}) },
     getByAdAndCountry: vi.fn().mockResolvedValue([]),
   };
-  const log = fakeLogService();
+  const log = fakeActivityEventService();
   const anomalyManager = { check: vi.fn() };
-  const listing = buildListing();
   const listingPrices = [[buildListingPrice()]];
-  const listingMapper = {
-    map: vi.fn().mockReturnValue({ listing, countryPrices: listingPrices }),
-  };
+  const priceMapper = { map: vi.fn().mockReturnValue(listingPrices) };
 
   const service = new AmazonAdService(
     repository as unknown as AmazonAdRepository,
     priceService as unknown as AmazonAdPriceService,
     log.service,
-    anomalyManager as unknown as AnomalyManager,
+    anomalyManager as unknown as AnomalyManager<AmazonAdSelectDto>,
     undefined,
     undefined,
     undefined,
     undefined,
-    listingMapper as unknown as AmazonAdListingMapper
+    priceMapper as unknown as AmazonAdListingPriceMapper
   );
 
   return {
@@ -63,8 +60,7 @@ const setup = () => {
     priceService,
     log,
     anomalyManager,
-    listingMapper,
-    listing,
+    priceMapper,
     listingPrices,
   };
 };
@@ -86,7 +82,7 @@ describe("AmazonAdService delegation", () => {
 describe("AmazonAdService.updatePrices", () => {
   it("stores prices, logs ad_scraped and runs the error manager", async () => {
     const { service, repository, priceService, log, anomalyManager } = setup();
-    const ad = buildAd({ id: 9 });
+    const ad = buildAd({ id: 9, asin: "B0SCRAPED" });
     repository.getById.mockResolvedValue(ad);
     const dtos = [
       { value: 1, adId: 9, countryId: 1, dispatchFrom: "Amazon" },
@@ -98,21 +94,24 @@ describe("AmazonAdService.updatePrices", () => {
     expect(priceService.creatable.create).toHaveBeenCalledTimes(2);
     expect(priceService.creatable.create).toHaveBeenCalledWith(dtos[0]);
     expect(priceService.creatable.create).toHaveBeenCalledWith(dtos[1]);
-    expect(log.create).toHaveBeenCalledWith({ event: "ad_scraped" });
+    expect(log.create).toHaveBeenCalledWith({
+      type: "ad_scraped",
+      marketplace: "amazon",
+      data: { asin: "B0SCRAPED" },
+    });
     expect(repository.getById).toHaveBeenCalledWith(9);
     expect(priceService.getByAdAndCountry).toHaveBeenCalledWith(9, [1, 2]);
 
     await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalled());
   });
 
-  it("checks anomalies with the mapped listing and prices", async () => {
+  it("checks anomalies with the ad and the mapped prices", async () => {
     const {
       service,
       repository,
       priceService,
       anomalyManager,
-      listingMapper,
-      listing,
+      priceMapper,
       listingPrices,
     } = setup();
     const ad = buildAd({ id: 9 });
@@ -125,8 +124,8 @@ describe("AmazonAdService.updatePrices", () => {
     ]);
 
     await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalled());
-    expect(listingMapper.map).toHaveBeenCalledWith(ad, countryPrices);
-    expect(anomalyManager.check).toHaveBeenCalledWith(listing, listingPrices);
+    expect(priceMapper.map).toHaveBeenCalledWith(countryPrices);
+    expect(anomalyManager.check).toHaveBeenCalledWith(ad, listingPrices);
   });
 
   it("continues when a single price insert fails", async () => {
@@ -140,7 +139,23 @@ describe("AmazonAdService.updatePrices", () => {
     ]);
 
     expect(priceService.creatable.create).toHaveBeenCalledTimes(2);
-    expect(log.create).toHaveBeenCalledWith({ event: "ad_scraped" });
+    expect(log.create).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "ad_scraped" })
+    );
+  });
+
+  it("rejects without logging ad_scraped when the ad does not exist", async () => {
+    const { service, repository, log, anomalyManager } = setup();
+    repository.getById.mockRejectedValue(new Error("No AmazonAd found"));
+
+    await expect(
+      service.updatePrices(1, [
+        { value: 1, adId: 1, countryId: 1, dispatchFrom: "Amazon" },
+      ])
+    ).rejects.toThrow("No AmazonAd found");
+
+    expect(log.create).not.toHaveBeenCalled();
+    expect(anomalyManager.check).not.toHaveBeenCalled();
   });
 });
 

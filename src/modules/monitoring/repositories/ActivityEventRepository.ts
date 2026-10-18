@@ -1,23 +1,24 @@
 import { PrismaClient } from "@@prisma/PrismaClient";
-import { Prisma } from "@prisma/client";
+import { ActivityEventType, Prisma } from "@prisma/client";
 
-export class LogRepository {
+export class ActivityEventRepository {
   private prisma;
   private delegate;
 
   constructor(prisma = PrismaClient.getInstance()) {
     this.prisma = prisma;
-    this.delegate = prisma.log;
+    this.delegate = prisma.activityEvent;
   }
 
-  getCountByEvent(event: string, from?: Date, to?: Date) {
+  getCount(type: ActivityEventType, from?: Date, to?: Date, channel?: string) {
     return this.delegate.count({
       where: {
-        event,
+        type,
         createdAt: {
           lte: to,
           gte: from,
         },
+        ...(channel && { data: { path: "$.channel", equals: channel } }),
       },
     });
   }
@@ -28,14 +29,14 @@ export class LogRepository {
 
     do {
       deleted = await this.prisma
-        .$executeRaw`DELETE FROM Log WHERE createdAt < ${date} LIMIT ${batchSize}`;
+        .$executeRaw`DELETE FROM ActivityEvent WHERE createdAt < ${date} LIMIT ${batchSize}`;
       total += deleted;
     } while (deleted === batchSize);
 
     return total;
   }
 
-  create(data: Prisma.LogCreateInput) {
+  create(data: Prisma.ActivityEventCreateInput) {
     return this.delegate.create({ data });
   }
 

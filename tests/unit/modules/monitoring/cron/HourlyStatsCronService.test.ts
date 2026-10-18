@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CronJob } from "cron";
 import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCronService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
-import { fakeLogService } from "../../../../support/fakes";
+import { fakeActivityEventService } from "../../../../support/fakes";
 
 vi.mock("cron", () => ({
   CronJob: vi.fn(function () {
@@ -10,20 +10,20 @@ vi.mock("cron", () => ({
   }),
 }));
 
-const EVENTS = [
-  "ad_scraped",
-  "conversion_error_1_sent",
-  "conversion_error_2_sent",
-  "conversion_error_3_sent",
-  "conversion_error_4_sent",
-  "conversion_error_5_sent",
-  "conversion_error_6_sent",
-  "pricing_error_sent",
+const COUNTS: [string, string?][] = [
+  ["ad_scraped"],
+  ["conversion_error_sent", "1"],
+  ["conversion_error_sent", "2"],
+  ["conversion_error_sent", "3"],
+  ["conversion_error_sent", "4"],
+  ["conversion_error_sent", "5"],
+  ["conversion_error_sent", "6"],
+  ["pricing_error_sent"],
 ];
 
 const setup = () => {
   const sendHourly = vi.fn();
-  const log = fakeLogService();
+  const log = fakeActivityEventService();
   const service = new HourlyStatsCronService(
     { sendHourly } as unknown as DiscordLogService,
     log.service
@@ -52,18 +52,21 @@ describe("HourlyStatsCronService", () => {
     expect(vi.mocked(CronJob).mock.results[0].value.start).toHaveBeenCalled();
   });
 
-  it("counts every event over the last hour and sends them in order", async () => {
+  it("counts every event type and conversion channel over the last hour and sends them in order", async () => {
     const { service, sendHourly, log } = setup();
-    log.getCountByEvent.mockImplementation((event: string) =>
-      Promise.resolve(EVENTS.indexOf(event) * 10)
+    log.getCount.mockImplementation(
+      (type: string, _from: Date, _to: Date, channel?: string) =>
+        Promise.resolve(
+          COUNTS.findIndex(([t, c]) => t === type && c === channel) * 10
+        )
     );
 
     await service.run();
 
     const from = new Date("2026-06-01T09:00:00Z");
     const to = new Date("2026-06-01T10:00:00Z");
-    EVENTS.forEach((event) =>
-      expect(log.getCountByEvent).toHaveBeenCalledWith(event, from, to)
+    COUNTS.forEach(([type, channel]) =>
+      expect(log.getCount).toHaveBeenCalledWith(type, from, to, channel)
     );
     expect(sendHourly).toHaveBeenCalledWith([0, 10, 20, 30, 40, 50, 60, 70]);
   });

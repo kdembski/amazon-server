@@ -1,4 +1,4 @@
-import { ListingPrice } from "@/modules/anomalies/interfaces/Listing";
+import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { ConversionErrorRuleI } from "@/modules/anomalies/interfaces/ConversionErrorRuleI";
 import { ConversionErrorEvaluator } from "@/modules/anomalies/conversion-error/ConversionErrorEvaluator";
 

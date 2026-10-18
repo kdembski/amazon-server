@@ -1,16 +1,17 @@
 import { format } from "date-fns";
-import { Listing, ListingPrice } from "@/modules/anomalies/interfaces/Listing";
+import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { DiscordService } from "@/shared/discord/DiscordService";
 import { roundToTwoDecimals } from "@/shared/utils/number";
 
-export class DiscordPricingErrorService {
+export class AmazonPricingErrorDiscordService {
   private service;
 
   constructor(service = new DiscordService("DISCORD_PRICING_ERROR_TOKEN")) {
     this.service = service;
   }
 
-  async send(listing: Listing, countryPrices: ListingPrice[][]) {
+  async send(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][]) {
     const fields = countryPrices.map((prices) => {
       const { name, code, currencyCode } = prices[0].country;
 
@@ -18,7 +19,7 @@ export class DiscordPricingErrorService {
         name,
         value: prices
           .map((price, i) => {
-            const link = listing.getUrl(code);
+            const link = this.getUrl(ad, code);
             const date = format(price.createdAt, "d MMM HH:mm");
             const value = price.value.toNumber();
             const difference = this.getDifference(value, prices, i);
@@ -35,14 +36,14 @@ export class DiscordPricingErrorService {
     });
 
     const embed = {
-      title: listing.name,
-      description: listing.externalId,
+      title: ad.name,
+      description: ad.asin,
       image: {
-        url: listing.image,
+        url: ad.image,
         height: 200,
       },
       fields,
-      footer: { text: listing.categoryName },
+      footer: { text: ad.category.name },
       color: process.env.NODE_ENV === "development" ? 0xe50000 : undefined,
     };
 
@@ -64,5 +65,9 @@ export class DiscordPricingErrorService {
     return difference
       ? `${withCurrency} *(${difference}%)*`
       : `${withCurrency}`;
+  }
+
+  private getUrl(ad: AmazonAdSelectDto, countryCode: string) {
+    return `https://www.amazon.${countryCode}/dp/${ad.asin}`;
   }
 }

@@ -1,4 +1,4 @@
-import { ListingPrice } from "@/modules/anomalies/interfaces/Listing";
+import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 
 export interface ConversionErrorRuleI {
   readonly channel: string;

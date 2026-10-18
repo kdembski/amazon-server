@@ -5,20 +5,23 @@ import { CreatableService } from "@/shared/crud/services/CreatableService";
 import { DeletableService } from "@/shared/crud/services/DeletableService";
 import { SelectableService } from "@/shared/crud/services/SelectableService";
 import { AmazonAdPriceService } from "@/modules/marketplaces/amazon/services/AmazonAdPriceService";
-import { LogService } from "@/modules/monitoring/services/LogService";
+import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
 import { ConversionErrorManager } from "@/modules/anomalies/conversion-error/ConversionErrorManager";
 import { PricingErrorManager } from "@/modules/anomalies/pricing-error/PricingErrorManager";
-import { AmazonAdListingMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingMapper";
+import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingPriceMapper";
+import { AmazonConversionErrorReporter } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorReporter";
+import { AmazonPricingErrorReporter } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorReporter";
+import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { UpdatableService } from "@/shared/crud/services/UpdatableService";
 import { AmazonAdPriceCreateDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
 
 export class AmazonAdService {
   private repository;
   private priceService;
-  private logService;
+  private activityEventService;
   private anomalyManager;
-  private listingMapper;
+  private priceMapper;
   private static isGetting = false;
   selectable;
   deletable;
@@ -28,26 +31,26 @@ export class AmazonAdService {
   constructor(
     repository = new AmazonAdRepository(),
     priceService = new AmazonAdPriceService(),
-    logService = new LogService(),
-    anomalyManager = new AnomalyManager([
-      new ConversionErrorManager(),
-      new PricingErrorManager(),
+    activityEventService = new ActivityEventService(),
+    anomalyManager = new AnomalyManager<AmazonAdSelectDto>([
+      new ConversionErrorManager(new AmazonConversionErrorReporter()),
+      new PricingErrorManager(new AmazonPricingErrorReporter()),
     ]),
     selectable = new SelectableService(repository),
     deletable = new DeletableService(repository),
     creatable = new CreatableService(repository, new AmazonAdCreateMapper()),
     updatable = new UpdatableService(repository, new AmazonAdUpdateMapper()),
-    listingMapper = new AmazonAdListingMapper()
+    priceMapper = new AmazonAdListingPriceMapper()
   ) {
     this.repository = repository;
     this.priceService = priceService;
-    this.logService = logService;
+    this.activityEventService = activityEventService;
     this.anomalyManager = anomalyManager;
     this.selectable = selectable;
     this.deletable = deletable;
     this.creatable = creatable;
     this.updatable = updatable;
-    this.listingMapper = listingMapper;
+    this.priceMapper = priceMapper;
   }
 
   getAll() {
@@ -64,18 +67,21 @@ export class AmazonAdService {
     );
     await Promise.allSettled(promises);
 
-    await this.logService.creatable.create({ event: "ad_scraped" });
     const ad = await this.selectable.getById(id);
+    await this.activityEventService.creatable.create({
+      type: "ad_scraped",
+      marketplace: "amazon",
+      data: { asin: ad.asin },
+    });
 
     this.priceService
       .getByAdAndCountry(
         ad.id,
         prices.map((price) => price.countryId)
       )
-      .then((countryPrices) => {
-        const mapped = this.listingMapper.map(ad, countryPrices);
-        return this.anomalyManager.check(mapped.listing, mapped.countryPrices);
-      });
+      .then((countryPrices) =>
+        this.anomalyManager.check(ad, this.priceMapper.map(countryPrices))
+      );
   }
 
   async getForScraping(count: number): Promise<{ id: number; asin: string }[]> {

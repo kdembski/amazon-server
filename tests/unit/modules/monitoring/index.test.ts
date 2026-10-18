@@ -3,8 +3,8 @@ import { createMonitoringModule } from "@/modules/monitoring";
 import { ScraperStatusRouter } from "@/modules/monitoring/routes/ScraperStatusRouter";
 import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCronService";
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
-import { LogCleanupCronService } from "@/modules/monitoring/cron/LogCleanupCronService";
-import { LogService } from "@/modules/monitoring/services/LogService";
+import { ActivityEventCleanupCronService } from "@/modules/monitoring/cron/ActivityEventCleanupCronService";
+import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 
 vi.mock("discord.js", async (importOriginal) => {
@@ -24,13 +24,13 @@ describe("createMonitoringModule", () => {
     expect(module.crons!.map((c) => c.constructor)).toEqual([
       HourlyStatsCronService,
       DailyStatsCronService,
-      LogCleanupCronService,
+      ActivityEventCleanupCronService,
     ]);
   });
 
   it("passes the sections to the daily stats cron", async () => {
     vi.stubEnv("DISCORD_LOGS_TOKEN", "t");
-    vi.spyOn(LogService.prototype, "getCountByEvent").mockResolvedValue(7);
+    vi.spyOn(ActivityEventService.prototype, "getCount").mockResolvedValue(7);
     const sendDaily = vi
       .spyOn(DiscordLogService.prototype, "sendDaily")
       .mockResolvedValue(undefined as never);

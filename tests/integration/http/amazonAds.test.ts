@@ -63,11 +63,15 @@ describe("PUT /amazon/ads/:id", () => {
       .expect(200);
 
     expect(await prisma.amazonAdPrice.count({ where: { adId: ad.id } })).toBe(2);
-    expect(await prisma.log.count({ where: { event: "ad_scraped" } })).toBe(1);
+    expect(
+      await prisma.activityEvent.findMany({ where: { type: "ad_scraped" } })
+    ).toEqual([
+      expect.objectContaining({ marketplace: "amazon", data: { asin: ad.asin } }),
+    ]);
     await vi.waitFor(() =>
       expect(messagesSentTo("DISCORD_PRICING_ERROR_TOKEN")).toHaveLength(1)
     );
-    expect(await prisma.log.count({ where: { event: "pricing_error_sent" } })).toBe(1);
+    expect(await prisma.activityEvent.count({ where: { type: "pricing_error_sent" } })).toBe(1);
     expect(messagesSentTo("DISCORD_PRICING_ERROR_TOKEN")[0].options).toMatchObject({
       embeds: [{ title: ad.name, description: ad.asin }],
     });

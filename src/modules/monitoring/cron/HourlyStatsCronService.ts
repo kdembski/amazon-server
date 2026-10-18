@@ -1,17 +1,18 @@
-import { LogService } from "@/modules/monitoring/services/LogService";
+import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
+import { ActivityEventType } from "@prisma/client";
 import { CronJob } from "cron";
 
 export class HourlyStatsCronService {
   private discordService;
-  private logService;
+  private activityEventService;
 
   constructor(
     discordService = new DiscordLogService(),
-    logService = new LogService()
+    activityEventService = new ActivityEventService()
   ) {
     this.discordService = discordService;
-    this.logService = logService;
+    this.activityEventService = activityEventService;
   }
 
   schedule() {
@@ -19,27 +20,29 @@ export class HourlyStatsCronService {
   }
 
   async run() {
-    const logs = [
-      this.getLogCount("ad_scraped"),
-      this.getLogCount("conversion_error_1_sent"),
-      this.getLogCount("conversion_error_2_sent"),
-      this.getLogCount("conversion_error_3_sent"),
-      this.getLogCount("conversion_error_4_sent"),
-      this.getLogCount("conversion_error_5_sent"),
-      this.getLogCount("conversion_error_6_sent"),
-      this.getLogCount("pricing_error_sent"),
+    const counts = [
+      this.getCount("ad_scraped"),
+      ...["1", "2", "3", "4", "5", "6"].map((channel) =>
+        this.getCount("conversion_error_sent", channel)
+      ),
+      this.getCount("pricing_error_sent"),
     ];
 
-    await Promise.all(logs).then((logs) => {
-      return this.discordService.sendHourly(logs);
+    await Promise.all(counts).then((counts) => {
+      return this.discordService.sendHourly(counts);
     });
   }
 
-  getLogCount(event: string) {
+  getCount(type: ActivityEventType, channel?: string) {
     const now = new Date();
     const hoursBefore = new Date();
     hoursBefore.setHours(hoursBefore.getHours() - 1);
 
-    return this.logService.getCountByEvent(event, hoursBefore, now);
+    return this.activityEventService.getCount(
+      type,
+      hoursBefore,
+      now,
+      channel
+    );
   }
 }
