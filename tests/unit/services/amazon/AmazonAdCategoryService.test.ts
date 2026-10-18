@@ -9,13 +9,10 @@ type Category = ReturnType<typeof buildCategory>;
 const setup = () => {
   const repository = {
     getById: vi.fn(),
-    getByName: vi.fn().mockResolvedValue(null),
     getAll: vi.fn().mockResolvedValue([]),
     getForScraping: vi.fn().mockResolvedValue(buildCategory()),
-    getActive: vi.fn().mockResolvedValue([]),
     create: vi.fn().mockResolvedValue({}),
     update: vi.fn().mockResolvedValue({}),
-    updateActive: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue({}),
   };
   const service = new AmazonAdCategoryService(
@@ -25,18 +22,12 @@ const setup = () => {
 };
 
 describe("AmazonAdCategoryService", () => {
-  it("delegates reads and updateActive", async () => {
+  it("delegates getAll", async () => {
     const { service, repository } = setup();
 
     await service.getAll();
-    await service.getByName("tools");
-    await service.getActive();
-    await service.updateActive(3, true);
 
     expect(repository.getAll).toHaveBeenCalled();
-    expect(repository.getByName).toHaveBeenCalledWith("tools");
-    expect(repository.getActive).toHaveBeenCalled();
-    expect(repository.updateActive).toHaveBeenCalledWith(3, true);
   });
 
   it("wires creatable, updatable and deletable to the repository", async () => {

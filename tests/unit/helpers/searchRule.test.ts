@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   createSearchRuleMatcher,
-  describeSearchRule,
   isGlobalExclusion,
   parseSearchRule,
 } from "@/helpers/searchRule";
@@ -73,31 +72,6 @@ describe("isGlobalExclusion", () => {
   });
 });
 
-describe("describeSearchRule", () => {
-  it("describes required phrases with alternatives", () => {
-    expect(describeSearchRule(parseSearchRule("rtx+4090|4080"))).toBe(
-      "musi zawierać: *rtx*; *4090* lub *4080*"
-    );
-  });
-
-  it("appends exclusions of a rule", () => {
-    expect(describeSearchRule(parseSearchRule("rtx+!laptop|mobile"))).toBe(
-      "musi zawierać: *rtx*; nie może zawierać: *laptop*, *mobile*"
-    );
-  });
-
-  it("describes a global exclusion", () => {
-    expect(describeSearchRule(parseSearchRule("!used|b-stock"))).toBe(
-      "globalnie wyklucza: *used*, *b-stock*"
-    );
-  });
-
-  it("shows escaped wildcards of partial phrases", () => {
-    expect(describeSearchRule(parseSearchRule("drewn*|*tor*+!*phone"))).toBe(
-      "musi zawierać: *drewn\\** lub *\\*tor\\**; nie może zawierać: *\\*phone*"
-    );
-  });
-});
 
 describe("createSearchRuleMatcher", () => {
   it("matches whole words only by default", () => {

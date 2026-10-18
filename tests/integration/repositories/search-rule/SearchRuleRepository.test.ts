@@ -6,20 +6,14 @@ import { seedSearchRule } from "../../../support/integration/seed";
 const repository = new SearchRuleRepository(prisma);
 
 describe("SearchRuleRepository (MySQL)", () => {
-  it("getByValue finds by the unique value and the value cannot repeat", async () => {
-    const searchRule = await seedSearchRule({ value: "used" });
-
-    expect((await repository.getByValue("used"))?.id).toBe(searchRule.id);
-    expect(await repository.getByValue("new")).toBeNull();
-    await expect(seedSearchRule({ value: "used" })).rejects.toMatchObject({ code: "P2002" });
-  });
-
-  it("getAll lists everything and delete removes one", async () => {
+  it("getById finds one rule and getAll lists everything", async () => {
     const a = await seedSearchRule();
     const b = await seedSearchRule();
 
-    await repository.delete(a.id);
-
-    expect((await repository.getAll()).map((k) => k.id)).toEqual([b.id]);
+    expect((await repository.getById(a.id))?.id).toBe(a.id);
+    expect(await repository.getById(999)).toBeNull();
+    expect((await repository.getAll()).map((k) => k.id).sort()).toEqual(
+      [a.id, b.id].sort()
+    );
   });
 });

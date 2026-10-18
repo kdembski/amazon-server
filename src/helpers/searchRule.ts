@@ -56,29 +56,6 @@ export const parseSearchRule = (value: string): ParsedSearchRule => {
 export const isGlobalExclusion = (rule: ParsedSearchRule) =>
   !rule.include.length;
 
-const italic = (phrase: SearchPhrase) => {
-  const written = `${phrase.wordStart ? "" : WILDCARD}${phrase.text}${
-    phrase.wordEnd ? "" : WILDCARD
-  }`;
-  return `*${written.replaceAll(WILDCARD, `\\${WILDCARD}`)}*`;
-};
-
-export const describeSearchRule = (rule: ParsedSearchRule) => {
-  const excluded = rule.exclude.map(italic).join(", ");
-
-  if (isGlobalExclusion(rule)) {
-    return `globalnie wyklucza: ${excluded}`;
-  }
-
-  const required = rule.include
-    .map((group) => group.map(italic).join(" lub "))
-    .join("; ");
-
-  return excluded
-    ? `musi zawierać: ${required}; nie może zawierać: ${excluded}`
-    : `musi zawierać: ${required}`;
-};
-
 // NFD leaves ł as a base letter, so it is mapped by hand.
 const normalize = (value: string) =>
   value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replaceAll("ł", "l");

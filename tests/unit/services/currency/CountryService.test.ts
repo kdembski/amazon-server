@@ -5,12 +5,9 @@ import { CountryRepository } from "@/repositories/currency/CountryRepository";
 const setup = () => {
   const repository = {
     getById: vi.fn(),
-    getByCode: vi.fn().mockResolvedValue(null),
     getAll: vi.fn().mockResolvedValue([]),
-    getActive: vi.fn().mockResolvedValue([]),
     create: vi.fn().mockResolvedValue({}),
     update: vi.fn().mockResolvedValue({}),
-    updateActive: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue({}),
   };
   const service = new CountryService(repository as unknown as CountryRepository);
@@ -18,16 +15,10 @@ const setup = () => {
 };
 
 describe("CountryService", () => {
-  it("delegates reads and updateActive", async () => {
+  it("delegates getAll", async () => {
     const { service, repository } = setup();
     await service.getAll();
-    await service.getByCode("de");
-    await service.getActive();
-    await service.updateActive(1, false);
     expect(repository.getAll).toHaveBeenCalled();
-    expect(repository.getByCode).toHaveBeenCalledWith("de");
-    expect(repository.getActive).toHaveBeenCalled();
-    expect(repository.updateActive).toHaveBeenCalledWith(1, false);
   });
 
   it("wires creatable, updatable and deletable to the repository", async () => {

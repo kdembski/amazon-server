@@ -26,16 +26,4 @@ export class CountryService {
   getAll() {
     return this.repository.getAll();
   }
-
-  getByCode(code: string) {
-    return this.repository.getByCode(code);
-  }
-
-  getActive() {
-    return this.repository.getActive();
-  }
-
-  updateActive(id: number, active: boolean) {
-    return this.repository.updateActive(id, active);
-  }
 }

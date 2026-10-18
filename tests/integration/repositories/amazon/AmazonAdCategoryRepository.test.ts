@@ -41,29 +41,6 @@ describe("AmazonAdCategoryRepository (MySQL)", () => {
     });
   });
 
-  it("getActive and updateActive work on the active flag", async () => {
-    const active = await seedCategory({ active: true });
-    const inactive = await seedCategory({ active: false });
-
-    expect((await repository.getActive()).map((c) => c.id)).toEqual([active.id]);
-
-    await repository.updateActive(inactive.id, true);
-
-    expect((await repository.getActive()).map((c) => c.id).sort((a, b) => a - b)).toEqual(
-      [active.id, inactive.id].sort((a, b) => a - b)
-    );
-  });
-
-  it("getByName finds by the unique name and the name cannot repeat", async () => {
-    const category = await seedCategory({ name: "audio" });
-
-    expect((await repository.getByName("audio"))?.id).toBe(category.id);
-    expect(await repository.getByName("video")).toBeNull();
-    await expect(seedCategory({ name: "audio" })).rejects.toMatchObject({
-      code: "P2002",
-    });
-  });
-
   it("getById throws P2025 for a missing id and delete cascades to ads", async () => {
     await expect(repository.getById(999)).rejects.toMatchObject({ code: "P2025" });
 

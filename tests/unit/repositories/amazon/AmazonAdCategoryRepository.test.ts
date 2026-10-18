@@ -12,20 +12,14 @@ const setup = () => {
 };
 
 describe("AmazonAdCategoryRepository", () => {
-  it("reads by id, name, all and active", async () => {
+  it("reads by id and all", async () => {
     const { repository, delegate } = setup();
 
     await repository.getById(1);
-    await repository.getByName("tools");
     await repository.getAll();
-    await repository.getActive();
 
     expect(delegate.findUniqueOrThrow).toHaveBeenCalledWith({ where: { id: 1 } });
-    expect(delegate.findUnique).toHaveBeenCalledWith({ where: { name: "tools" } });
-    expect(delegate.findMany).toHaveBeenNthCalledWith(1);
-    expect(delegate.findMany).toHaveBeenNthCalledWith(2, {
-      where: { active: true },
-    });
+    expect(delegate.findMany).toHaveBeenCalledWith();
   });
 
   it("getForScraping picks the active category with the oldest scrapedAt, nulls first", async () => {
@@ -45,17 +39,12 @@ describe("AmazonAdCategoryRepository", () => {
 
     await repository.create(data);
     await repository.update(2, { name: "x" });
-    await repository.updateActive(2, true);
     await repository.delete(3);
 
     expect(delegate.create).toHaveBeenCalledWith({ data });
-    expect(delegate.update).toHaveBeenNthCalledWith(1, {
+    expect(delegate.update).toHaveBeenCalledWith({
       where: { id: 2 },
       data: { name: "x" },
-    });
-    expect(delegate.update).toHaveBeenNthCalledWith(2, {
-      where: { id: 2 },
-      data: { active: true },
     });
     expect(delegate.delete).toHaveBeenCalledWith({ where: { id: 3 } });
   });

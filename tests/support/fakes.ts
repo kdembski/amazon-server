@@ -1,7 +1,6 @@
 import { vi } from "vitest";
 import type { Request, Response, Router } from "express";
 import type { PrismaClient } from "@prisma/client";
-import type { CacheType, ChatInputCommandInteraction } from "discord.js";
 import type { LogService } from "@/services/LogService";
 import type { DiscordService } from "@/services/discord/DiscordService";
 import type { DiscordConversionErrorService } from "@/services/discord/DiscordConversionErrorService";
@@ -70,32 +69,6 @@ export function fakeRequest(
   } as unknown as Request<any, any, any, any>;
 }
 
-export function fakeInteraction(
-  opts: {
-    subcommand?: string;
-    strings?: Record<string, string>;
-    commandName?: string;
-    replied?: boolean;
-    deferred?: boolean;
-    isChatInputCommand?: boolean;
-  } = {}
-) {
-  const reply = vi.fn().mockResolvedValue(undefined);
-  const followUp = vi.fn().mockResolvedValue(undefined);
-  const interaction = {
-    commandName: opts.commandName ?? "",
-    replied: opts.replied ?? false,
-    deferred: opts.deferred ?? false,
-    isChatInputCommand: () => opts.isChatInputCommand ?? true,
-    options: {
-      getSubcommand: () => opts.subcommand ?? "",
-      getString: (name: string) => opts.strings?.[name] ?? null,
-    },
-    reply,
-    followUp,
-  } as unknown as ChatInputCommandInteraction<CacheType>;
-  return { interaction, reply, followUp };
-}
 
 export type RouteCall = { method: string; path?: string; handler: unknown };
 

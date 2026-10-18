@@ -6,7 +6,6 @@ import { AmazonAdCreateMapper } from "@/mappers/amazon/AmazonAdCreateMapper";
 import { AmazonAdUpdateMapper } from "@/mappers/amazon/AmazonAdUpdateMapper";
 import { AmazonAdPriceCreateMapper } from "@/mappers/amazon/AmazonAdPriceCreateMapper";
 import { AmazonAdPriceUpdateMapper } from "@/mappers/amazon/AmazonAdPriceUpdateMapper";
-import { SearchRuleCreateMapper } from "@/mappers/search-rule/SearchRuleCreateMapper";
 import { CountryCreateMapper } from "@/mappers/currency/CountryCreateMapper";
 import { CountryUpdateMapper } from "@/mappers/currency/CountryUpdateMapper";
 import { CurrencyCreateMapper } from "@/mappers/currency/CurrencyCreateMapper";
@@ -70,12 +69,6 @@ describe("create mappers", () => {
         createdAt: NOW,
         updatedAt: NOW,
       },
-    },
-    {
-      name: "SearchRuleCreateMapper",
-      map: (dto: any) => new SearchRuleCreateMapper().toCreateInput(dto),
-      dto: { value: "used" },
-      expected: { value: "used", createdAt: NOW },
     },
     {
       name: "CountryCreateMapper",

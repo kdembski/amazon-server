@@ -5,7 +5,6 @@ import { HourlyStatsCronService } from "@/services/cron/HourlyStatsCronService";
 import { DailyStatsCronService } from "@/services/cron/DailyStatsCronService";
 import { LogCleanupCronService } from "@/services/cron/LogCleanupCronService";
 import { SearchRuleMatchCronService } from "@/services/cron/SearchRuleMatchCronService";
-import { DiscordCommandService } from "@/services/discord/DiscordCommandService";
 
 const app = createApp();
 
@@ -20,8 +19,6 @@ new HourlyStatsCronService().schedule();
 new DailyStatsCronService().schedule();
 new LogCleanupCronService().schedule();
 new SearchRuleMatchCronService().schedule();
-
-DiscordCommandService.getInstance().login();
 
 process.on("uncaughtException", (err) => {
   console.error(err);
