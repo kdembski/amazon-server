@@ -24,6 +24,7 @@ export class AmazonPricingErrorReporter
       marketplace: "amazon",
       data: {
         asin: ad.asin,
+        name: ad.name,
         prices: countryPrices.map(([newest]) => ({
           country: newest.country.code,
           value: newest.value.toString(),

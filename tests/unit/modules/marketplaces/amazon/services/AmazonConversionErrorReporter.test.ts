@@ -19,7 +19,7 @@ const setup = () => {
 describe("AmazonConversionErrorReporter", () => {
   it("logs the event with the PLN prices and sends the embed to the rule's channel", async () => {
     const { reporter, log, discord } = setup();
-    const ad = buildAd({ asin: "B000TEST01" });
+    const ad = buildAd({ asin: "B000TEST01", name: "Bosch drill" });
     const prices = [
       buildListingPrice({ value: 412.5, country: { code: "de" } }),
       buildListingPrice({ value: 500, country: { code: "pl" } }),
@@ -32,6 +32,7 @@ describe("AmazonConversionErrorReporter", () => {
       marketplace: "amazon",
       data: {
         asin: "B000TEST01",
+        name: "Bosch drill",
         channel: "3",
         prices: [
           { country: "de", value: "412.5" },

@@ -24,6 +24,7 @@ export class AmazonConversionErrorReporter
       marketplace: "amazon",
       data: {
         asin: ad.asin,
+        name: ad.name,
         channel,
         prices: prices.map((price) => ({
           country: price.country.code,

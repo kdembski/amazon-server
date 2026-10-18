@@ -16,7 +16,7 @@ const setup = () => {
 describe("AmazonPricingErrorReporter", () => {
   it("logs the event with the newest price of each country and sends the embed", async () => {
     const { reporter, log, discord } = setup();
-    const ad = buildAd({ asin: "B000TEST01" });
+    const ad = buildAd({ asin: "B000TEST01", name: "Bosch drill" });
     const de = { code: "de", currencyCode: "EUR" };
     const uk = { code: "uk", currencyCode: "GBP" };
     const countryPrices = [
@@ -37,6 +37,7 @@ describe("AmazonPricingErrorReporter", () => {
       marketplace: "amazon",
       data: {
         asin: "B000TEST01",
+        name: "Bosch drill",
         prices: [
           { country: "de", value: "50", currency: "EUR" },
           { country: "uk", value: "40", currency: "GBP" },
