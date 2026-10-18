@@ -2,7 +2,6 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { AmazonAdSelectDto } from "@/dtos/amazon/AmazonAdDtos";
 import { AmazonAdPriceSelectDto } from "@/dtos/amazon/AmazonAdPriceDtos";
 import { AmazonAdCategorySelectDto } from "@/dtos/amazon/AmazonAdCategoryDtos";
-import { CountrySelectDto } from "@/dtos/currency/CountryDtos";
 import { CurrencySelectDto } from "@/dtos/currency/CurrencyDtos";
 import { CurrencyExchangeRateSelectDto } from "@/dtos/currency/CurrencyExchangeRateDtos";
 import { SearchRuleSelectDto } from "@/dtos/search-rule/SearchRuleDtos";
@@ -19,19 +18,6 @@ export const buildCurrency = (
   name: "Polish zloty",
   code: "PLN",
   symbol: "zł",
-  createdAt: FIXED_DATE,
-  updatedAt: FIXED_DATE,
-  ...overrides,
-});
-
-export const buildCountry = (
-  overrides: Partial<CountrySelectDto> = {}
-): CountrySelectDto => ({
-  id: nextId(),
-  name: "Poland",
-  code: "pl",
-  currencyId: buildCurrency().id,
-  active: true,
   createdAt: FIXED_DATE,
   updatedAt: FIXED_DATE,
   ...overrides,

@@ -6,6 +6,12 @@ import { seedCountry, seedCurrency } from "../../../support/integration/seed";
 const repository = new CountryRepository(prisma);
 
 describe("CountryRepository (MySQL)", () => {
+  it("rejects a repeated code with P2002", async () => {
+    await seedCountry({ code: "pl" });
+
+    await expect(seedCountry({ code: "pl" })).rejects.toMatchObject({ code: "P2002" });
+  });
+
   it("update changes the currency through the relation", async () => {
     const country = await seedCountry();
     const eur = await seedCurrency({ code: "EUR" });

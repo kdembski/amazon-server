@@ -41,6 +41,14 @@ describe("AmazonAdCategoryRepository (MySQL)", () => {
     });
   });
 
+  it("rejects a repeated name with P2002", async () => {
+    await seedCategory({ name: "audio" });
+
+    await expect(repository.create({ name: "audio" } as never)).rejects.toMatchObject({
+      code: "P2002",
+    });
+  });
+
   it("getById throws P2025 for a missing id and delete cascades to ads", async () => {
     await expect(repository.getById(999)).rejects.toMatchObject({ code: "P2025" });
 
