@@ -26,23 +26,11 @@ describe("CurrencyExchangeRateRepository (MySQL)", () => {
     expect(await repository.getByTargetCode("USD")).toEqual([]);
   });
 
-  it("getByTarget filters by target id", async () => {
-    const pln = await seedPln();
-    const eur = await seedCurrency({ code: "EUR" });
-    const toPln = await seedRate({ sourceId: eur.id, targetId: pln.id });
-    await seedRate({ sourceId: pln.id, targetId: eur.id });
-
-    expect((await repository.getByTarget(pln.id)).map((r) => r.id)).toEqual([toPln.id]);
-  });
-
-  it("getBySourceAndTarget and updateBySourceAndTarget use the composite key", async () => {
+  it("updateBySourceAndTarget uses the composite key", async () => {
     const pln = await seedPln();
     const eur = await seedCurrency({ code: "EUR" });
     const rate = await seedRate({ sourceId: eur.id, targetId: pln.id, value: 4.3 });
     const ids = { sourceId: eur.id, targetId: pln.id };
-
-    expect((await repository.getBySourceAndTarget(ids))?.id).toBe(rate.id);
-    expect(await repository.getBySourceAndTarget({ sourceId: pln.id, targetId: eur.id })).toBeNull();
 
     await repository.updateBySourceAndTarget(ids, { value: 4.5 });
 

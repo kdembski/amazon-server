@@ -4,6 +4,8 @@ import { ScraperStatusRouter } from "@/modules/monitoring/routes/ScraperStatusRo
 import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCronService";
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
 import { LogCleanupCronService } from "@/modules/monitoring/cron/LogCleanupCronService";
+import { LogService } from "@/modules/monitoring/services/LogService";
+import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 
 vi.mock("discord.js", async (importOriginal) => {
   const original = await importOriginal<typeof import("discord.js")>();
@@ -24,5 +26,24 @@ describe("createMonitoringModule", () => {
       DailyStatsCronService,
       LogCleanupCronService,
     ]);
+  });
+
+  it("passes the sections to the daily stats cron", async () => {
+    vi.stubEnv("DISCORD_LOGS_TOKEN", "t");
+    vi.spyOn(LogService.prototype, "getCountByEvent").mockResolvedValue(7);
+    const sendDaily = vi
+      .spyOn(DiscordLogService.prototype, "sendDaily")
+      .mockResolvedValue(undefined as never);
+    const field = { name: "Section", value: "x" };
+    const section = { getField: vi.fn().mockResolvedValue(field) };
+
+    const module = createMonitoringModule([section]);
+    const daily = module.crons!.find(
+      (c) => c instanceof DailyStatsCronService
+    ) as DailyStatsCronService;
+    await daily.run();
+
+    expect(section.getField).toHaveBeenCalledTimes(1);
+    expect(sendDaily).toHaveBeenCalledWith([field], 7);
   });
 });

@@ -73,7 +73,7 @@ describe("SearchRuleMatchService.sync", () => {
     await service.sync();
 
     expect(error).toHaveBeenCalledWith(
-      expect.stringContaining("SearchRuleMatchService: skipped search rule a++b:")
+      "SearchRuleMatchService: skipped search rule a++b: Error: Zasada **a++b** zawiera pusty fragment"
     );
     expect(targetA.matchSearchRules.mock.calls[0][0]("drill")).toBe(true);
     error.mockRestore();

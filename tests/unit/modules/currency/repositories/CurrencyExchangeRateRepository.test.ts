@@ -28,23 +28,13 @@ describe("CurrencyExchangeRateRepository", () => {
     const { repository, delegate } = setup();
 
     await repository.getById(1);
-    await repository.getBySourceAndTarget({ sourceId: 1, targetId: 2 });
-    await repository.getByTarget(2);
     await repository.getByTargetCode("PLN");
 
     expect(delegate.findUnique).toHaveBeenNthCalledWith(1, {
       where: { id: 1 },
       select,
     });
-    expect(delegate.findUnique).toHaveBeenNthCalledWith(2, {
-      where: { sourceId_targetId: { sourceId: 1, targetId: 2 } },
-      select,
-    });
-    expect(delegate.findMany).toHaveBeenNthCalledWith(1, {
-      where: { targetId: 2 },
-      select,
-    });
-    expect(delegate.findMany).toHaveBeenNthCalledWith(2, {
+    expect(delegate.findMany).toHaveBeenCalledWith({
       where: { target: { code: "PLN" } },
       select,
     });

@@ -67,7 +67,6 @@ export function fakeRequest(
   } as unknown as Request<any, any, any, any>;
 }
 
-
 export type RouteCall = { method: string; path?: string; handler: unknown };
 
 export function fakeRouter() {

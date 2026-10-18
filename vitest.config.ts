@@ -38,7 +38,6 @@ export default mergeConfig(
           "src/index.ts",
           "src/**/dtos/**",
           "src/**/interfaces/**",
-          "src/**/types/**",
           "src/declarations.d.ts",
         ],
         reporter: ["text", "html"],

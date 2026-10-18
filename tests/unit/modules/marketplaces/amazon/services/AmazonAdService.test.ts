@@ -88,13 +88,6 @@ describe("AmazonAdService.updatePrices", () => {
     const { service, repository, priceService, log, anomalyManager } = setup();
     const ad = buildAd({ id: 9 });
     repository.getById.mockResolvedValue(ad);
-    const plNewest = buildPrice();
-    const plOlder = buildPrice();
-    const deNewest = buildPrice();
-    priceService.getByAdAndCountry.mockResolvedValue([
-      [plNewest, plOlder],
-      [deNewest],
-    ]);
     const dtos = [
       { value: 1, adId: 9, countryId: 1, dispatchFrom: "Amazon" },
       { value: 2, adId: 9, countryId: 2, dispatchFrom: "Amazon" },

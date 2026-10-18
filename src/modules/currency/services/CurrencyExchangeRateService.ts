@@ -34,14 +34,6 @@ export class CurrencyExchangeRateService {
     this.plnRateCache = plnRateCache;
   }
 
-  getBySourceAndTarget(data: { sourceId: number; targetId: number }) {
-    return this.repository.getBySourceAndTarget(data);
-  }
-
-  getByTarget(targetId: number) {
-    return this.repository.getByTarget(targetId);
-  }
-
   getByTargetCode(targetCode: string) {
     return this.repository.getByTargetCode(targetCode);
   }

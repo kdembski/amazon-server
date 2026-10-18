@@ -8,8 +8,6 @@ import { resetSingleton } from "../../../../support/fakes";
 const setup = () => {
   const repository = {
     getById: vi.fn(),
-    getBySourceAndTarget: vi.fn().mockResolvedValue(null),
-    getByTarget: vi.fn().mockResolvedValue([]),
     getByTargetCode: vi.fn().mockResolvedValue([]),
     create: vi.fn().mockResolvedValue({}),
     update: vi.fn().mockResolvedValue({}),
@@ -27,14 +25,7 @@ describe("CurrencyExchangeRateService", () => {
 
   it("delegates reads", async () => {
     const { service, repository } = setup();
-    await service.getBySourceAndTarget({ sourceId: 1, targetId: 2 });
-    await service.getByTarget(2);
     await service.getByTargetCode("PLN");
-    expect(repository.getBySourceAndTarget).toHaveBeenCalledWith({
-      sourceId: 1,
-      targetId: 2,
-    });
-    expect(repository.getByTarget).toHaveBeenCalledWith(2);
     expect(repository.getByTargetCode).toHaveBeenCalledWith("PLN");
   });
 

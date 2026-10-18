@@ -72,7 +72,6 @@ describe("isGlobalExclusion", () => {
   });
 });
 
-
 describe("createSearchRuleMatcher", () => {
   it("matches whole words only by default", () => {
     const matches = matcher("hape", "tor");

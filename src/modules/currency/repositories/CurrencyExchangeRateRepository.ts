@@ -25,20 +25,6 @@ export class CurrencyExchangeRateRepository {
     });
   }
 
-  getBySourceAndTarget(data: { sourceId: number; targetId: number }) {
-    return this.delegate.findUnique({
-      where: { sourceId_targetId: data },
-      select: this.structure,
-    });
-  }
-
-  getByTarget(targetId: number) {
-    return this.delegate.findMany({
-      where: { targetId },
-      select: this.structure,
-    });
-  }
-
   getByTargetCode(targetCode: string) {
     return this.delegate.findMany({
       where: { target: { code: targetCode } },
