@@ -54,6 +54,15 @@ describe("/scrapers", () => {
     expect(await prisma.scraperMetric.count()).toBe(0);
   });
 
+  it("POST /:name/metrics rejects a 64 character scraper name with 400 and stores nothing", async () => {
+    await request(app)
+      .post(`/scrapers/${"n".repeat(64)}/metrics`)
+      .send(body())
+      .expect(400);
+
+    expect(await prisma.scraperMetric.count()).toBe(0);
+  });
+
   it("POST /:name/status no longer exists", async () => {
     await request(app)
       .post("/scrapers/amazon-pdp/status")

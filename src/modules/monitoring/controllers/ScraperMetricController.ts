@@ -18,8 +18,14 @@ export class ScraperMetricController {
     response: Response
   ) {
     try {
+      const { name } = request.params;
+      if (name.length < 1 || name.length > 63) {
+        throw new InvalidScraperMetricsError(
+          "scraper name must be a string of 1-63 characters"
+        );
+      }
       const dto = parseScraperMetrics(request.body);
-      const stored = await this.service.add(request.params.name, dto);
+      const stored = await this.service.add(name, dto);
       response.json({ stored });
     } catch (error: any) {
       if (error instanceof InvalidScraperMetricsError) {

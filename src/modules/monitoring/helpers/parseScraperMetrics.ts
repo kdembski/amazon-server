@@ -33,6 +33,23 @@ const requireString = (
 const optionalString = (value: unknown, field: string, max: number) =>
   value === undefined ? undefined : requireString(value, field, 0, max);
 
+const isMarketplace = (value: unknown): value is Marketplace =>
+  Object.values<unknown>(Marketplace).includes(value);
+
+const MIN_PERIOD_START = Date.parse("1970-01-01T00:00:01.000Z");
+const MAX_PERIOD_START = Date.parse("2038-01-19T03:14:07.000Z");
+
+const isValidPeriodStart = (value: unknown): value is string => {
+  if (typeof value !== "string") return false;
+  const time = Date.parse(value);
+  return (
+    !Number.isNaN(time) &&
+    new Date(time).toISOString() === value &&
+    time >= MIN_PERIOD_START &&
+    time <= MAX_PERIOD_START
+  );
+};
+
 const parseMetric = (item: unknown): ScraperMetricDto => {
   if (!isRecord(item)) {
     throw new InvalidScraperMetricsError("metrics must contain objects");
@@ -59,16 +76,15 @@ export function parseScraperMetrics(body: unknown): ScraperMetricsDto {
     throw new InvalidScraperMetricsError("body must be an object");
   }
   const { marketplace, flow, periodStart, metrics } = body;
-  if (!Object.values(Marketplace).includes(marketplace as Marketplace)) {
+  if (!isMarketplace(marketplace)) {
     throw new InvalidScraperMetricsError(
       `marketplace must be one of: ${Object.values(Marketplace).join(", ")}`
     );
   }
-  if (
-    typeof periodStart !== "string" ||
-    Number.isNaN(new Date(periodStart).getTime())
-  ) {
-    throw new InvalidScraperMetricsError("periodStart must be an ISO date");
+  if (!isValidPeriodStart(periodStart)) {
+    throw new InvalidScraperMetricsError(
+      "periodStart must be an ISO 8601 UTC timestamp between 1970-01-01T00:00:01.000Z and 2038-01-19T03:14:07.000Z"
+    );
   }
   if (!Array.isArray(metrics) || metrics.length > MAX_METRICS) {
     throw new InvalidScraperMetricsError(
@@ -76,7 +92,7 @@ export function parseScraperMetrics(body: unknown): ScraperMetricsDto {
     );
   }
   return {
-    marketplace: marketplace as string,
+    marketplace,
     flow: requireString(flow, "flow", 1, 15),
     periodStart,
     metrics: metrics.map(parseMetric),

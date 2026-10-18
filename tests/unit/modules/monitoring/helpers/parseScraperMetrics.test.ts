@@ -24,6 +24,15 @@ describe("parseScraperMetrics", () => {
     expect(parseScraperMetrics(valid())).toEqual(valid());
   });
 
+  it.each(["1970-01-01T00:00:01.000Z", "2038-01-19T03:14:07.000Z"])(
+    "accepts periodStart %s at the TIMESTAMP range edge",
+    (periodStart) => {
+      expect(parseScraperMetrics({ ...valid(), periodStart }).periodStart).toBe(
+        periodStart
+      );
+    }
+  );
+
   it("accepts an empty metrics array", () => {
     const body = { ...valid(), metrics: [] };
 
@@ -61,6 +70,17 @@ describe("parseScraperMetrics", () => {
     ["16 char flow", { ...valid(), flow: "f".repeat(16) }],
     ["invalid periodStart", { ...valid(), periodStart: "yesterday" }],
     ["non-string periodStart", { ...valid(), periodStart: 5 }],
+    ["numeric string periodStart", { ...valid(), periodStart: "5" }],
+    ["non-ISO periodStart", { ...valid(), periodStart: "Oct 18 2026" }],
+    ["date-only periodStart", { ...valid(), periodStart: "2026-10-18" }],
+    [
+      "periodStart before TIMESTAMP range",
+      { ...valid(), periodStart: "1969-12-31T23:59:59.000Z" },
+    ],
+    [
+      "periodStart after TIMESTAMP range",
+      { ...valid(), periodStart: "2040-01-01T00:00:00.000Z" },
+    ],
     ["empty metric", withMetric({ metric: "" })],
     ["64 char metric", withMetric({ metric: "m".repeat(64) })],
     ["8 char country", withMetric({ country: "c".repeat(8) })],

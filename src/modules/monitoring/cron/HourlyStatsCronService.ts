@@ -32,13 +32,17 @@ export class HourlyStatsCronService {
       this.getCount("pricing_error_sent"),
     ];
 
-    const now = new Date();
-    const hoursBefore = new Date();
-    hoursBefore.setHours(hoursBefore.getHours() - 1);
+    const to = new Date();
+    to.setMinutes(0, 0, 0);
+    to.setTime(to.getTime() - 90_000);
+    const from = new Date(to.getTime() - 3_600_000);
 
     const [resolvedCounts, summaries] = await Promise.all([
       Promise.all(counts),
-      this.metricService.getSummaries(hoursBefore, now),
+      this.metricService.getSummaries(from, to).catch((error) => {
+        console.error(error);
+        return [];
+      }),
     ]);
     await this.discordService.sendHourly(resolvedCounts, summaries);
   }

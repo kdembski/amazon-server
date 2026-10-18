@@ -51,7 +51,9 @@ describe("HourlyStatsCronService (MySQL)", () => {
     };
 
     it("is built from the metrics of the last hour", async () => {
-      const periodStart = minutesAgo(10);
+      const windowEnd = new Date();
+      windowEnd.setMinutes(0, 0, 0);
+      const periodStart = new Date(windowEnd.getTime() - 90_000 - 10 * 60_000);
       await seedScraperMetric({ metric: "items", outcome: "data", value: 720, periodStart });
       await seedScraperMetric({ metric: "requests", outcome: "ok", value: 1000, periodStart });
       await seedScraperMetric({ metric: "pending", value: 42, periodStart });

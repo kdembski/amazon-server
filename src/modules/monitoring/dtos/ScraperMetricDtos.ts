@@ -1,3 +1,5 @@
+import { Marketplace } from "@prisma/client";
+
 export interface ScraperMetricDto {
   metric: string;
   country?: string;
@@ -6,7 +8,7 @@ export interface ScraperMetricDto {
 }
 
 export interface ScraperMetricsDto {
-  marketplace: string;
+  marketplace: Marketplace;
   flow: string;
   periodStart: string;
   metrics: ScraperMetricDto[];

@@ -1,5 +1,5 @@
 import { ScraperMetricsDto } from "@/modules/monitoring/dtos/ScraperMetricDtos";
-import { Marketplace, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 export class ScraperMetricCreateMapper {
   toCreateInputs(
@@ -11,7 +11,7 @@ export class ScraperMetricCreateMapper {
 
     return dto.metrics.map((item) => ({
       scraper,
-      marketplace: dto.marketplace as Marketplace,
+      marketplace: dto.marketplace,
       flow: dto.flow,
       metric: item.metric,
       country: item.country ?? null,

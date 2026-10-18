@@ -79,7 +79,8 @@ describe("HourlyStatsCronService", () => {
     );
   });
 
-  it("passes the scraper summaries of the last hour as the second argument", async () => {
+  it("passes the scraper summaries of the hour ending 90 s before the full hour as the second argument", async () => {
+    vi.setSystemTime(new Date(2026, 5, 1, 11, 0, 0, 50));
     const { service, sendHourly, metrics } = setup();
     const summaries = [{ scraper: "amazon-pdp" }];
     metrics.getSummaries.mockResolvedValue(summaries);
@@ -87,9 +88,37 @@ describe("HourlyStatsCronService", () => {
     await service.run();
 
     expect(metrics.getSummaries).toHaveBeenCalledWith(
-      new Date("2026-06-01T09:00:00Z"),
-      new Date("2026-06-01T10:00:00Z")
+      new Date(2026, 5, 1, 9, 58, 30, 0),
+      new Date(2026, 5, 1, 10, 58, 30, 0)
     );
     expect(sendHourly).toHaveBeenCalledWith(expect.any(Array), summaries);
+  });
+
+  it("uses the same summaries window when the clock is not exactly on the hour", async () => {
+    vi.setSystemTime(new Date(2026, 5, 1, 11, 0, 7, 0));
+    const { service, metrics } = setup();
+
+    await service.run();
+
+    expect(metrics.getSummaries).toHaveBeenCalledWith(
+      new Date(2026, 5, 1, 9, 58, 30, 0),
+      new Date(2026, 5, 1, 10, 58, 30, 0)
+    );
+  });
+
+  it("still sends the hourly report with empty summaries when getSummaries rejects", async () => {
+    const { service, sendHourly, log, metrics } = setup();
+    log.getCount.mockResolvedValue(4);
+    const error = new Error("db down");
+    metrics.getSummaries.mockRejectedValue(error);
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    await service.run();
+
+    expect(consoleError).toHaveBeenCalledWith(error);
+    expect(sendHourly).toHaveBeenCalledWith(Array(8).fill(4), []);
+    consoleError.mockRestore();
   });
 });

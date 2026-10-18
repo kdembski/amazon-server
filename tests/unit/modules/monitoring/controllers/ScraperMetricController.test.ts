@@ -48,6 +48,23 @@ describe("ScraperMetricController", () => {
     expect(json).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["empty", ""],
+    ["64 character", "n".repeat(64)],
+  ])("answers 400 and stores nothing for an %s scraper name", async (_label, name) => {
+    const { controller, add } = setup();
+    const { response, status, send } = fakeResponse();
+
+    await controller.addMetrics(
+      fakeRequest({ params: { name }, body }),
+      response
+    );
+
+    expect(status).toHaveBeenCalledWith(400);
+    expect(send).toHaveBeenCalledWith(expect.stringContaining("1-63"));
+    expect(add).not.toHaveBeenCalled();
+  });
+
   it("sends an error response when the service throws", async () => {
     const { controller, add } = setup();
     add.mockRejectedValue(new Error("a"));

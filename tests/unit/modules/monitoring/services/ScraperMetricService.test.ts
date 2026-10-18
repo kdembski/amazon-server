@@ -1,3 +1,4 @@
+import { Marketplace } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
 import { ScraperMetricRepository } from "@/modules/monitoring/repositories/ScraperMetricRepository";
@@ -24,7 +25,7 @@ const setup = () => {
 };
 
 const dto = (metrics: { metric: string; value: number }[]) => ({
-  marketplace: "amazon",
+  marketplace: "amazon" as Marketplace,
   flow: "pdp",
   periodStart: "2026-10-18T10:00:00.000Z",
   metrics,
