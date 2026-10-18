@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CronJob } from "cron";
 import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCronService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
-import { fakeActivityEventService } from "../../../../support/fakes";
+import {
+  fakeActivityEventService,
+  fakeScraperMetricService,
+} from "../../../../support/fakes";
 
 vi.mock("cron", () => ({
   CronJob: vi.fn(function () {
@@ -24,11 +27,13 @@ const COUNTS: [string, string?][] = [
 const setup = () => {
   const sendHourly = vi.fn();
   const log = fakeActivityEventService();
+  const metrics = fakeScraperMetricService();
   const service = new HourlyStatsCronService(
     { sendHourly } as unknown as DiscordLogService,
-    log.service
+    log.service,
+    metrics.service
   );
-  return { service, sendHourly, log };
+  return { service, sendHourly, log, metrics };
 };
 
 describe("HourlyStatsCronService", () => {
@@ -68,6 +73,23 @@ describe("HourlyStatsCronService", () => {
     COUNTS.forEach(([type, channel]) =>
       expect(log.getCount).toHaveBeenCalledWith(type, from, to, channel)
     );
-    expect(sendHourly).toHaveBeenCalledWith([0, 10, 20, 30, 40, 50, 60, 70]);
+    expect(sendHourly).toHaveBeenCalledWith(
+      [0, 10, 20, 30, 40, 50, 60, 70],
+      []
+    );
+  });
+
+  it("passes the scraper summaries of the last hour as the second argument", async () => {
+    const { service, sendHourly, metrics } = setup();
+    const summaries = [{ scraper: "amazon-pdp" }];
+    metrics.getSummaries.mockResolvedValue(summaries);
+
+    await service.run();
+
+    expect(metrics.getSummaries).toHaveBeenCalledWith(
+      new Date("2026-06-01T09:00:00Z"),
+      new Date("2026-06-01T10:00:00Z")
+    );
+    expect(sendHourly).toHaveBeenCalledWith(expect.any(Array), summaries);
   });
 });

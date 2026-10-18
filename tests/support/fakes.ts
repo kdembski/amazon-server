@@ -22,8 +22,13 @@ export function fakeActivityEventService() {
 export function fakeScraperMetricService() {
   const add = vi.fn().mockResolvedValue(0);
   const deleteOlderThan = vi.fn().mockResolvedValue(0);
-  const service = { add, deleteOlderThan } as unknown as ScraperMetricService;
-  return { service, add, deleteOlderThan };
+  const getSummaries = vi.fn().mockResolvedValue([]);
+  const service = {
+    add,
+    deleteOlderThan,
+    getSummaries,
+  } as unknown as ScraperMetricService;
+  return { service, add, deleteOlderThan, getSummaries };
 }
 
 export function fakeAmazonConversionErrorDiscordService() {
