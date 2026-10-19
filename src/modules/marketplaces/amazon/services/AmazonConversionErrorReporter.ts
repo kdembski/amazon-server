@@ -5,7 +5,7 @@ import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/A
 import { AmazonConversionErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorDiscordService";
 import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 
-const SCRAPING_DELAY_HOURS = 24;
+const SCRAPING_DELAY_HOURS = 72;
 
 export class AmazonConversionErrorReporter
   implements ConversionErrorReporter<AmazonAdSelectDto>

@@ -47,12 +47,12 @@ describe("AmazonConversionErrorReporter", () => {
     expect(discord.send).toHaveBeenCalledWith(ad, prices);
   });
 
-  it("delays the next scraping of the ad by 24 hours", async () => {
+  it("delays the next scraping of the ad by 72 hours", async () => {
     const { reporter, ads } = setup();
     const ad = buildAd();
 
     await reporter.report(ad, [buildListingPrice()], "1");
 
-    expect(ads.delayScraping).toHaveBeenCalledWith(ad.id, 24);
+    expect(ads.delayScraping).toHaveBeenCalledWith(ad.id, 72);
   });
 });
