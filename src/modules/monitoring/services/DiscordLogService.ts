@@ -50,7 +50,7 @@ export class DiscordLogService {
 
     if (summaries.length) {
       fields.push({
-        name: `Scrapers *(${this.getSpeedSum(summaries)}/s)*`,
+        name: "Scrapers",
         value: this.getScrapersValue(summaries),
       });
     }
@@ -92,9 +92,10 @@ export class DiscordLogService {
   }
 
   private getSpeedIcon(speed: number) {
-    if (speed <= 0.1) return "<:rd:1345009441191362613>";
-    if (speed <= 1) return "<:yw:1345009442579681291>";
-    return "<:gn:1345009439916294154>";
+    // 0.05 is the lowest speed rendered as 0.1/s
+    return speed >= 0.05
+      ? "<:gn:1345009439916294154>"
+      : "<:rd:1345009441191362613>";
   }
 
   private getSpeedDiff(diff: number) {
@@ -109,12 +110,6 @@ export class DiscordLogService {
     return `${getSpacing(3)}-${getSpacing(3)}`;
   }
 
-  private getSpeedSum(summaries: ScraperMetricSummary[]) {
-    return roundToOneDecimal(
-      summaries.reduce((sum, { itemsPerSecond }) => sum + itemsPerSecond, 0)
-    );
-  }
-
   private getScrapersValue(summaries: ScraperMetricSummary[]) {
     const content = summaries
       .map((summary) => {
@@ -123,7 +118,6 @@ export class DiscordLogService {
         return [
           `${this.getSpeedIcon(itemsPerSecond)} ${summary.scraper}`,
           `**${roundToOneDecimal(itemsPerSecond)}/s** ${this.getSpeedDiff(itemsPerSecondDiff)} ${this.getSpeedDiffIcon(itemsPerSecondDiff)}`,
-          summary.pending === null ? "-" : addSeparators(summary.pending),
         ].join(getSpacing(4));
       })
       .join("\n");

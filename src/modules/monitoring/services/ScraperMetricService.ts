@@ -31,10 +31,9 @@ export class ScraperMetricService {
     const previousFrom = new Date(
       from.getTime() - (to.getTime() - from.getTime())
     );
-    const [current, previous, pending] = await Promise.all([
+    const [current, previous] = await Promise.all([
       this.repository.sumByScraper(from, to),
       this.repository.sumByScraper(previousFrom, from),
-      this.repository.latestByScraper("pending", from, to),
     ]);
 
     const currentByScraper = _.groupBy(current, "scraper");
@@ -65,7 +64,6 @@ export class ScraperMetricService {
           scraper,
           itemsPerSecond,
           itemsPerSecondDiff: itemsPerSecond - previousItemsPerSecond,
-          pending: pending[scraper] ?? null,
           requests,
           wastedPercent: requests > 0 ? (wasted / requests) * 100 : 0,
           captchaPercent:

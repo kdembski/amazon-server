@@ -77,27 +77,4 @@ describe("ScraperMetricRepository", () => {
       _sum: { value: true },
     });
   });
-
-  it("latestByScraper takes the newest value of each scraper", async () => {
-    const db = fakePrisma();
-    db.scraperMetric.findMany.mockResolvedValue([
-      { scraper: "amazon-pdp", value: 210 },
-      { scraper: "amazon-plp", value: 3 },
-      { scraper: "amazon-pdp", value: 100 },
-    ]);
-    const repository = new ScraperMetricRepository(db.prisma);
-    const from = new Date(0);
-    const to = new Date(10);
-
-    expect(await repository.latestByScraper("pending", from, to)).toEqual({
-      "amazon-pdp": 210,
-      "amazon-plp": 3,
-    });
-
-    expect(db.scraperMetric.findMany).toHaveBeenCalledWith({
-      where: { metric: "pending", periodStart: { gte: from, lt: to } },
-      orderBy: { periodStart: "desc" },
-      select: { scraper: true, value: true },
-    });
-  });
 });

@@ -7,7 +7,6 @@ import { fakeDiscordService } from "../../../../support/fakes";
 
 const SP4 = getSpacing(4);
 const RED = "<:rd:1345009441191362613>";
-const YELLOW = "<:yw:1345009442579681291>";
 const GREEN = "<:gn:1345009439916294154>";
 const UP = "<:au:1369710756358258748>";
 const DOWN = "<:ad:1369710758241374219>";
@@ -20,7 +19,6 @@ const summary = (
   scraper: "amazon-pdp",
   itemsPerSecond: 24.3,
   itemsPerSecondDiff: 0.12,
-  pending: 210,
   requests: 1008000,
   wastedPercent: 4.2,
   captchaPercent: 1.1,
@@ -83,52 +81,37 @@ describe("DiscordLogService.sendHourly", () => {
     });
   });
 
-  it("renders a speed sum header and one line per scraper between Channels and Server", async () => {
+  it("renders one line per scraper between Channels and Server", async () => {
     const { service, lastEmbed } = setup();
 
     await service.sendHourly(COUNTS, [
       summary(),
       summary({
         scraper: "amazon-plp",
-        itemsPerSecond: 0.5,
+        itemsPerSecond: 0.06,
         itemsPerSecondDiff: 0.005,
-        pending: 1500,
       }),
     ]);
 
-    expect(fieldNames(lastEmbed())).toEqual([
-      "Channels",
-      "Scrapers *(24.8/s)*",
-      "Server",
-    ]);
+    expect(fieldNames(lastEmbed())).toEqual(["Channels", "Scrapers", "Server"]);
     expect(lastEmbed().fields[1].value).toBe(
       [
-        [`${GREEN} amazon-pdp`, `**24.3/s** *(+0.12)* ${UP}`, "210"].join(SP4),
-        [`${YELLOW} amazon-plp`, `**0.5/s** *(0.00)* ${FLAT}`, "1 500"].join(
-          SP4
-        ),
+        [`${GREEN} amazon-pdp`, `**24.3/s** *(+0.12)* ${UP}`].join(SP4),
+        [`${GREEN} amazon-plp`, `**0.1/s** *(0.00)* ${FLAT}`].join(SP4),
       ].join("\n")
     );
   });
 
-  it("renders the red icon and a negative diff with the down icon", async () => {
+  it("renders the red icon when the speed rounds to 0 and a negative diff with the down icon", async () => {
     const { service, lastEmbed } = setup();
 
     await service.sendHourly(COUNTS, [
-      summary({ itemsPerSecond: 0.08, itemsPerSecondDiff: -0.05 }),
+      summary({ itemsPerSecond: 0.04, itemsPerSecondDiff: -0.05 }),
     ]);
 
-    expect(lastEmbed().fields[1].value.split("\n")[0]).toBe(
-      [`${RED} amazon-pdp`, `**0.1/s** *(-0.05)* ${DOWN}`, "210"].join(SP4)
+    expect(lastEmbed().fields[1].value).toBe(
+      [`${RED} amazon-pdp`, `**0.0/s** *(-0.05)* ${DOWN}`].join(SP4)
     );
-  });
-
-  it("renders - for missing pending", async () => {
-    const { service, lastEmbed } = setup();
-
-    await service.sendHourly(COUNTS, [summary({ pending: null })]);
-
-    expect(lastEmbed().fields[1].value.endsWith(`${SP4}-`)).toBe(true);
   });
 
   it("omits the Scrapers field without summaries", async () => {
