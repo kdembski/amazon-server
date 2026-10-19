@@ -1,5 +1,8 @@
 import { AmazonSearchRuleCreateDto } from "@/modules/marketplaces/amazon/dtos/AmazonSearchRuleDtos";
-import { validateSearchRule } from "@/modules/search-rules/helpers/searchRule";
+import {
+  validateSearchRule,
+  validateSearchRuleScope,
+} from "@/modules/search-rules/helpers/searchRule";
 import { ToCreateInputMapperI } from "@/shared/crud/interfaces/CRUDMapper";
 import { Prisma } from "@prisma/client";
 
@@ -13,7 +16,7 @@ export class AmazonSearchRuleCreateMapper
   toCreateInput(dto: AmazonSearchRuleCreateDto) {
     return {
       value: validateSearchRule(dto.value),
-      categoryId: dto.categoryId ?? null,
+      categoryId: validateSearchRuleScope(dto.categoryId) ?? null,
       createdAt: new Date(Date.now()),
     };
   }

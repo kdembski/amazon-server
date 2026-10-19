@@ -1,5 +1,8 @@
 import { AmazonSearchRuleUpdateDto } from "@/modules/marketplaces/amazon/dtos/AmazonSearchRuleDtos";
-import { validateSearchRule } from "@/modules/search-rules/helpers/searchRule";
+import {
+  validateSearchRule,
+  validateSearchRuleScope,
+} from "@/modules/search-rules/helpers/searchRule";
 import { ToUpdateInputMapperI } from "@/shared/crud/interfaces/CRUDMapper";
 import { Prisma } from "@prisma/client";
 
@@ -13,7 +16,7 @@ export class AmazonSearchRuleUpdateMapper
   toUpdateInput(dto: AmazonSearchRuleUpdateDto) {
     return {
       value: dto.value === undefined ? undefined : validateSearchRule(dto.value),
-      categoryId: dto.categoryId,
+      categoryId: validateSearchRuleScope(dto.categoryId),
     };
   }
 }

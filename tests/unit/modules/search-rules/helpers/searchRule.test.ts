@@ -5,6 +5,7 @@ import {
   isGlobalExclusion,
   parseSearchRule,
   validateSearchRule,
+  validateSearchRuleScope,
 } from "@/modules/search-rules/helpers/searchRule";
 
 const word = (text: string) => ({ text, wordStart: true, wordEnd: true });
@@ -186,6 +187,21 @@ describe("validateSearchRule", () => {
     "rejects %j with status 400",
     (value) => {
       expect(() => validateSearchRule(value)).toThrow(
+        expect.objectContaining({ status: 400 })
+      );
+    }
+  );
+});
+
+describe("validateSearchRuleScope", () => {
+  it.each([[undefined], [null], [12]])("accepts %j", (scope) => {
+    expect(validateSearchRuleScope(scope)).toBe(scope);
+  });
+
+  it.each([["12"], [1.5], [true], [0], [-1]])(
+    "rejects %j with status 400",
+    (scope) => {
+      expect(() => validateSearchRuleScope(scope)).toThrow(
         expect.objectContaining({ status: 400 })
       );
     }

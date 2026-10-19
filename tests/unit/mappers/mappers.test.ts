@@ -282,3 +282,17 @@ describe("AmazonSearchRule mappers", () => {
     ).toThrow(expect.objectContaining({ status: 400 }));
   });
 });
+
+describe("AmazonSearchRule mappers categoryId", () => {
+  it("reject a non-integer categoryId with status 400", () => {
+    expect(() =>
+      new AmazonSearchRuleCreateMapper().toCreateInput({
+        value: "sony",
+        categoryId: "12" as any,
+      })
+    ).toThrow(expect.objectContaining({ status: 400 }));
+    expect(() =>
+      new AmazonSearchRuleUpdateMapper().toUpdateInput({ categoryId: 1.5 })
+    ).toThrow(expect.objectContaining({ status: 400 }));
+  });
+});

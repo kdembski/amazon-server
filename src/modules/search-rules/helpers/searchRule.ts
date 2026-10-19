@@ -148,3 +148,15 @@ export const validateSearchRule = (value: unknown) => {
   }
   return trimmed;
 };
+
+export const validateSearchRuleScope = (scope: unknown) => {
+  if (scope === undefined || scope === null) return scope;
+  if (!Number.isInteger(scope) || (scope as number) < 1) {
+    throw invalid(
+      new Error(
+        `Search rule scope ${JSON.stringify(scope)} must be a positive integer`
+      )
+    );
+  }
+  return scope as number;
+};
