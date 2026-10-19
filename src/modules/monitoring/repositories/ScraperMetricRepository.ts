@@ -44,22 +44,6 @@ export class ScraperMetricRepository {
     }));
   }
 
-  async latestByScraper(metric: string, from: Date, to: Date) {
-    const rows = await this.delegate.findMany({
-      where: { metric, periodStart: { gte: from, lt: to } },
-      orderBy: { periodStart: "desc" },
-      select: { scraper: true, value: true },
-    });
-
-    const latest: Record<string, number> = {};
-    for (const row of rows) {
-      if (!(row.scraper in latest)) {
-        latest[row.scraper] = row.value;
-      }
-    }
-    return latest;
-  }
-
   async deleteOlderThan(date: Date, batchSize = 10_000) {
     let total = 0;
     let deleted;

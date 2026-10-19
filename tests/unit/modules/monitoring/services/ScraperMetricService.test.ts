@@ -9,7 +9,6 @@ const setup = () => {
     createMany: vi.fn().mockResolvedValue(2),
     deleteOlderThan: vi.fn().mockResolvedValue(7),
     sumByScraper: vi.fn().mockResolvedValue([]),
-    latestByScraper: vi.fn().mockResolvedValue({}),
   };
   const mapper = {
     toCreateInputs: vi.fn().mockReturnValue([{ a: 1 }, { a: 2 }]),
@@ -100,41 +99,28 @@ describe("ScraperMetricService", () => {
       sum("item_attempts", "given_up", 75, scraper),
     ];
 
-    const arrange = (
-      current: Sum[],
-      earlier: Sum[],
-      pending: Record<string, number> = {}
-    ) => {
+    const arrange = (current: Sum[], earlier: Sum[]) => {
       const ctx = setup();
       ctx.repository.sumByScraper.mockImplementation(async (f: Date) =>
         f.getTime() === from.getTime() ? current : earlier
       );
-      ctx.repository.latestByScraper.mockResolvedValue(pending);
       return ctx;
     };
 
     it("computes the KPIs of the window against the previous window", async () => {
-      const { service, repository } = arrange(
-        currentSums(),
-        [sum("items", "data", 720)],
-        { "amazon-pdp": 210 }
-      );
+      const { service, repository } = arrange(currentSums(), [
+        sum("items", "data", 720),
+      ]);
 
       const result = await service.getSummaries(from, to);
 
       expect(repository.sumByScraper).toHaveBeenCalledWith(from, to);
       expect(repository.sumByScraper).toHaveBeenCalledWith(previous, from);
-      expect(repository.latestByScraper).toHaveBeenCalledWith(
-        "pending",
-        from,
-        to
-      );
       expect(result).toHaveLength(1);
       const summary = result[0];
       expect(summary.scraper).toBe("amazon-pdp");
       expect(summary.itemsPerSecond).toBeCloseTo(860 / 3600);
       expect(summary.itemsPerSecondDiff).toBeCloseTo(140 / 3600);
-      expect(summary.pending).toBe(210);
       expect(summary.requests).toBe(1000);
       expect(summary.wastedPercent).toBeCloseTo(12);
       expect(summary.captchaPercent).toBeCloseTo(4);
@@ -149,7 +135,6 @@ describe("ScraperMetricService", () => {
       const [summary] = await service.getSummaries(from, to);
 
       expect(summary.itemsPerSecondDiff).toBeCloseTo(summary.itemsPerSecond);
-      expect(summary.pending).toBeNull();
     });
 
     it("omits scrapers that only exist in the previous window", async () => {
@@ -167,7 +152,6 @@ describe("ScraperMetricService", () => {
         scraper: "amazon-pdp",
         itemsPerSecond: 0,
         itemsPerSecondDiff: 0,
-        pending: null,
         requests: 0,
         wastedPercent: 0,
         captchaPercent: 0,

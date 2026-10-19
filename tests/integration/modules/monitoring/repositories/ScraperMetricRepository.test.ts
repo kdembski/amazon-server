@@ -50,20 +50,6 @@ describe("ScraperMetricRepository (MySQL)", () => {
     );
   });
 
-  it("latestByScraper returns the value of the latest periodStart per scraper", async () => {
-    await seedScraperMetric({ metric: "pending", value: 1, periodStart: minute(1) });
-    await seedScraperMetric({ metric: "pending", value: 3, periodStart: minute(3) });
-    await seedScraperMetric({ metric: "pending", value: 2, periodStart: minute(2) });
-    await seedScraperMetric({ metric: "pending", value: 8, periodStart: minute(4), scraper: "amazon-plp" });
-    await seedScraperMetric({ metric: "pending", value: 99, periodStart: minute(60) });
-    await seedScraperMetric({ metric: "requests", value: 5, periodStart: minute(5) });
-
-    expect(await repository.latestByScraper("pending", minute(0), minute(60))).toEqual({
-      "amazon-pdp": 3,
-      "amazon-plp": 8,
-    });
-  });
-
   it("deleteOlderThan removes rows with periodStart strictly before the date across batches", async () => {
     await seedScraperMetric({ periodStart: minute(0) });
     await seedScraperMetric({ periodStart: minute(1) });

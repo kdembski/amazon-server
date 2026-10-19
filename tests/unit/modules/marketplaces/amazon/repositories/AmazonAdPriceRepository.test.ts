@@ -45,31 +45,29 @@ describe("AmazonAdPriceRepository", () => {
     });
   });
 
-  it("getByAdAndCountry takes the 5 newest prices and groups them per country preserving order", async () => {
+  it("getByAdAndCountry takes the 5 newest prices of each country and skips countries without prices", async () => {
     const { repository, delegate } = setup();
     const pl = buildPriceCountry({ id: 1 });
     const de = buildPriceCountry({ id: 2 });
     const pl1 = buildPrice({ country: pl });
-    const de1 = buildPrice({ country: de });
     const pl2 = buildPrice({ country: pl });
-    delegate.findMany.mockResolvedValue([pl1, de1, pl2]);
+    const de1 = buildPrice({ country: de });
+    delegate.findMany
+      .mockResolvedValueOnce([pl1, pl2])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([de1]);
 
-    const result = await repository.getByAdAndCountry(9, [1, 2]);
+    const result = await repository.getByAdAndCountry(9, [1, 3, 2]);
 
-    expect(delegate.findMany).toHaveBeenCalledWith({
-      where: { adId: 9, countryId: { in: [1, 2] } },
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      select: structure,
-    });
+    for (const countryId of [1, 3, 2]) {
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        where: { adId: 9, countryId },
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        select: structure,
+      });
+    }
     expect(result).toEqual([[pl1, pl2], [de1]]);
-  });
-
-  it("getByAdAndCountry returns an empty list when there are no prices", async () => {
-    const { repository, delegate } = setup();
-    delegate.findMany.mockResolvedValue([]);
-
-    await expect(repository.getByAdAndCountry(9, [1])).resolves.toEqual([]);
   });
 
   it("create, update and delete delegate to prisma", async () => {

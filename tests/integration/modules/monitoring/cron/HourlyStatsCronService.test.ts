@@ -56,14 +56,12 @@ describe("HourlyStatsCronService (MySQL)", () => {
       const periodStart = new Date(windowEnd.getTime() - 90_000 - 10 * 60_000);
       await seedScraperMetric({ metric: "items", outcome: "data", value: 720, periodStart });
       await seedScraperMetric({ metric: "requests", outcome: "ok", value: 1000, periodStart });
-      await seedScraperMetric({ metric: "pending", value: 42, periodStart });
 
       const fields = await runWithRealReport();
 
-      const scrapers = fields.find((f) => f.name.startsWith("Scrapers"));
-      expect(scrapers?.name).toBe("Scrapers *(0.2/s)*");
+      const scrapers = fields.find((f) => f.name === "Scrapers");
       expect(scrapers?.value).toContain("amazon-pdp");
-      expect(scrapers?.value).toContain("42");
+      expect(scrapers?.value).toContain("**0.2/s**");
     });
 
     it("is absent without metrics", async () => {

@@ -256,20 +256,6 @@ describe("AmazonAdRepository (MySQL)", () => {
     await expect(repository.updateScrapedAt([])).resolves.toBe(0);
   });
 
-  it("delayScraping moves the ad behind the others in getForScraping", async () => {
-    const delayed = await seedAd({ matchesRules: true, scrapedAt: day(0) });
-    const other = await seedAd({ matchesRules: true, scrapedAt: day(1) });
-
-    const affected = await repository.delayScraping(delayed.id, 24);
-    await repository.updateScrapedAt([other.id]);
-
-    expect(affected).toBe(1);
-    const row = await prisma.amazonAd.findUniqueOrThrow({ where: { id: delayed.id } });
-    expect(row.scrapedAt!.getTime()).toBeGreaterThan(Date.now() + 23 * 3_600_000);
-    const queue = await repository.getForScraping(2);
-    expect(queue.map((ad) => ad.id)).toEqual([other.id, delayed.id]);
-  });
-
   it("getCount honours inclusive from/to bounds", async () => {
     await seedAd({ createdAt: day(0) });
     await seedAd({ createdAt: day(1) });

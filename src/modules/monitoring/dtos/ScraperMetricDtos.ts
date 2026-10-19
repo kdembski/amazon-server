@@ -25,7 +25,6 @@ export interface ScraperMetricSummary {
   scraper: string;
   itemsPerSecond: number;
   itemsPerSecondDiff: number;
-  pending: number | null;
   requests: number;
   wastedPercent: number;
   captchaPercent: number;

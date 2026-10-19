@@ -33,8 +33,8 @@ with the production matcher before applying it.
 ## Demand
 
 Target products with demand above the category average, not only bestsellers. Demand signals on amazon.pl
-listings: review count, "X+ kupionych w ciągu ostatniego miesiąca", price, and presence in category
-bestsellers. Sample each category from several sources:
+listings: review count, "X+ kupionych w ciągu ostatniego miesiąca" and presence in category bestsellers.
+The quality floor is the star rating ("4,5 z 5 gwiazdek"). Sample each category from several sources:
 
 | Source | URL |
 |---|---|
@@ -43,7 +43,7 @@ bestsellers. Sample each category from several sources:
 | Bestsellers | `https://www.amazon.pl/gp/bestsellers/<root>/<node id>` (`?pg=2` for ranks 51–100) |
 
 Child categories come from a bestsellers page sidebar (`child-nodes.js`). Agree the demand floors with the
-user when they differ from the defaults (60 zł, 100 reviews or 50 bought per month).
+user when they differ from the defaults (rating at least 4, and 100 reviews or 50 bought per month).
 
 ## Tools
 
@@ -56,9 +56,9 @@ script as plain `.js` (ESM) or `.sh`.
 K=.claude/skills/search-rules/scripts
 bash $K/fetch.sh <dir> <url>...                      # WebFetch gets 503 on amazon.pl
 node $K/child-nodes.js <bestsellers.html>            # child category ids and names
-node $K/parse-listing.js <dir> <products.tsv>        # price, reviews, bought/month, title
+node $K/parse-listing.js <dir> <products.tsv>        # price, reviews, bought/month, rating, title
 npx vite-node $K/check-rules.js check <rules.txt> [--category id] [--junk f] [--keep f] [--missed n]
-    [--min-price zł] [--min-reviews n] [--min-bought n] [products.tsv...]
+    [--min-rating stars] [--min-reviews n] [--min-bought n] [products.tsv...]
 npx vite-node $K/check-rules.js which <rules.txt> [--category id] "<ad name>"
 bash $K/api.sh GET                                   # all rules as JSON
 bash $K/api.sh POST "" @<rule.json>                  # {"value": "...", "categoryId": 12 | null}

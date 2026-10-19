@@ -21,6 +21,7 @@ export class ConversionErrorManager<T> implements AnomalyManagerI<T> {
 
   async check(listing: T, countryPrices: ListingPrice[][]) {
     if (countryPrices.length < 3) return;
+    if (this.isUnchanged(countryPrices)) return;
 
     const newestPrices = countryPrices.map((prices) => prices[0]);
     const prices = await this.toPln(newestPrices);
@@ -29,6 +30,13 @@ export class ConversionErrorManager<T> implements AnomalyManagerI<T> {
     for (const rule of this.strategy.getMatchingRules(prices)) {
       await this.reporter.report(listing, prices, rule.channel);
     }
+  }
+
+  // Compares raw prices: PLN values move with exchange rates.
+  private isUnchanged(countryPrices: ListingPrice[][]) {
+    return countryPrices.every((prices) =>
+      prices[1]?.value.equals(prices[0].value)
+    );
   }
 
   // Returns copies: the same price objects are passed to the other error managers.
