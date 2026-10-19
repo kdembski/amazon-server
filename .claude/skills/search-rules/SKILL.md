@@ -64,8 +64,9 @@ node $K/to-sql.js <rules.txt> > <replace-rules.sql>  # DELETE + INSERT in one tr
 
 ## Workflow
 
-1. Get the live rules first (`SELECT value FROM SearchRule ORDER BY id;`); never assume the database holds
-   the last set you produced.
+1. Get the live rules first with the `database` skill; never assume the database holds the last set you
+   produced:
+   `bash .claude/skills/database/scripts/query.sh --raw "SELECT value FROM SearchRule ORDER BY id;" > rules.txt`
 2. Collect every false positive the user reported in this conversation into a junk list and the products the
    rules must cover into a keep list.
 3. For new coverage, fetch the category and its children from the sources in Demand, parse them and read the
@@ -77,10 +78,11 @@ node $K/to-sql.js <rules.txt> > <replace-rules.sql>  # DELETE + INSERT in one tr
 
 ## Diagnosing a reported ad
 
-1. Run `which` with the exact ad name against the live rules.
+1. Fetch the live rules (Workflow step 1) and the ad with the `database` skill (`name`, `matchesRules`,
+   `scrapedAt` from `AmazonAd`, by `asin`; `name` has no index), then run `which` with its exact name.
 2. Match: narrow that rule, add the name to the junk list and rerun `check` on all data.
-3. No match: the flag is stale (scraped before the cron rematch) or the database holds other rules; say which
-   and leave the rules unchanged.
+3. No match: the flag is stale (scraped before the cron rematch) or the database holds other rules; compare
+   `scrapedAt` with `MAX(createdAt)` of `SearchRule`, say which and leave the rules unchanged.
 
 ## Rule design
 
