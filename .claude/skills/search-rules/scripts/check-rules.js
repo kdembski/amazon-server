@@ -3,13 +3,13 @@
 //   npx vite-node check-rules.js which <rules.txt> "<ad name>"
 // Options:
 //   --junk <file> / --keep <file>  ad names (one per line) that must not / must match
-//   --min-price <zł>               demand floor for price, default 60
+//   --min-rating <stars>           quality floor for the star rating, default 4
 //   --min-reviews <n>              demand floor for review count, default 100
 //   --min-bought <n>               demand floor for "bought last month", default 50
 //   --missed <n>                   print the n unmatched in-demand products with the most demand
 //   --category <id>                also use the rules of this category; without it only rules with no category
 // A rules.txt line is "<value>" or "<categoryId>\t<value>".
-// products.tsv comes from parse-listing.js. A product is in demand when its price reaches the price floor
+// products.tsv comes from parse-listing.js. A product is in demand when its rating reaches the quality floor
 // and its reviews or monthly purchases reach theirs.
 // Imports the production parser and matcher through vite-node (it resolves the `@/` alias), so results equal
 // what SearchRuleMatchCronService computes.
@@ -42,7 +42,7 @@ const listOption = (flag) => {
 };
 const junkNames = listOption("--junk");
 const keepNames = listOption("--keep");
-const minPrice = Number(option("--min-price") ?? 60);
+const minRating = Number(option("--min-rating") ?? 4);
 const minReviews = Number(option("--min-reviews") ?? 100);
 const minBought = Number(option("--min-bought") ?? 50);
 const category = option("--category") ?? null;
@@ -105,11 +105,12 @@ if (mode === "which") {
   const products = productFiles
     .flatMap(lines)
     .map((line) => {
-      const [, price, reviews, bought, title] = line.split("\t");
+      const [, price, reviews, bought, rating, title] = line.split("\t");
       return {
         price: Number(price) || 0,
         reviews: Number(reviews) || 0,
         bought: Number(bought) || 0,
+        rating: Number(rating) || 0,
         title: title ?? "",
       };
     })
@@ -117,13 +118,13 @@ if (mode === "which") {
 
   if (products.length) {
     const inDemand = products.filter(
-      (p) => p.price >= minPrice && (p.reviews >= minReviews || p.bought >= minBought)
+      (p) => p.rating >= minRating && (p.reviews >= minReviews || p.bought >= minBought)
     );
     const covered = inDemand.filter((p) => matchesAll(p.title));
     const cheap = products.filter((p) => p.price && p.price < CHEAP && matchesAll(p.title));
     console.log(
       `\nCOVERAGE  ${covered.length}/${inDemand.length} in-demand products ` +
-        `(>= ${minPrice} zł and >= ${minReviews} reviews or >= ${minBought} bought/month), ` +
+        `(rating >= ${minRating} and >= ${minReviews} reviews or >= ${minBought} bought/month), ` +
         `${cheap.length} matched products < ${CHEAP} zł`
     );
 
@@ -138,13 +139,13 @@ if (mode === "which") {
     });
 
     if (missedCount) {
-      console.log(`\nMISSED (price | reviews | bought/month | title)`);
+      console.log(`\nMISSED (price | rating | reviews | bought/month | title)`);
       inDemand
         .filter((p) => !matchesAll(p.title))
         .sort((a, b) => b.bought - a.bought || b.reviews - a.reviews)
         .slice(0, missedCount)
         .forEach((p) =>
-          console.log(`    ${p.price} | ${p.reviews} | ${p.bought} | ${p.title.slice(0, 90)}`)
+          console.log(`    ${p.price} | ${p.rating} | ${p.reviews} | ${p.bought} | ${p.title.slice(0, 90)}`)
         );
     }
   }

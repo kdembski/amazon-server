@@ -10,7 +10,7 @@ for url in "$@"; do
   file="$out/$(echo "$url" | sed 's#https://www.amazon.pl/##; s#[^A-Za-z0-9]#_#g' | cut -c1-150).html"
   for _ in 1 2 3; do
     [ -s "$file" ] && break
-    curl -sL --max-time 40 -A "$ua" -H "Accept-Language: pl-PL,pl;q=0.9" -o "$file" "$url"
+    curl -sL --compressed --max-time 40 -A "$ua" -H "Accept-Language: pl-PL,pl;q=0.9" -o "$file" "$url"
     sleep 3
   done
   [ -s "$file" ] || echo "failed: $url" >&2
