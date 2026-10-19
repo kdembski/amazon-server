@@ -128,4 +128,36 @@ describe("ConversionErrorManager", () => {
 
     expect(reporter.report).not.toHaveBeenCalled();
   });
+
+  it("skips listings whose prices did not change since the previous scrape", async () => {
+    const { manager, reporter, getMatchingRules, listing } = setup();
+    const unchanged = (value: number) => [
+      buildListingPrice({ value }),
+      buildListingPrice({ value }),
+    ];
+
+    await manager.check(listing, [unchanged(10), unchanged(20), unchanged(30)]);
+
+    expect(getMatchingRules).not.toHaveBeenCalled();
+    expect(reporter.report).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["one country changed", [buildListingPrice({ value: 25 })]],
+    ["one country has no previous price", []],
+  ])("checks the listing when %s", async (_, previous) => {
+    const { manager, reporter, listing } = setup(["1"]);
+    const unchanged = (value: number) => [
+      buildListingPrice({ value }),
+      buildListingPrice({ value }),
+    ];
+
+    await manager.check(listing, [
+      unchanged(10),
+      unchanged(20),
+      [buildListingPrice({ value: 30 }), ...previous],
+    ]);
+
+    expect(reporter.report).toHaveBeenCalledTimes(1);
+  });
 });
