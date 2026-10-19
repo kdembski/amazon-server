@@ -17,7 +17,9 @@ vi.mock("@/modules/search-rules/cron/SearchRuleMatchCronService", () => ({
 
 describe("createSearchRulesModule", () => {
   it("runs the given targets from one match cron", () => {
-    const targets = [{ matchSearchRules: vi.fn() }] as SearchRuleTarget[];
+    const targets = [
+      { getSearchRules: vi.fn(), matchSearchRules: vi.fn() },
+    ] as SearchRuleTarget[];
 
     const module = createSearchRulesModule(targets);
 

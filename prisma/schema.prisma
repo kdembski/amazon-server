@@ -13,8 +13,9 @@ model AmazonAdCategory {
   createdAt DateTime   @db.Timestamp(2)
   updatedAt DateTime   @db.Timestamp(2)
   scrapedAt DateTime?  @db.Timestamp(2)
-  active    Boolean    @default(false)
-  ads       AmazonAd[]
+  active      Boolean            @default(false)
+  ads         AmazonAd[]
+  searchRules AmazonSearchRule[]
 }
 
 model AmazonAd {
@@ -109,10 +110,14 @@ model ActivityEvent {
   @@index([type, createdAt])
 }
 
-model SearchRule {
-  id        Int      @id @default(autoincrement())
-  value     String   @unique(map: "search_rule_value_UNIQUE") @db.VarChar(63)
-  createdAt DateTime @db.Timestamp(2)
+model AmazonSearchRule {
+  id         Int               @id @default(autoincrement())
+  value      String            @db.VarChar(63)
+  categoryId Int?
+  createdAt  DateTime          @db.Timestamp(2)
+  category   AmazonAdCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "amazon_search_rule_category_id_fk")
+
+  @@unique([value, categoryId], map: "amazon_search_rule_value_category_UNIQUE")
 }
 
 model ScraperMetric {

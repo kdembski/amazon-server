@@ -16,6 +16,26 @@ describe("ResponseErrorService", () => {
     );
   });
 
+  it("uses the status of the error", () => {
+    const { response, status, send } = fakeResponse();
+    new ResponseErrorService(response).send(
+      Object.assign(new Error("Search rule must be a string"), { status: 400 })
+    );
+
+    expect(status).toHaveBeenCalledWith(400);
+    expect(send).toHaveBeenCalledWith("Search rule must be a string");
+  });
+
+  it("returns 422 for a missing related record", () => {
+    const { response, status } = fakeResponse();
+    new ResponseErrorService(response).send({
+      code: "P2003",
+      meta: { field_name: "categoryId" },
+    });
+
+    expect(status).toHaveBeenCalledWith(422);
+  });
+
   it("maps P1001 to 503", () => {
     const { response, status, send } = fakeResponse();
     new ResponseErrorService(response).send({ code: "P1001" });

@@ -1,15 +1,17 @@
 ---
 name: search-rules
-description: Use when asked to create, extend, review or fix SearchRule values (search rules, matchesRules), to cover an Amazon category or product group with rules, or to explain why an ad was scraped or reported to Discord.
+description: Use when asked to create, extend, review or fix AmazonSearchRule values (search rules, matchesRules), to cover an Amazon category or product group with rules, or to explain why an ad was scraped or reported to Discord.
 ---
 
 # Search rules
 
 ## Overview
 
-`SearchRule` rows decide which ads get scraped: `SearchRuleMatchCronService` sets `AmazonAd.matchesRules`
-with `createSearchRuleMatcher` from `src/modules/search-rules/helpers/searchRule.ts`. Rules are data in the production database,
-delivered to the user as SQL. Verify every rule set with the production matcher before handing it over.
+`AmazonSearchRule` rows decide which ads get scraped: `SearchRuleMatchCronService` sets `AmazonAd.matchesRules`
+with `ScopedSearchRuleMatcher` from `src/modules/search-rules/services/`. A rule with `categoryId = NULL` applies to
+every category, a rule with a `categoryId` only to ads of that `AmazonAdCategory` (exclusion-only rules too). Rules
+are data in the production database; change them yourself through `/amazon/search-rules`. Verify every rule set
+with the production matcher before applying it.
 
 ## Syntax
 
@@ -45,42 +47,57 @@ user when they differ from the defaults (60 zł, 100 reviews or 50 bought per mo
 
 ## Tools
 
-Plain Node scripts, no build step; `check-rules.js` imports the production `searchRule.ts` through Node's
-built-in type stripping (Node 22.18+). Run from the repo root; keep rule lists, name lists and downloads in
-the scratchpad directory. Write any new helper script as plain `.js` (ESM) or `.sh`.
+Plain `.js` (ESM) and `.sh` scripts, no build step. `check-rules.js` imports the production
+`SearchRuleParser` and `SearchRuleMatcher` through `@/`, so run it with `npx vite-node`, not `node`. Run from
+the repo root; keep rule lists, name lists and downloads in the scratchpad directory. Write any new helper
+script as plain `.js` (ESM) or `.sh`.
 
 ```bash
 K=.claude/skills/search-rules/scripts
 bash $K/fetch.sh <dir> <url>...                      # WebFetch gets 503 on amazon.pl
 node $K/child-nodes.js <bestsellers.html>            # child category ids and names
 node $K/parse-listing.js <dir> <products.tsv>        # price, reviews, bought/month, title
-node $K/check-rules.js check <rules.txt> [--junk f] [--keep f] [--missed n] [--min-price zł]
-    [--min-reviews n] [--min-bought n] [products.tsv...]
-node $K/check-rules.js which <rules.txt> "<ad name>"
-node $K/to-sql.js <rules.txt> > <replace-rules.sql>  # DELETE + INSERT in one transaction
+npx vite-node $K/check-rules.js check <rules.txt> [--category id] [--junk f] [--keep f] [--missed n]
+    [--min-price zł] [--min-reviews n] [--min-bought n] [products.tsv...]
+npx vite-node $K/check-rules.js which <rules.txt> [--category id] "<ad name>"
+bash $K/api.sh GET                                   # all rules as JSON
+bash $K/api.sh POST "" @<rule.json>                  # {"value": "...", "categoryId": 12 | null}
+bash $K/api.sh PUT /<id> @<rule.json>                # changes only the fields given; categoryId null = all
+bash $K/api.sh DELETE /<id>
 ```
 
-`rules.txt` holds one rule per line; `--junk` / `--keep` files hold ad names that must not / must match.
+- `rules.txt` holds one rule per line, `<value>` or `<categoryId>\t<value>`. `check` and `which` use the rules
+  without a category plus, with `--category`, that category's rules; products in the tsv files have no category.
+- `--junk` / `--keep` files hold ad names that must not / must match.
+- `api.sh` reads `AMAZON_API_URL` from `.env`. Write request bodies to a JSON file in the scratchpad (UTF-8)
+  and pass it as `@<file>`, not inline, so Polish letters survive. Invalid rules get 400, a duplicate
+  `(value, categoryId)` or an unknown `categoryId` gets 422.
 
 ## Workflow
 
-1. Get the live rules first (`SELECT value FROM SearchRule ORDER BY id;`); never assume the database holds
-   the last set you produced.
+1. Get the live rules first; never assume the database holds the last set you produced:
+   `bash $K/api.sh GET > rules.json`, then
+   `node -e 'for (const r of JSON.parse(require("fs").readFileSync(0, "utf8"))) console.log((r.categoryId ? r.categoryId + "\t" : "") + r.value)' < rules.json > rules.txt`.
+   Keep `rules.json` for the ids.
 2. Collect every false positive the user reported in this conversation into a junk list and the products the
    rules must cover into a keep list.
 3. For new coverage, fetch the category and its children from the sources in Demand, parse them and read the
    `--missed` list. Group the in-demand products into brands, product lines and product types.
 4. Edit the rules and run `check` until it reports no `TOO LONG`, `DUPLICATE`, `PARSE ERROR`, `JUNK MATCHED`
    or `KEEP MISSED` line, in-demand coverage does not drop, and every rule listed with cheap hits is reviewed.
-5. Hand over the full SQL from `to-sql.js` (paste it and give the file path) with coverage before and after
-   and the wanted items each new exclusion drops.
+5. Apply the difference to the live rules with `api.sh`, one call per rule: `PUT` for an edited rule (its id
+   from `rules.json`), `POST` for a new one, `DELETE` for a removed one. Stop on the first failed call and
+   report it. Then report every change made (method, id, value, category, HTTP status), coverage before and
+   after and the wanted items each new exclusion drops. The cron rematches all ads within a minute.
 
 ## Diagnosing a reported ad
 
-1. Run `which` with the exact ad name against the live rules.
+1. Fetch the live rules (Workflow step 1) and the ad with the `database` skill (`name`, `matchesRules`,
+   `scrapedAt`, `categoryId` from `AmazonAd`, by `asin`; `name` has no index), then run `which` with its exact name
+   and `--category <its categoryId>`.
 2. Match: narrow that rule, add the name to the junk list and rerun `check` on all data.
-3. No match: the flag is stale (scraped before the cron rematch) or the database holds other rules; say which
-   and leave the rules unchanged.
+3. No match: the flag is stale (scraped before the cron rematch) or the database holds other rules; compare
+   `scrapedAt` with `MAX(createdAt)` of `AmazonSearchRule` and check the ad's `categoryId` against the rule's, say which and leave the rules unchanged.
 
 ## Rule design
 
@@ -90,6 +107,7 @@ node $K/to-sql.js <rules.txt> > <replace-rules.sql>  # DELETE + INSERT in one tr
   "kompatybilny", "zamiennik", "pasuje", case, bag, holder, repair words).
 - Exclusions also hit wanted listings whose descriptions mention the word; check `check` coverage and the
   keep list after adding one.
-- A global exclusion applies to every category; use it only for words no wanted product contains.
+- An exclusion-only rule without a category applies to every category; use it only for words no wanted product
+  contains, otherwise give it the `categoryId` of the category it is meant for.
 - Add exclusions for neighbouring product classes that share model names (laptops and PCs for GPUs).
 - Prefer prefix phrases (`stem*`) for Polish inflection over listing word forms.

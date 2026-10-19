@@ -1,12 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Prisma } from "@prisma/client";
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
+import { AmazonSearchRuleRepository } from "@/modules/marketplaces/amazon/repositories/AmazonSearchRuleRepository";
 import { fakePrisma } from "../../../../../support/fakes";
 
 const setup = (matchBatchSize?: number) => {
   const db = fakePrisma();
-  const repository = new AmazonAdRepository(db.prisma, matchBatchSize);
-  return { repository, delegate: db.amazonAd, $executeRaw: db.$executeRaw };
+  const searchRuleRepository = { getAll: vi.fn() };
+  const repository = new AmazonAdRepository(
+    db.prisma,
+    matchBatchSize,
+    searchRuleRepository as unknown as AmazonSearchRuleRepository
+  );
+  return {
+    repository,
+    searchRuleRepository,
+    delegate: db.amazonAd,
+    $executeRaw: db.$executeRaw,
+  };
 };
 
 // AmazonAdSelectDto is derived from this select; keep it in sync on purpose.
@@ -47,12 +58,37 @@ describe("AmazonAdRepository", () => {
     });
   });
 
+  it("getSearchRules maps the category of each rule to its scope", async () => {
+    const { repository, searchRuleRepository } = setup();
+    searchRuleRepository.getAll.mockResolvedValue([
+      { id: 1, value: "sony", categoryId: 3, createdAt: new Date() },
+      { id: 2, value: "bose", categoryId: null, createdAt: new Date() },
+    ]);
+
+    await expect(repository.getSearchRules()).resolves.toEqual([
+      { value: "sony", scope: 3 },
+      { value: "bose", scope: null },
+    ]);
+  });
+
   describe("matchSearchRules", () => {
-    const select = { id: true, name: true, matchesRules: true };
+    const select = { id: true, name: true, categoryId: true, matchesRules: true };
     const ad = (id: number, name: string, matchesRules: boolean | null) => ({
       id,
       name,
+      categoryId: 7,
       matchesRules,
+    });
+
+    it("passes the category of each ad as the scope", async () => {
+      const { repository, delegate } = setup();
+      delegate.findMany.mockResolvedValue([ad(1, "Bosch drill", null)]);
+      delegate.updateMany.mockResolvedValue({ count: 1 });
+      const scoped = vi.fn().mockReturnValue(true);
+
+      await repository.matchSearchRules(scoped, true);
+
+      expect(scoped).toHaveBeenCalledWith("Bosch drill", 7);
     });
     const matches = (name: string) => {
       const lower = name.toLowerCase();

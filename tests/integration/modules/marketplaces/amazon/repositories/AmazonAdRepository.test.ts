@@ -2,10 +2,8 @@ import { describe, expect, it } from "vitest";
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
 import { AmazonAdCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCreateMapper";
 import { FIXED_DATE } from "../../../../../support/factories";
-import {
-  createSearchRuleMatcher,
-  parseSearchRule,
-} from "@/modules/search-rules/helpers/searchRule";
+import { SearchRuleParser } from "@/modules/search-rules/services/SearchRuleParser";
+import { SearchRuleMatcher } from "@/modules/search-rules/services/SearchRuleMatcher";
 import { prisma } from "../../../../../support/integration/db";
 import {
   seedAd,
@@ -14,8 +12,11 @@ import {
 } from "../../../../../support/integration/seed";
 
 const repository = new AmazonAdRepository(prisma);
-const rules = (...values: string[]) =>
-  createSearchRuleMatcher(values.map(parseSearchRule));
+const parser = new SearchRuleParser();
+const rules = (...values: string[]) => {
+  const matcher = new SearchRuleMatcher(values.map((value) => parser.parse(value)));
+  return (name: string) => matcher.matches(name);
+};
 const day = (n: number) => new Date(FIXED_DATE.getTime() + n * 86_400_000);
 
 describe("AmazonAdRepository (MySQL)", () => {
