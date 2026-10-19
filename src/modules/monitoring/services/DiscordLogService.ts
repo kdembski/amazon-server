@@ -121,20 +121,10 @@ export class DiscordLogService {
         const { itemsPerSecond, itemsPerSecondDiff } = summary;
 
         return [
-          [
-            `${this.getSpeedIcon(itemsPerSecond)} ${summary.scraper}`,
-            `**${roundToOneDecimal(itemsPerSecond)}/s** ${this.getSpeedDiff(itemsPerSecondDiff)} ${this.getSpeedDiffIcon(itemsPerSecondDiff)}`,
-            summary.pending === null ? "-" : addSeparators(summary.pending),
-          ].join(getSpacing(4)),
-          [
-            `req: **${addSeparators(summary.requests)}**`,
-            `waste: **${roundToOneDecimal(summary.wastedPercent)}%**`,
-            `captcha: **${roundToOneDecimal(summary.captchaPercent)}%**`,
-            `KB/item: **${roundToOneDecimal(summary.kbPerItem ?? undefined)}**`,
-            `reuse: **${Math.round(summary.reusePercent)}%**`,
-            `tries: **${roundToOneDecimal(summary.attemptsPerItem ?? undefined)}**`,
-          ].join(getSpacing(4)),
-        ].join("\n");
+          `${this.getSpeedIcon(itemsPerSecond)} ${summary.scraper}`,
+          `**${roundToOneDecimal(itemsPerSecond)}/s** ${this.getSpeedDiff(itemsPerSecondDiff)} ${this.getSpeedDiffIcon(itemsPerSecondDiff)}`,
+          summary.pending === null ? "-" : addSeparators(summary.pending),
+        ].join(getSpacing(4));
       })
       .join("\n");
 
