@@ -28,8 +28,11 @@ export class ResponseErrorService {
   }
 
   private getStatus(error: any) {
+    if (typeof error?.status === "number") return error.status;
+
     switch (error?.code) {
       case "P2002":
+      case "P2003":
         return 422;
       case "P1001":
         return 503;
