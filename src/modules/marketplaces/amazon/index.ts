@@ -2,6 +2,7 @@ import { MarketplaceModule } from "@/modules/marketplaces/interfaces/Marketplace
 import { AmazonAdCategoryRouter } from "@/modules/marketplaces/amazon/routes/AmazonAdCategoryRouter";
 import { AmazonAdRouter } from "@/modules/marketplaces/amazon/routes/AmazonAdRouter";
 import { AmazonAdPriceRouter } from "@/modules/marketplaces/amazon/routes/AmazonAdPriceRouter";
+import { AmazonSearchRuleRouter } from "@/modules/marketplaces/amazon/routes/AmazonSearchRuleRouter";
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
 import { AmazonAdDailyReportSection } from "@/modules/marketplaces/amazon/services/AmazonAdDailyReportSection";
 
@@ -11,6 +12,7 @@ export function createAmazonModule(): MarketplaceModule {
       new AmazonAdCategoryRouter(),
       new AmazonAdRouter(),
       new AmazonAdPriceRouter(),
+      new AmazonSearchRuleRouter(),
     ],
     searchRuleTarget: new AmazonAdRepository(),
     dailyReportSection: new AmazonAdDailyReportSection(),

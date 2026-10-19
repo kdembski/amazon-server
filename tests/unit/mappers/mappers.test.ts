@@ -3,6 +3,8 @@ import { ScraperMetricCreateMapper } from "@/modules/monitoring/mappers/ScraperM
 import { ActivityEventCreateMapper } from "@/modules/monitoring/mappers/ActivityEventCreateMapper";
 import { AmazonAdCategoryCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCategoryCreateMapper";
 import { AmazonAdCategoryUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCategoryUpdateMapper";
+import { AmazonSearchRuleCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonSearchRuleCreateMapper";
+import { AmazonSearchRuleUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonSearchRuleUpdateMapper";
 import { AmazonAdCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCreateMapper";
 import { AmazonAdUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdUpdateMapper";
 import { AmazonAdPriceCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdPriceCreateMapper";
@@ -50,6 +52,12 @@ describe("create mappers", () => {
       map: (dto: any) => new AmazonAdCategoryCreateMapper().toCreateInput(dto),
       dto: { name: "tools" },
       expected: { name: "tools", createdAt: NOW, updatedAt: NOW },
+    },
+    {
+      name: "AmazonSearchRuleCreateMapper",
+      map: (dto: any) => new AmazonSearchRuleCreateMapper().toCreateInput(dto),
+      dto: { value: " sony " },
+      expected: { value: "sony", categoryId: null, createdAt: NOW },
     },
     {
       name: "AmazonAdCreateMapper",
@@ -132,6 +140,18 @@ describe("update mappers", () => {
       map: (dto: any) => new AmazonAdCategoryUpdateMapper().toUpdateInput(dto),
       dto: { name: "tools" },
       expected: { name: "tools", updatedAt: NOW },
+    },
+    {
+      name: "AmazonSearchRuleUpdateMapper (clears the category)",
+      map: (dto: any) => new AmazonSearchRuleUpdateMapper().toUpdateInput(dto),
+      dto: { categoryId: null },
+      expected: { value: undefined, categoryId: null },
+    },
+    {
+      name: "AmazonSearchRuleUpdateMapper (keeps the category)",
+      map: (dto: any) => new AmazonSearchRuleUpdateMapper().toUpdateInput(dto),
+      dto: { value: "bose" },
+      expected: { value: "bose", categoryId: undefined },
     },
     {
       name: "AmazonAdUpdateMapper",
@@ -249,5 +269,16 @@ describe("ScraperMetricCreateMapper", () => {
       { ...base, metric: "requests", country: "de", outcome: "ok", value: 120 },
       { ...base, metric: "bytes_in", country: null, outcome: null, value: 1843200 },
     ]);
+  });
+});
+
+describe("AmazonSearchRule mappers", () => {
+  it("reject an invalid rule with status 400", () => {
+    expect(() =>
+      new AmazonSearchRuleCreateMapper().toCreateInput({ value: "a++b" })
+    ).toThrow(expect.objectContaining({ status: 400 }));
+    expect(() =>
+      new AmazonSearchRuleUpdateMapper().toUpdateInput({ value: "a++b" })
+    ).toThrow(expect.objectContaining({ status: 400 }));
   });
 });
