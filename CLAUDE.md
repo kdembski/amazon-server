@@ -70,15 +70,17 @@ npm run test:integration  # tests/integration, needs a running Docker
 - Anomaly detectors work on `ListingPrice` only; each marketplace passes its reporters to the managers. Rule matching goes through `SearchRuleTarget`; the daily Discord report gets its
   sections through `DailyReportSection`.
 - Cross-cutting services are `getInstance()` singletons. `*SelectDto` types derive from repository return
-  types. Controller errors go through `ResponseErrorService` (P2002 → 422, P1001 → 503).
-- Change `SearchRule` rows only with SQL (skill `search-rules`); code only reads them.
+  types. Controller errors go through `ResponseErrorService` (`error.status` if set, P2002/P2003 → 422, P1001 → 503).
+- Search rules are per marketplace (`AmazonSearchRule`, optional `categoryId`; `NULL` = every category). Change
+  them only through `GET|POST /amazon/search-rules`, `PUT|DELETE /amazon/search-rules/:id` (skill
+  `search-rules`); writes are validated with `validateSearchRule` (invalid → 400).
 - Scraping: `GET /amazon/ads/scrap` hands out ads with `matchesRules = true`, oldest `scrapedAt` first, and
   stamps them; never filter it by `name LIKE`. `SearchRuleMatchCronService` runs every minute: it rematches
-  every ad when the `SearchRule` values changed since the last run (and after each restart), otherwise only
-  ads with `matchesRules = null`. New ads start with `matchesRules: null`. Rule syntax lives in
+  every ad of a `SearchRuleTarget` when its rules (value or category) changed since the last run (and after each
+  restart), otherwise only ads with `matchesRules = null`. New ads start with `matchesRules: null`. Rule syntax lives in
   `src/modules/search-rules/helpers/searchRule.ts` (`+` and, `|` or, `!` not; a rule of only `!` members
   excludes globally; phrases match whole words, `*` at a phrase edge matches part of a word). Match rules in JS with
-  `createSearchRuleMatcher`, not in SQL.
+  `createScopedSearchRuleMatcher` (an ad sees the rules of its category and those without one), not in SQL.
   `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices, stores an `ad_scraped`
   `ActivityEvent` and asynchronously runs the anomaly managers (`src/modules/anomalies`); their marketplace reporters
   store `*_sent` events and post to Discord.

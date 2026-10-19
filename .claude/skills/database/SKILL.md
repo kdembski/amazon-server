@@ -15,7 +15,7 @@ bash .claude/skills/database/scripts/query.sh --raw "SELECT ..." > out.txt   # b
 ```
 
 - Writes fail with `ERROR 1142`. Do not try them and do not look for other credentials; changes go to the user
-  as SQL.
+  as SQL, except search rules, which the `search-rules` skill changes through `/amazon/search-rules`.
 - On a missing config or a closed tunnel, stop and pass the script's message to the user; do not open the
   tunnel yourself.
 - Never print or read `~/.mysql-readonly.cnf`.

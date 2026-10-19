@@ -7,6 +7,8 @@
 //   --min-reviews <n>              demand floor for review count, default 100
 //   --min-bought <n>               demand floor for "bought last month", default 50
 //   --missed <n>                   print the n unmatched in-demand products with the most demand
+//   --category <id>                also use the rules of this category; without it only rules with no category
+// A rules.txt line is "<value>" or "<categoryId>\t<value>".
 // products.tsv comes from parse-listing.js. A product is in demand when its price reaches the price floor
 // and its reviews or monthly purchases reach theirs.
 // Imports the production matcher (Node strips its types), so results equal what
@@ -38,10 +40,19 @@ const keepNames = listOption("--keep");
 const minPrice = Number(option("--min-price") ?? 60);
 const minReviews = Number(option("--min-reviews") ?? 100);
 const minBought = Number(option("--min-bought") ?? 50);
+const category = option("--category") ?? null;
 const missedCount = Number(option("--missed") ?? 0);
 const productFiles = args;
 
-const values = lines(rulesFile);
+const rules = lines(rulesFile)
+  .map((line) => {
+    const scoped = line.match(/^(\d+)\t(.*)$/);
+    return scoped
+      ? { category: scoped[1], value: scoped[2].trim() }
+      : { category: null, value: line };
+  })
+  .filter((rule) => rule.category === null || rule.category === category);
+const values = rules.map((rule) => rule.value);
 const parsed = values.map((value) => {
   try {
     return parseSearchRule(value);
@@ -62,7 +73,8 @@ if (mode === "which") {
     if (!parsed[i] || isGlobalExclusion(parsed[i])) return;
     if (createSearchRuleMatcher([parsed[i]])(name)) {
       const blocked = !matchesRule(i)(name);
-      console.log(`${blocked ? "BLOCKED BY GLOBAL " : "MATCH "} ${value}`);
+      const scope = rules[i].category ? `  (category ${rules[i].category})` : "";
+      console.log(`${blocked ? "BLOCKED BY GLOBAL " : "MATCH "} ${value}${scope}`);
     }
   });
   console.log(matchesAll(name) ? "=> flagged (matchesRules = true)" : "=> not flagged");
