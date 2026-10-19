@@ -10,6 +10,12 @@ export interface AmazonSearchRuleUpdateDto {
   categoryId?: number | null;
 }
 
+export interface AmazonSearchRuleBatchDto {
+  create?: AmazonSearchRuleCreateDto[];
+  update?: (AmazonSearchRuleUpdateDto & { id: number })[];
+  delete?: number[];
+}
+
 export type AmazonSearchRuleSelectDto = Awaited<
   ReturnType<AmazonSearchRuleRepository["getById"]>
 >;

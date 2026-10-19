@@ -29,6 +29,9 @@ export class AmazonSearchRuleRouter implements SubRouterI {
 
   build() {
     this.router.get("/", (req, res) => this.controller.getAll(res));
+    this.router.post("/batch", (req, res) =>
+      this.controller.applyBatch(req, res)
+    );
     this.router.use(this.creatable.build().router);
     this.router.use(this.updatable.build().router);
     this.router.use(this.deletable.build().router);

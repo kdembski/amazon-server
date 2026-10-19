@@ -8,6 +8,7 @@ const setup = () => {
   return {
     repository: new AmazonSearchRuleRepository(db.prisma),
     delegate: db.amazonSearchRule,
+    $transaction: db.$transaction,
   };
 };
 
@@ -40,5 +41,31 @@ describe("AmazonSearchRuleRepository", () => {
       data: { categoryId: null },
     });
     expect(delegate.delete).toHaveBeenCalledWith({ where: { id: 4 } });
+  });
+});
+
+describe("AmazonSearchRuleRepository.applyBatch", () => {
+  it("deletes, updates and then creates in one transaction", async () => {
+    const { repository, delegate, $transaction } = setup();
+    const order: string[] = [];
+    delegate.delete.mockImplementation(() => order.push("delete"));
+    delegate.update.mockImplementation(() => order.push("update"));
+    delegate.create.mockImplementation(() => order.push("create"));
+    const data = { value: "sony", createdAt: new Date() };
+
+    await repository.applyBatch({
+      create: [data],
+      update: [{ id: 3, data: { categoryId: 2 } }],
+      delete: [4],
+    });
+
+    expect(order).toEqual(["delete", "update", "create"]);
+    expect($transaction).toHaveBeenCalledTimes(1);
+    expect(delegate.delete).toHaveBeenCalledWith({ where: { id: 4 } });
+    expect(delegate.update).toHaveBeenCalledWith({
+      where: { id: 3 },
+      data: { categoryId: 2 },
+    });
+    expect(delegate.create).toHaveBeenCalledWith({ data });
   });
 });

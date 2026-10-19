@@ -8,6 +8,7 @@ const setup = () => {
     create: vi.fn().mockResolvedValue({}),
     update: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue({}),
+    applyBatch: vi.fn().mockResolvedValue([]),
   };
   const service = new AmazonSearchRuleService(
     repository as unknown as AmazonSearchRuleRepository
@@ -41,5 +42,30 @@ describe("AmazonSearchRuleService", () => {
       categoryId: null,
     });
     expect(repository.delete).toHaveBeenCalledWith(4);
+  });
+});
+
+describe("AmazonSearchRuleService.applyBatch", () => {
+  it("applies the mapped batch and returns all rules", async () => {
+    const { service, repository } = setup();
+    repository.getAll.mockResolvedValue([{ id: 1 }]);
+
+    const result = await service.applyBatch({ delete: [4] });
+
+    expect(repository.applyBatch).toHaveBeenCalledWith({
+      create: [],
+      update: [],
+      delete: [4],
+    });
+    expect(result).toEqual([{ id: 1 }]);
+  });
+
+  it("rejects an invalid batch before writing", async () => {
+    const { service, repository } = setup();
+
+    await expect(service.applyBatch({ delete: [0] })).rejects.toMatchObject({
+      status: 400,
+    });
+    expect(repository.applyBatch).not.toHaveBeenCalled();
   });
 });

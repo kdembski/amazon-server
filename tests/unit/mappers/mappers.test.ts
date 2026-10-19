@@ -3,6 +3,7 @@ import { ScraperMetricCreateMapper } from "@/modules/monitoring/mappers/ScraperM
 import { ActivityEventCreateMapper } from "@/modules/monitoring/mappers/ActivityEventCreateMapper";
 import { AmazonAdCategoryCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCategoryCreateMapper";
 import { AmazonAdCategoryUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCategoryUpdateMapper";
+import { AmazonSearchRuleBatchMapper } from "@/modules/marketplaces/amazon/mappers/AmazonSearchRuleBatchMapper";
 import { AmazonSearchRuleCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonSearchRuleCreateMapper";
 import { AmazonSearchRuleUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonSearchRuleUpdateMapper";
 import { AmazonAdCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCreateMapper";
@@ -293,6 +294,42 @@ describe("AmazonSearchRule mappers categoryId", () => {
     ).toThrow(expect.objectContaining({ status: 400 }));
     expect(() =>
       new AmazonSearchRuleUpdateMapper().toUpdateInput({ categoryId: 1.5 })
+    ).toThrow(expect.objectContaining({ status: 400 }));
+  });
+});
+
+describe("AmazonSearchRuleBatchMapper", () => {
+  it("maps creates, updates and deletes", () => {
+    expect(
+      new AmazonSearchRuleBatchMapper().toBatchInput({
+        create: [{ value: " sony ", categoryId: 2 }],
+        update: [{ id: 3, categoryId: null }],
+        delete: [4],
+      })
+    ).toEqual({
+      create: [{ value: "sony", categoryId: 2, createdAt: NOW }],
+      update: [{ id: 3, data: { value: undefined, categoryId: null } }],
+      delete: [4],
+    });
+  });
+
+  it("treats missing lists as empty", () => {
+    expect(new AmazonSearchRuleBatchMapper().toBatchInput({})).toEqual({
+      create: [],
+      update: [],
+      delete: [],
+    });
+  });
+
+  it.each([
+    ["a non-object body", null],
+    ["a non-array list", { delete: 4 }],
+    ["an invalid id", { delete: [0] }],
+    ["an update without id", { update: [{ value: "sony" }] }],
+    ["an invalid rule", { create: [{ value: "a +" }] }],
+  ])("rejects %s with status 400", (_, dto) => {
+    expect(() =>
+      new AmazonSearchRuleBatchMapper().toBatchInput(dto as any)
     ).toThrow(expect.objectContaining({ status: 400 }));
   });
 });

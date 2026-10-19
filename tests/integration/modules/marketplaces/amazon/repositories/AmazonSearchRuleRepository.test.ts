@@ -23,4 +23,36 @@ describe("AmazonSearchRuleRepository (MySQL)", () => {
 
     await expect(repository.create(data)).rejects.toMatchObject({ code: "P2002" });
   });
+
+  it("applies a batch atomically and lets it replace a rule with the same value", async () => {
+    const category = await seedCategory();
+    const replaced = await seedAmazonSearchRule({ value: "sony" });
+    const moved = await seedAmazonSearchRule({ value: "bose" });
+
+    await repository.applyBatch({
+      create: [{ value: "sony", createdAt: new Date() }],
+      update: [{ id: moved.id, data: { categoryId: category.id } }],
+      delete: [replaced.id],
+    });
+
+    const rules = await repository.getAll();
+    expect(rules.map(({ value, categoryId }) => [value, categoryId])).toEqual([
+      ["bose", category.id],
+      ["sony", null],
+    ]);
+  });
+
+  it("rolls the whole batch back when one write fails", async () => {
+    const rule = await seedAmazonSearchRule({ value: "sony" });
+
+    await expect(
+      repository.applyBatch({
+        create: [{ value: "bose", createdAt: new Date() }],
+        update: [{ id: rule.id, data: { value: "jbl" } }],
+        delete: [rule.id + 1000],
+      })
+    ).rejects.toMatchObject({ code: "P2025" });
+
+    expect(await repository.getAll()).toEqual([rule]);
+  });
 });
