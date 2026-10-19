@@ -47,16 +47,12 @@ describe("SystemService", () => {
     expect(service.getCpuUsage()).toBe(20);
   });
 
-  it("samples cpu every second and logs global usage", async () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+  it("samples cpu every second", async () => {
     const service = SystemService.getInstance();
 
     await vi.advanceTimersByTimeAsync(1000);
 
     expect(cpuUsage).toHaveBeenCalledTimes(1);
-    // The log line is written before the awaited sample lands, so the global
-    // value lags one tick behind.
-    expect(log).toHaveBeenCalledWith("global: 0.0%");
     expect(service.getCpuUsage()).toBe(10);
   });
 

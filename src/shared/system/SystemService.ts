@@ -1,4 +1,4 @@
-import { calculateAvg, roundToOneDecimal } from "@/shared/utils/number";
+import { calculateAvg } from "@/shared/utils/number";
 import osu from "node-os-utils";
 
 export class SystemService {
@@ -6,10 +6,7 @@ export class SystemService {
   private cpuUsageHistory: number[] = [];
 
   private constructor() {
-    setInterval(async () => {
-      this.updateCpuUsage();
-      console.log(`global: ${roundToOneDecimal(this.getCpuUsage())}%`);
-    }, 1000);
+    setInterval(() => this.updateCpuUsage(), 1000);
   }
 
   public static getInstance(): SystemService {
