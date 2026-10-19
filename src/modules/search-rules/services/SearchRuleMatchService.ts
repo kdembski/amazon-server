@@ -1,17 +1,17 @@
 import { SearchRuleTarget } from "@/modules/search-rules/interfaces/SearchRuleTarget";
-import {
-  ScopedSearchRule,
-  createScopedSearchRuleMatcher,
-  parseSearchRule,
-} from "@/modules/search-rules/helpers/searchRule";
+import { ScopedSearchRule } from "@/modules/search-rules/interfaces/ScopedSearchRule";
+import { SearchRuleParser } from "@/modules/search-rules/services/SearchRuleParser";
+import { ScopedSearchRuleMatcher } from "@/modules/search-rules/services/ScopedSearchRuleMatcher";
 
 export class SearchRuleMatchService {
   private targets;
+  private parser;
   private fingerprints = new Map<SearchRuleTarget, string>();
   private isRunning = false;
 
-  constructor(targets: SearchRuleTarget[]) {
+  constructor(targets: SearchRuleTarget[], parser = new SearchRuleParser()) {
     this.targets = targets;
+    this.parser = parser;
   }
 
   // Rematches every ad of a target when its rules differ from the last
@@ -37,12 +37,12 @@ export class SearchRuleMatchService {
       .join("\n");
     const changed = fingerprint !== this.fingerprints.get(target);
     const startedAt = Date.now();
-    const matches = createScopedSearchRuleMatcher(
+    const matcher = new ScopedSearchRuleMatcher(
       this.parseSearchRules(searchRules)
     );
 
     const { matched, unmatched } = await target.matchSearchRules(
-      matches,
+      (name, scope) => matcher.matches(name, scope),
       !changed
     );
     this.fingerprints.set(target, fingerprint);
@@ -59,7 +59,7 @@ export class SearchRuleMatchService {
   ): ScopedSearchRule[] {
     return rules.flatMap(({ value, scope }) => {
       try {
-        return [{ rule: parseSearchRule(value), scope }];
+        return [{ rule: this.parser.parse(value), scope }];
       } catch (e) {
         console.error(
           `SearchRuleMatchService: skipped search rule ${value}: ${e}`

@@ -1,8 +1,5 @@
 import { AmazonSearchRuleCreateDto } from "@/modules/marketplaces/amazon/dtos/AmazonSearchRuleDtos";
-import {
-  validateSearchRule,
-  validateSearchRuleScope,
-} from "@/modules/search-rules/helpers/searchRule";
+import { SearchRuleValidator } from "@/modules/search-rules/services/SearchRuleValidator";
 import { ToCreateInputMapperI } from "@/shared/crud/interfaces/CRUDMapper";
 import { Prisma } from "@prisma/client";
 
@@ -13,10 +10,16 @@ export class AmazonSearchRuleCreateMapper
       Prisma.AmazonSearchRuleUncheckedCreateInput
     >
 {
+  private validator;
+
+  constructor(validator = new SearchRuleValidator()) {
+    this.validator = validator;
+  }
+
   toCreateInput(dto: AmazonSearchRuleCreateDto) {
     return {
-      value: validateSearchRule(dto.value),
-      categoryId: validateSearchRuleScope(dto.categoryId) ?? null,
+      value: this.validator.validate(dto.value),
+      categoryId: this.validator.validateScope(dto.categoryId) ?? null,
       createdAt: new Date(Date.now()),
     };
   }

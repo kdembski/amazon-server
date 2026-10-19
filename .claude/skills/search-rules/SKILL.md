@@ -8,7 +8,7 @@ description: Use when asked to create, extend, review or fix AmazonSearchRule va
 ## Overview
 
 `AmazonSearchRule` rows decide which ads get scraped: `SearchRuleMatchCronService` sets `AmazonAd.matchesRules`
-with the matchers from `src/modules/search-rules/helpers/searchRule.ts`. A rule with `categoryId = NULL` applies to
+with `ScopedSearchRuleMatcher` from `src/modules/search-rules/services/`. A rule with `categoryId = NULL` applies to
 every category, a rule with a `categoryId` only to ads of that `AmazonAdCategory` (exclusion-only rules too). Rules
 are data in the production database; change them yourself through `/amazon/search-rules`. Verify every rule set
 with the production matcher before applying it.
@@ -47,18 +47,19 @@ user when they differ from the defaults (60 zł, 100 reviews or 50 bought per mo
 
 ## Tools
 
-Plain Node scripts, no build step; `check-rules.js` imports the production `searchRule.ts` through Node's
-built-in type stripping (Node 22.18+). Run from the repo root; keep rule lists, name lists and downloads in
-the scratchpad directory. Write any new helper script as plain `.js` (ESM) or `.sh`.
+Plain `.js` (ESM) and `.sh` scripts, no build step. `check-rules.js` imports the production
+`SearchRuleParser` and `SearchRuleMatcher` through `@/`, so run it with `npx vite-node`, not `node`. Run from
+the repo root; keep rule lists, name lists and downloads in the scratchpad directory. Write any new helper
+script as plain `.js` (ESM) or `.sh`.
 
 ```bash
 K=.claude/skills/search-rules/scripts
 bash $K/fetch.sh <dir> <url>...                      # WebFetch gets 503 on amazon.pl
 node $K/child-nodes.js <bestsellers.html>            # child category ids and names
 node $K/parse-listing.js <dir> <products.tsv>        # price, reviews, bought/month, title
-node $K/check-rules.js check <rules.txt> [--category id] [--junk f] [--keep f] [--missed n]
+npx vite-node $K/check-rules.js check <rules.txt> [--category id] [--junk f] [--keep f] [--missed n]
     [--min-price zł] [--min-reviews n] [--min-bought n] [products.tsv...]
-node $K/check-rules.js which <rules.txt> [--category id] "<ad name>"
+npx vite-node $K/check-rules.js which <rules.txt> [--category id] "<ad name>"
 bash $K/api.sh GET                                   # all rules as JSON
 bash $K/api.sh POST "" @<rule.json>                  # {"value": "...", "categoryId": 12 | null}
 bash $K/api.sh PUT /<id> @<rule.json>                # changes only the fields given; categoryId null = all

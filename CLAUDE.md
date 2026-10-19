@@ -55,6 +55,8 @@ npm run test:integration  # tests/integration, needs a running Docker
   comes from composable `Selectable`/`Creatable`/`Updatable`/`Deletable` (`src/shared/crud`), exposed as
   public fields and mounted in the entity router's `build()`. Declare specific routes before generic ones
   (`GET /scrap` before `GET /:id`).
+- Write logic as classes (services, repositories, mappers, matchers, validators) with dependencies as
+  defaulted constructor params. `helpers/` hold only small stateless functions those classes use.
 - Export `create<Name>Module()` from `src/modules/<name>/index.ts` (returns `AppModule`: `routers`, `crons`);
   marketplaces live at `src/modules/marketplaces/<name>/index.ts` and return `MarketplaceModule`.
   Register it in `createModules()` in `src/modules.ts`.
@@ -73,14 +75,14 @@ npm run test:integration  # tests/integration, needs a running Docker
   types. Controller errors go through `ResponseErrorService` (`error.status` if set, P2002/P2003 → 422, P1001 → 503).
 - Search rules are per marketplace (`AmazonSearchRule`, optional `categoryId`; `NULL` = every category). Change
   them only through `GET|POST /amazon/search-rules`, `PUT|DELETE /amazon/search-rules/:id` (skill
-  `search-rules`); writes are validated with `validateSearchRule` (invalid → 400).
+  `search-rules`); writes are validated with `SearchRuleValidator` (invalid → 400).
 - Scraping: `GET /amazon/ads/scrap` hands out ads with `matchesRules = true`, oldest `scrapedAt` first, and
   stamps them; never filter it by `name LIKE`. `SearchRuleMatchCronService` runs every minute: it rematches
   every ad of a `SearchRuleTarget` when its rules (value or category) changed since the last run (and after each
   restart), otherwise only ads with `matchesRules = null`. New ads start with `matchesRules: null`. Rule syntax lives in
-  `src/modules/search-rules/helpers/searchRule.ts` (`+` and, `|` or, `!` not; a rule of only `!` members
+  `SearchRuleParser` (`src/modules/search-rules/services/`; `+` and, `|` or, `!` not; a rule of only `!` members
   excludes globally; phrases match whole words, `*` at a phrase edge matches part of a word). Match rules in JS with
-  `createScopedSearchRuleMatcher` (an ad sees the rules of its category and those without one), not in SQL.
+  `ScopedSearchRuleMatcher` (an ad sees the rules of its category and those without one), not in SQL.
   `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices, stores an `ad_scraped`
   `ActivityEvent` and asynchronously runs the anomaly managers (`src/modules/anomalies`); their marketplace reporters
   store `*_sent` events and post to Discord.

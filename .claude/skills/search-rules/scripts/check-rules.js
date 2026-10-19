@@ -1,6 +1,6 @@
 // Usage:
-//   node check-rules.js check <rules.txt> [options] [products.tsv ...]
-//   node check-rules.js which <rules.txt> "<ad name>"
+//   npx vite-node check-rules.js check <rules.txt> [options] [products.tsv ...]
+//   npx vite-node check-rules.js which <rules.txt> "<ad name>"
 // Options:
 //   --junk <file> / --keep <file>  ad names (one per line) that must not / must match
 //   --min-price <zł>               demand floor for price, default 60
@@ -11,14 +11,19 @@
 // A rules.txt line is "<value>" or "<categoryId>\t<value>".
 // products.tsv comes from parse-listing.js. A product is in demand when its price reaches the price floor
 // and its reviews or monthly purchases reach theirs.
-// Imports the production matcher (Node strips its types), so results equal what
-// SearchRuleMatchCronService computes.
+// Imports the production parser and matcher through vite-node (it resolves the `@/` alias), so results equal
+// what SearchRuleMatchCronService computes.
 import fs from "node:fs";
-import {
-  createSearchRuleMatcher,
-  isGlobalExclusion,
-  parseSearchRule,
-} from "../../../../src/modules/search-rules/helpers/searchRule.ts";
+import { isGlobalExclusion } from "@/modules/search-rules/helpers/searchRule";
+import { SearchRuleParser } from "@/modules/search-rules/services/SearchRuleParser";
+import { SearchRuleMatcher } from "@/modules/search-rules/services/SearchRuleMatcher";
+
+const parser = new SearchRuleParser();
+const parseSearchRule = (value) => parser.parse(value);
+const createSearchRuleMatcher = (rules) => {
+  const matcher = new SearchRuleMatcher(rules);
+  return (name) => matcher.matches(name);
+};
 
 const MAX_RULE_LENGTH = 63;
 const CHEAP = 40;
