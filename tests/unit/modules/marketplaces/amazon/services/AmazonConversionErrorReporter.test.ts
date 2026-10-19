@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { AmazonConversionErrorReporter } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorReporter";
 import { buildAd, buildListingPrice } from "../../../../../support/factories";
 import {
+  fakeAmazonAdRepository,
   fakeAmazonConversionErrorDiscordService,
   fakeActivityEventService,
 } from "../../../../../support/fakes";
@@ -9,11 +10,13 @@ import {
 const setup = () => {
   const log = fakeActivityEventService();
   const discord = fakeAmazonConversionErrorDiscordService();
+  const ads = fakeAmazonAdRepository();
   const reporter = new AmazonConversionErrorReporter(
     log.service,
-    discord.service
+    discord.service,
+    ads.repository
   );
-  return { reporter, log, discord };
+  return { reporter, log, discord, ads };
 };
 
 describe("AmazonConversionErrorReporter", () => {
@@ -42,5 +45,14 @@ describe("AmazonConversionErrorReporter", () => {
     });
     expect(discord.setChannel).toHaveBeenCalledWith("3");
     expect(discord.send).toHaveBeenCalledWith(ad, prices);
+  });
+
+  it("delays the next scraping of the ad by 24 hours", async () => {
+    const { reporter, ads } = setup();
+    const ad = buildAd();
+
+    await reporter.report(ad, [buildListingPrice()], "1");
+
+    expect(ads.delayScraping).toHaveBeenCalledWith(ad.id, 24);
   });
 });

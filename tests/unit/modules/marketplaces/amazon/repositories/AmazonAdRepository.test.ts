@@ -187,6 +187,18 @@ describe("AmazonAdRepository", () => {
     expect($executeRaw).not.toHaveBeenCalled();
   });
 
+  it("delayScraping sets scrapedAt the given hours ahead", async () => {
+    const { repository, $executeRaw } = setup();
+
+    await repository.delayScraping(7, 24);
+
+    const [strings, ...values] = $executeRaw.mock.calls[0];
+    expect(strings.join("?")).toBe(
+      "UPDATE AmazonAd SET scrapedAt = NOW() + INTERVAL ? HOUR WHERE id = ?"
+    );
+    expect(values).toEqual([24, 7]);
+  });
+
   it("getAll and getCount build the expected queries", async () => {
     const { repository, delegate } = setup();
     const from = new Date(1);
