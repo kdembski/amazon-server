@@ -8,7 +8,7 @@ const repository = new AmazonAdPriceRepository(prisma);
 const minute = (n: number) => new Date(FIXED_DATE.getTime() + n * 60_000);
 
 describe("AmazonAdPriceRepository (MySQL)", () => {
-  it("getByAdAndCountry groups the 5 newest prices by country, newest first", async () => {
+  it("getByAdAndCountry returns up to 5 newest prices per country, newest first", async () => {
     const ad = await seedAd();
     const pl = await seedCountry({ code: "pl" });
     const de = await seedCountry({ code: "de" });
@@ -18,8 +18,9 @@ describe("AmazonAdPriceRepository (MySQL)", () => {
       [pl.id, 11, 3],
       [de.id, 21, 4],
       [pl.id, 12, 5],
-      [de.id, 22, 6],
-      [pl.id, 13, 7],
+      [pl.id, 13, 6],
+      [pl.id, 14, 7],
+      [pl.id, 15, 8],
     ];
     for (const [countryId, value, at] of rows) {
       await seedPrice({ adId: ad.id, countryId, value, createdAt: minute(at) });
@@ -27,11 +28,9 @@ describe("AmazonAdPriceRepository (MySQL)", () => {
 
     const groups = await repository.getByAdAndCountry(ad.id, [pl.id, de.id]);
 
-    // The 5 newest are 13(pl) 22(de) 12(pl) 21(de) 11(pl); groups keep the
-    // order of first appearance.
     expect(groups.map((group) => group.map((p) => p.value.toNumber()))).toEqual([
-      [13, 12, 11],
-      [22, 21],
+      [15, 14, 13, 12, 11],
+      [21, 20],
     ]);
     expect(groups[0][0].country).toMatchObject({
       id: pl.id,
