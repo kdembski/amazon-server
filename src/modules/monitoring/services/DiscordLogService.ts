@@ -4,7 +4,6 @@ import {
   roundToTwoDecimals,
 } from "@/shared/utils/number";
 import { DiscordService } from "@/shared/discord/DiscordService";
-import { ScraperStatusService } from "@/modules/monitoring/services/ScraperStatusService";
 import {
   APIEmbedField,
   MessagePayload,
@@ -12,19 +11,17 @@ import {
 } from "discord.js";
 import { SystemService } from "@/shared/system/SystemService";
 import { getSpacing } from "@/shared/discord/spacing";
+import { ScraperMetricSummary } from "@/modules/monitoring/dtos/ScraperMetricDtos";
 
 export class DiscordLogService {
   private service;
-  private scrapersStatusService;
   private systemService;
 
   constructor(
     service = new DiscordService("DISCORD_LOGS_TOKEN"),
-    scrapersStatusService = ScraperStatusService.getInstance(),
     systemService = SystemService.getInstance()
   ) {
     this.service = service;
-    this.scrapersStatusService = scrapersStatusService;
     this.systemService = systemService;
   }
 
@@ -32,9 +29,7 @@ export class DiscordLogService {
     return this.service.send(options);
   }
 
-  async sendHourly(logs: number[]) {
-    const statuses = this.getScraperStatuses();
-    const speedSum = this.getScrapersSpeedSum();
+  async sendHourly(logs: number[], summaries: ScraperMetricSummary[]) {
     const cpu = this.systemService.getCpuUsage();
     const ram = await this.systemService.getMemoryUsage();
 
@@ -53,10 +48,10 @@ export class DiscordLogService {
       ].join(getSpacing(4)),
     });
 
-    if (statuses) {
+    if (summaries.length) {
       fields.push({
-        name: `Scrapers ${speedSum ? `*(${speedSum}/s)*` : ""}`,
-        value: statuses,
+        name: `Scrapers *(${this.getSpeedSum(summaries)}/s)*`,
+        value: this.getScrapersValue(summaries),
       });
     }
 
@@ -114,34 +109,32 @@ export class DiscordLogService {
     return `${getSpacing(3)}-${getSpacing(3)}`;
   }
 
-  private getScrapersSpeedSum() {
-    const statuses = Object.values(this.scrapersStatusService.statuses);
-    if (!statuses?.length) return;
-
-    const sum = statuses.reduce((accum: number, status) => {
-      return (accum += status.speed);
-    }, 0);
-    return roundToOneDecimal(sum);
+  private getSpeedSum(summaries: ScraperMetricSummary[]) {
+    return roundToOneDecimal(
+      summaries.reduce((sum, { itemsPerSecond }) => sum + itemsPerSecond, 0)
+    );
   }
 
-  private getScraperStatuses() {
-    const statuses = Object.entries(this.scrapersStatusService.statuses);
-    if (!statuses?.length) return;
-
-    statuses.sort((a, b) => (a[0] > b[0] ? 1 : -1));
-
-    const content = statuses
-      .map(([name, status]) => {
-        const { speed, pending, speedDiff } = status;
-        const speedDiffValue = this.getSpeedDiff(speedDiff);
-        const speedDiffIcon = this.getSpeedDiffIcon(speedDiff);
-        const speedValue = `**${roundToOneDecimal(speed)}/s**`;
+  private getScrapersValue(summaries: ScraperMetricSummary[]) {
+    const content = summaries
+      .map((summary) => {
+        const { itemsPerSecond, itemsPerSecondDiff } = summary;
 
         return [
-          `${this.getSpeedIcon(speed)} ${name}`,
-          `${speedValue} ${speedDiffValue} ${speedDiffIcon}`,
-          `${addSeparators(pending)}`,
-        ].join(getSpacing(4));
+          [
+            `${this.getSpeedIcon(itemsPerSecond)} ${summary.scraper}`,
+            `**${roundToOneDecimal(itemsPerSecond)}/s** ${this.getSpeedDiff(itemsPerSecondDiff)} ${this.getSpeedDiffIcon(itemsPerSecondDiff)}`,
+            summary.pending === null ? "-" : addSeparators(summary.pending),
+          ].join(getSpacing(4)),
+          [
+            `req: **${addSeparators(summary.requests)}**`,
+            `waste: **${roundToOneDecimal(summary.wastedPercent)}%**`,
+            `captcha: **${roundToOneDecimal(summary.captchaPercent)}%**`,
+            `KB/item: **${roundToOneDecimal(summary.kbPerItem ?? undefined)}**`,
+            `reuse: **${Math.round(summary.reusePercent)}%**`,
+            `tries: **${roundToOneDecimal(summary.attemptsPerItem ?? undefined)}**`,
+          ].join(getSpacing(4)),
+        ].join("\n");
       })
       .join("\n");
 

@@ -2,6 +2,7 @@ import { vi } from "vitest";
 import type { Request, Response, Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import type { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
+import type { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
 import type { DiscordService } from "@/shared/discord/DiscordService";
 import type { AmazonConversionErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorDiscordService";
 import type { AmazonPricingErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorDiscordService";
@@ -16,6 +17,18 @@ export function fakeActivityEventService() {
     deleteOlderThan,
   } as unknown as ActivityEventService;
   return { service, create, getCount, deleteOlderThan };
+}
+
+export function fakeScraperMetricService() {
+  const add = vi.fn().mockResolvedValue(0);
+  const deleteOlderThan = vi.fn().mockResolvedValue(0);
+  const getSummaries = vi.fn().mockResolvedValue([]);
+  const service = {
+    add,
+    deleteOlderThan,
+    getSummaries,
+  } as unknown as ScraperMetricService;
+  return { service, add, deleteOlderThan, getSummaries };
 }
 
 export function fakeAmazonConversionErrorDiscordService() {
@@ -130,6 +143,11 @@ export function fakePrisma() {
     currencyExchangeRate: fakeDelegate(),
     activityEvent: fakeDelegate(),
     searchRule: fakeDelegate(),
+    scraperMetric: {
+      ...fakeDelegate(),
+      createMany: vi.fn(),
+      groupBy: vi.fn(),
+    },
   };
   const $executeRaw = vi.fn().mockResolvedValue(1);
   const prisma = { ...delegates, $executeRaw } as unknown as PrismaClient;

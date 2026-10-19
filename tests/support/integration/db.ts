@@ -12,6 +12,7 @@ export const TABLES = [
   "CurrencyExchangeRate",
   "ActivityEvent",
   "SearchRule",
+  "ScraperMetric",
 ] as const;
 
 // FOREIGN_KEY_CHECKS is per session, so every statement has to run on the one

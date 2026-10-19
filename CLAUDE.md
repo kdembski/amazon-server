@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 Express + Prisma (MySQL) backend for Amazon price monitoring: scrapers (Docker containers) pull ASINs,
-post prices and report their status to `POST /scrapers/:name/status`; the server detects price anomalies
+post prices and report minute metrics to `POST /scrapers/:name/metrics`; the server detects price anomalies
 and reports them to Discord webhooks.
 
 ## Commands
@@ -82,5 +82,8 @@ npm run test:integration  # tests/integration, needs a running Docker
   `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices, stores an `ad_scraped`
   `ActivityEvent` and asynchronously runs the anomaly managers (`src/modules/anomalies`); their marketplace reporters
   store `*_sent` events and post to Discord.
+- Scraper metrics: scrapers send `POST /scrapers/:name/metrics` every minute; rows go to the `ScraperMetric`
+  table (retention 30 days). Build the "Scrapers" field of the hourly Discord report from these metrics via
+  `ScraperMetricService.getSummaries`.
 - `src/app.ts` builds the express app and mounts the routers of all modules; `src/index.ts` adds `listen`
   and calls `schedule()` on the crons of all modules.

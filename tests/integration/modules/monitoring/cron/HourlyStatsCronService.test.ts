@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCronService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
-import { seedActivityEvent } from "../../../../support/integration/seed";
+import { SystemService } from "@/shared/system/SystemService";
+import { messagesSentTo } from "../../../../support/integration/discordInbox";
+import {
+  seedActivityEvent,
+  seedScraperMetric,
+} from "../../../../support/integration/seed";
 
 const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000);
 const conversionError = (channel: string, createdAt: Date) =>
@@ -28,6 +33,43 @@ describe("HourlyStatsCronService (MySQL)", () => {
     await service.run();
 
     // [ad_scraped, ce1, ce2, ce3, ce4, ce5, ce6, pricing_error]
-    expect(sendHourly).toHaveBeenCalledWith([1, 1, 0, 0, 0, 0, 2, 1]);
+    expect(sendHourly).toHaveBeenCalledWith([1, 1, 0, 0, 0, 0, 2, 1], []);
+  });
+
+  describe("Scrapers field", () => {
+    const runWithRealReport = async () => {
+      const system = {
+        getCpuUsage: () => 1,
+        getMemoryUsage: async () => 2,
+      } as unknown as SystemService;
+      await new HourlyStatsCronService(
+        new DiscordLogService(undefined, system)
+      ).run();
+      const [message] = messagesSentTo("DISCORD_LOGS_TOKEN");
+      return (message.options as { embeds: [{ fields: { name: string; value: string }[] }] })
+        .embeds[0].fields;
+    };
+
+    it("is built from the metrics of the last hour", async () => {
+      const windowEnd = new Date();
+      windowEnd.setMinutes(0, 0, 0);
+      const periodStart = new Date(windowEnd.getTime() - 90_000 - 10 * 60_000);
+      await seedScraperMetric({ metric: "items", outcome: "data", value: 720, periodStart });
+      await seedScraperMetric({ metric: "requests", outcome: "ok", value: 1000, periodStart });
+      await seedScraperMetric({ metric: "pending", value: 42, periodStart });
+
+      const fields = await runWithRealReport();
+
+      const scrapers = fields.find((f) => f.name.startsWith("Scrapers"));
+      expect(scrapers?.name).toBe("Scrapers *(0.2/s)*");
+      expect(scrapers?.value).toContain("amazon-pdp");
+      expect(scrapers?.value).toContain("42");
+    });
+
+    it("is absent without metrics", async () => {
+      const fields = await runWithRealReport();
+
+      expect(fields.map((f) => f.name)).toEqual(["Channels", "Server"]);
+    });
   });
 });

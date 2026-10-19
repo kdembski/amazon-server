@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ScraperMetricCreateMapper } from "@/modules/monitoring/mappers/ScraperMetricCreateMapper";
 import { ActivityEventCreateMapper } from "@/modules/monitoring/mappers/ActivityEventCreateMapper";
 import { AmazonAdCategoryCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCategoryCreateMapper";
 import { AmazonAdCategoryUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCategoryUpdateMapper";
@@ -221,6 +222,32 @@ describe("AmazonAdListingPriceMapper", () => {
           },
         },
       ],
+    ]);
+  });
+});
+
+describe("ScraperMetricCreateMapper", () => {
+  it("maps every metric to a row and fills missing labels with null", () => {
+    const rows = new ScraperMetricCreateMapper().toCreateInputs("amazon-pdp", {
+      marketplace: "amazon",
+      flow: "pdp",
+      periodStart: "2026-10-18T10:00:00.000Z",
+      metrics: [
+        { metric: "requests", country: "de", outcome: "ok", value: 120 },
+        { metric: "bytes_in", value: 1843200 },
+      ],
+    });
+
+    const base = {
+      scraper: "amazon-pdp",
+      marketplace: "amazon",
+      flow: "pdp",
+      periodStart: new Date("2026-10-18T10:00:00.000Z"),
+      createdAt: NOW,
+    };
+    expect(rows).toStrictEqual([
+      { ...base, metric: "requests", country: "de", outcome: "ok", value: 120 },
+      { ...base, metric: "bytes_in", country: null, outcome: null, value: 1843200 },
     ]);
   });
 });
