@@ -5,6 +5,7 @@ import type { ActivityEventService } from "@/modules/monitoring/services/Activit
 import type { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
 import type { DiscordService } from "@/shared/discord/DiscordService";
 import type { AmazonConversionErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorDiscordService";
+import type { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
 import type { AmazonPricingErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorDiscordService";
 
 export function fakeActivityEventService() {
@@ -39,6 +40,12 @@ export function fakeAmazonConversionErrorDiscordService() {
     setChannel,
   } as unknown as AmazonConversionErrorDiscordService;
   return { service, send, setChannel };
+}
+
+export function fakeAmazonAdRepository() {
+  const delayScraping = vi.fn().mockResolvedValue(1);
+  const repository = { delayScraping } as unknown as AmazonAdRepository;
+  return { repository, delayScraping };
 }
 
 export function fakeAmazonPricingErrorDiscordService() {
@@ -150,8 +157,9 @@ export function fakePrisma() {
     },
   };
   const $executeRaw = vi.fn().mockResolvedValue(1);
-  const prisma = { ...delegates, $executeRaw } as unknown as PrismaClient;
-  return { prisma, $executeRaw, ...delegates };
+  const $transaction = vi.fn((operations: unknown[]) => Promise.all(operations));
+  const prisma = { ...delegates, $executeRaw, $transaction } as unknown as PrismaClient;
+  return { prisma, $executeRaw, $transaction, ...delegates };
 }
 
 export function deferred<T>() {

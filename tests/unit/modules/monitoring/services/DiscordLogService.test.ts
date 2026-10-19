@@ -30,15 +30,6 @@ const summary = (
   ...overrides,
 });
 
-const secondLine = [
-  "req: **1 008 000**",
-  "waste: **4.2%**",
-  "captcha: **1.1%**",
-  "KB/item: **24.5**",
-  "reuse: **81%**",
-  "tries: **1.3**",
-].join(SP4);
-
 const fieldNames = (embed: { fields: { name: string }[] }) =>
   embed.fields.map((f) => f.name);
 
@@ -92,7 +83,7 @@ describe("DiscordLogService.sendHourly", () => {
     });
   });
 
-  it("renders a speed sum header and two lines per scraper between Channels and Server", async () => {
+  it("renders a speed sum header and one line per scraper between Channels and Server", async () => {
     const { service, lastEmbed } = setup();
 
     await service.sendHourly(COUNTS, [
@@ -113,11 +104,9 @@ describe("DiscordLogService.sendHourly", () => {
     expect(lastEmbed().fields[1].value).toBe(
       [
         [`${GREEN} amazon-pdp`, `**24.3/s** *(+0.12)* ${UP}`, "210"].join(SP4),
-        secondLine,
         [`${YELLOW} amazon-plp`, `**0.5/s** *(0.00)* ${FLAT}`, "1 500"].join(
           SP4
         ),
-        secondLine,
       ].join("\n")
     );
   });
@@ -134,17 +123,12 @@ describe("DiscordLogService.sendHourly", () => {
     );
   });
 
-  it("renders - for missing pending, KB/item and tries", async () => {
+  it("renders - for missing pending", async () => {
     const { service, lastEmbed } = setup();
 
-    await service.sendHourly(COUNTS, [
-      summary({ pending: null, kbPerItem: null, attemptsPerItem: null }),
-    ]);
+    await service.sendHourly(COUNTS, [summary({ pending: null })]);
 
-    const [first, second] = lastEmbed().fields[1].value.split("\n");
-    expect(first.endsWith(`${SP4}-`)).toBe(true);
-    expect(second).toContain("KB/item: **-**");
-    expect(second).toContain("tries: **-**");
+    expect(lastEmbed().fields[1].value.endsWith(`${SP4}-`)).toBe(true);
   });
 
   it("omits the Scrapers field without summaries", async () => {

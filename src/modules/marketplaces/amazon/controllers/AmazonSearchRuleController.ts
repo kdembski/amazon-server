@@ -1,4 +1,5 @@
-import { Response } from "express";
+import { Request, Response } from "express";
+import { AmazonSearchRuleBatchDto } from "@/modules/marketplaces/amazon/dtos/AmazonSearchRuleDtos";
 import { CreatableController } from "@/shared/crud/controllers/CreatableController";
 import { DeletableController } from "@/shared/crud/controllers/DeletableController";
 import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
@@ -26,6 +27,18 @@ export class AmazonSearchRuleController {
   async getAll(response: Response) {
     try {
       const results = await this.service.getAll();
+      response.json(results);
+    } catch (error: any) {
+      new ResponseErrorService(response).send(error);
+    }
+  }
+
+  async applyBatch(
+    request: Request<{}, {}, AmazonSearchRuleBatchDto>,
+    response: Response
+  ) {
+    try {
+      const results = await this.service.applyBatch(request.body);
       response.json(results);
     } catch (error: any) {
       new ResponseErrorService(response).send(error);

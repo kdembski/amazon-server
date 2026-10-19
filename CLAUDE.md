@@ -74,8 +74,10 @@ npm run test:integration  # tests/integration, needs a running Docker
 - Cross-cutting services are `getInstance()` singletons. `*SelectDto` types derive from repository return
   types. Controller errors go through `ResponseErrorService` (`error.status` if set, P2002/P2003 → 422, P1001 → 503).
 - Search rules are per marketplace (`AmazonSearchRule`, optional `categoryId`; `NULL` = every category). Change
-  them only through `GET|POST /amazon/search-rules`, `PUT|DELETE /amazon/search-rules/:id` (skill
-  `search-rules`); writes are validated with `SearchRuleValidator` (invalid → 400).
+  them only through `GET|POST /amazon/search-rules`, `PUT|DELETE /amazon/search-rules/:id` and
+  `POST /amazon/search-rules/batch` (`{create, update: [{id, ...}], delete: [id]}` in one transaction: deletes, updates,
+  then creates; returns all rules) (skill `search-rules`); writes are validated with `SearchRuleValidator`
+  (invalid → 400).
 - Scraping: `GET /amazon/ads/scrap` hands out ads with `matchesRules = true`, oldest `scrapedAt` first, and
   stamps them; never filter it by `name LIKE`. `SearchRuleMatchCronService` runs every minute: it rematches
   every ad of a `SearchRuleTarget` when its rules (value or category) changed since the last run (and after each

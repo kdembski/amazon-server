@@ -64,6 +64,7 @@ bash $K/api.sh GET                                   # all rules as JSON
 bash $K/api.sh POST "" @<rule.json>                  # {"value": "...", "categoryId": 12 | null}
 bash $K/api.sh PUT /<id> @<rule.json>                # changes only the fields given; categoryId null = all
 bash $K/api.sh DELETE /<id>
+bash $K/api.sh POST /batch @<batch.json>             # every change at once, see Workflow step 5
 ```
 
 - `rules.txt` holds one rule per line, `<value>` or `<categoryId>\t<value>`. `check` and `which` use the rules
@@ -85,9 +86,12 @@ bash $K/api.sh DELETE /<id>
    `--missed` list. Group the in-demand products into brands, product lines and product types.
 4. Edit the rules and run `check` until it reports no `TOO LONG`, `DUPLICATE`, `PARSE ERROR`, `JUNK MATCHED`
    or `KEEP MISSED` line, in-demand coverage does not drop, and every rule listed with cheap hits is reviewed.
-5. Apply the difference to the live rules with `api.sh`, one call per rule: `PUT` for an edited rule (its id
-   from `rules.json`), `POST` for a new one, `DELETE` for a removed one. Stop on the first failed call and
-   report it. Then report every change made (method, id, value, category, HTTP status), coverage before and
+5. Apply the difference to the live rules in one `api.sh POST /batch @batch.json` call, never one call per
+   rule: every rule change makes the cron rematch all ads. `batch.json` is
+   `{"create": [{"value", "categoryId"}], "update": [{"id", "value"?, "categoryId"?}], "delete": [id]}` (ids from
+   `rules.json`, omitted lists are empty). The batch is one transaction: deletes, then updates, then creates; any
+   error (400 invalid rule or id, 422 duplicate or unknown `categoryId`, 500 unknown id) rolls everything back.
+   Then report every change made (create/update/delete, id, value, category), the HTTP status, coverage before and
    after and the wanted items each new exclusion drops. The cron rematches all ads within a minute.
 
 ## Diagnosing a reported ad

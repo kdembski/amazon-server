@@ -9,6 +9,7 @@ import { fakeRouter, fakeSubRouter, routeTable } from "../../../../../support/fa
 const setup = () => {
   const controller = {
     getAll: vi.fn(),
+    applyBatch: vi.fn(),
     creatable: {},
     updatable: {},
     deletable: {},
@@ -29,13 +30,14 @@ describe("AmazonSearchRuleRouter", () => {
     expect(setup().searchRuleRouter.path).toBe("/amazon/search-rules");
   });
 
-  it("registers GET / before CRUD routers and delegates to the controller", () => {
+  it("registers GET / and POST /batch before CRUD routers and delegates to the controller", () => {
     const { calls, searchRuleRouter, controller, router } = setup();
 
     expect(searchRuleRouter.build().router).toBe(router);
 
     expect(routeTable(calls)).toEqual([
       ["get", "/"],
+      ["post", "/batch"],
       ["use", "CREATABLE"],
       ["use", "UPDATABLE"],
       ["use", "DELETABLE"],
@@ -43,5 +45,7 @@ describe("AmazonSearchRuleRouter", () => {
 
     (calls[0].handler as Function)("req", "res");
     expect(controller.getAll).toHaveBeenCalledWith("res");
+    (calls[1].handler as Function)("req", "res");
+    expect(controller.applyBatch).toHaveBeenCalledWith("req", "res");
   });
 });

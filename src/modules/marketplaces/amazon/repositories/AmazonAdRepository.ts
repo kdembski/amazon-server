@@ -98,6 +98,12 @@ export class AmazonAdRepository {
     )})`;
   }
 
+  // A future scrapedAt keeps the ad behind every other one in getForScraping.
+  delayScraping(id: number, hours: number): Promise<number> {
+    return this.prisma
+      .$executeRaw`UPDATE AmazonAd SET scrapedAt = NOW() + INTERVAL ${hours} HOUR WHERE id = ${id}`;
+  }
+
   getAll() {
     return this.delegate.findMany();
   }

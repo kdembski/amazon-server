@@ -4,11 +4,12 @@ import { AmazonSearchRuleService } from "@/modules/marketplaces/amazon/services/
 import { CreatableController } from "@/shared/crud/controllers/CreatableController";
 import { UpdatableController } from "@/shared/crud/controllers/UpdatableController";
 import { DeletableController } from "@/shared/crud/controllers/DeletableController";
-import { fakeResponse } from "../../../../../support/fakes";
+import { fakeRequest, fakeResponse } from "../../../../../support/fakes";
 
 const setup = () => {
   const service = {
     getAll: vi.fn().mockResolvedValue([{ id: 1 }]),
+    applyBatch: vi.fn().mockResolvedValue([{ id: 2 }]),
     creatable: {},
     updatable: {},
     deletable: {},
@@ -47,5 +48,30 @@ describe("AmazonSearchRuleController", () => {
 
     expect(status).toHaveBeenCalledWith(500);
     expect(send).toHaveBeenCalledWith("a");
+  });
+});
+
+describe("AmazonSearchRuleController.applyBatch", () => {
+  it("returns json with all rules", async () => {
+    const { service, controller } = setup();
+    const { response, json } = fakeResponse();
+
+    await controller.applyBatch(fakeRequest({ body: { delete: [4] } }), response);
+
+    expect(service.applyBatch).toHaveBeenCalledWith({ delete: [4] });
+    expect(json).toHaveBeenCalledWith([{ id: 2 }]);
+  });
+
+  it("sends the error status when the service throws", async () => {
+    const { service, controller } = setup();
+    service.applyBatch.mockRejectedValue(
+      Object.assign(new Error("bad"), { status: 400 })
+    );
+    const { response, status, send } = fakeResponse();
+
+    await controller.applyBatch(fakeRequest({ body: {} }), response);
+
+    expect(status).toHaveBeenCalledWith(400);
+    expect(send).toHaveBeenCalledWith("bad");
   });
 });
