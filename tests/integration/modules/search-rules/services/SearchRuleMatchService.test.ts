@@ -3,7 +3,7 @@ import { SearchRuleMatchService } from "@/modules/search-rules/services/SearchRu
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
 import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
 import { prisma } from "../../../../support/integration/db";
-import { seedAd, seedSearchRule } from "../../../../support/integration/seed";
+import { seedAd, seedAmazonSearchRule, seedCategory } from "../../../../support/integration/seed";
 
 const flags = async () => {
   const rows = await prisma.amazonAd.findMany({ orderBy: { id: "asc" } });
@@ -16,7 +16,7 @@ describe("SearchRuleMatchService (MySQL)", () => {
     const service = new SearchRuleMatchService([new AmazonAdRepository()]);
     await seedAd({ name: "Sony WH-1000XM5" });
     await seedAd({ name: "Bose QC45" });
-    await seedSearchRule({ value: "sony" });
+    await seedAmazonSearchRule({ value: "sony" });
 
     await service.sync();
     expect(await flags()).toEqual([
@@ -29,7 +29,7 @@ describe("SearchRuleMatchService (MySQL)", () => {
     expect((await flags())[2]).toEqual(["Sony A7 IV", true]);
 
     // A rule inserted straight into the table, bypassing Discord.
-    await prisma.searchRule.create({ data: { value: "bose", createdAt: new Date() } });
+    await prisma.amazonSearchRule.create({ data: { value: "bose", createdAt: new Date() } });
     await service.sync();
     expect(await flags()).toEqual([
       ["Sony WH-1000XM5", true],
@@ -42,12 +42,28 @@ describe("SearchRuleMatchService (MySQL)", () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     const sony = await seedAd({ name: "Sony WH-1000XM5" });
     await seedAd({ name: "Bose QC45" });
-    await seedSearchRule({ value: "sony" });
+    await seedAmazonSearchRule({ value: "sony" });
     const adService = new AmazonAdService();
 
     expect(await adService.getForScraping(10)).toEqual([]);
     await new SearchRuleMatchService([new AmazonAdRepository()]).sync();
 
     expect((await adService.getForScraping(10)).map((ad) => ad.id)).toEqual([sony.id]);
+  });
+
+  it("applies a category rule only to ads of that category", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const a = await seedCategory();
+    const b = await seedCategory();
+    await seedAd({ name: "Sony A7", categoryId: a.id });
+    await seedAd({ name: "Sony A7 II", categoryId: b.id });
+    await seedAmazonSearchRule({ value: "sony", categoryId: a.id });
+
+    await new SearchRuleMatchService([new AmazonAdRepository()]).sync();
+
+    expect(await flags()).toEqual([
+      ["Sony A7", true],
+      ["Sony A7 II", false],
+    ]);
   });
 });

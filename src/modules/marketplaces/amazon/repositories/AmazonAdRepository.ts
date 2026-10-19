@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { PrismaClient } from "@@prisma/PrismaClient";
+import { AmazonSearchRuleRepository } from "@/modules/marketplaces/amazon/repositories/AmazonSearchRuleRepository";
 
 export class AmazonAdRepository {
   private delegate;
@@ -23,11 +24,17 @@ export class AmazonAdRepository {
   };
 
   private matchBatchSize;
+  private searchRuleRepository;
 
-  constructor(prisma = PrismaClient.getInstance(), matchBatchSize = 20_000) {
+  constructor(
+    prisma = PrismaClient.getInstance(),
+    matchBatchSize = 20_000,
+    searchRuleRepository = new AmazonSearchRuleRepository(prisma)
+  ) {
     this.delegate = prisma.amazonAd;
     this.prisma = prisma;
     this.matchBatchSize = matchBatchSize;
+    this.searchRuleRepository = searchRuleRepository;
   }
 
   getById(id: number) {
@@ -55,7 +62,15 @@ export class AmazonAdRepository {
   // Ads with matchesRules = null have not been checked yet; onlyNew limits the
   // check to them. A full rematch walks the table in id ranges so each UPDATE
   // commits quickly and only briefly locks the rows /scrap stamps.
-  async matchSearchRules(matches: (name: string) => boolean, onlyNew = false) {
+  async getSearchRules() {
+    const rules = await this.searchRuleRepository.getAll();
+    return rules.map((rule) => ({ value: rule.value, scope: rule.categoryId }));
+  }
+
+  async matchSearchRules(
+    matches: (name: string, scope: number | null) => boolean,
+    onlyNew = false
+  ) {
     if (onlyNew) {
       return this.updateMatches(matches, { matchesRules: null });
     }
@@ -113,18 +128,18 @@ export class AmazonAdRepository {
   // Flags matching ads before clearing the rest, so the scraping queue never
   // runs empty in between.
   private async updateMatches(
-    matches: (name: string) => boolean,
+    matches: (name: string, scope: number | null) => boolean,
     where: Prisma.AmazonAdWhereInput
   ) {
     const ads = await this.delegate.findMany({
       where,
-      select: { id: true, name: true, matchesRules: true },
+      select: { id: true, name: true, categoryId: true, matchesRules: true },
     });
     const flagged: number[] = [];
     const cleared: number[] = [];
 
     for (const ad of ads) {
-      const matched = matches(ad.name);
+      const matched = matches(ad.name, ad.categoryId);
       if (matched && ad.matchesRules !== true) flagged.push(ad.id);
       if (!matched && ad.matchesRules !== false) cleared.push(ad.id);
     }

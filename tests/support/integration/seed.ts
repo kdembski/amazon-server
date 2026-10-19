@@ -98,11 +98,11 @@ export async function seedRate(
   });
 }
 
-export function seedSearchRule(
-  overrides: Partial<Prisma.SearchRuleUncheckedCreateInput> = {}
+export function seedAmazonSearchRule(
+  overrides: Partial<Prisma.AmazonSearchRuleUncheckedCreateInput> = {}
 ) {
   const n = next();
-  return prisma.searchRule.create({
+  return prisma.amazonSearchRule.create({
     data: { value: `rule-${n}`, createdAt: FIXED_DATE, ...overrides },
   });
 }
