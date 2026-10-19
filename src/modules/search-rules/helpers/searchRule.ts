@@ -100,3 +100,51 @@ export const createSearchRuleMatcher = (rules: ParsedSearchRule[]) => {
     );
   };
 };
+
+export interface ScopedSearchRule {
+  rule: ParsedSearchRule;
+  scope: number | null;
+}
+
+export const createScopedSearchRuleMatcher = (rules: ScopedSearchRule[]) => {
+  const matchers = new Map<number | null, (name: string) => boolean>();
+
+  return (name: string, scope: number | null) => {
+    let matches = matchers.get(scope);
+    if (!matches) {
+      matches = createSearchRuleMatcher(
+        rules
+          .filter((rule) => rule.scope === null || rule.scope === scope)
+          .map((rule) => rule.rule)
+      );
+      matchers.set(scope, matches);
+    }
+    return matches(name);
+  };
+};
+
+export const MAX_SEARCH_RULE_LENGTH = 63;
+
+const invalid = (error: Error) => Object.assign(error, { status: 400 });
+
+export const validateSearchRule = (value: unknown) => {
+  if (typeof value !== "string") {
+    throw invalid(new Error("Search rule must be a string"));
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length > MAX_SEARCH_RULE_LENGTH) {
+    throw invalid(
+      new Error(
+        `Search rule "${trimmed}" is longer than ${MAX_SEARCH_RULE_LENGTH} characters`
+      )
+    );
+  }
+
+  try {
+    parseSearchRule(trimmed);
+  } catch (error: any) {
+    throw invalid(error);
+  }
+  return trimmed;
+};

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  createScopedSearchRuleMatcher,
   createSearchRuleMatcher,
   isGlobalExclusion,
   parseSearchRule,
+  validateSearchRule,
 } from "@/modules/search-rules/helpers/searchRule";
 
 const word = (text: string) => ({ text, wordStart: true, wordEnd: true });
@@ -139,4 +141,53 @@ describe("createSearchRuleMatcher", () => {
     expect(matcher("!used")("Sony WH-1000XM5")).toBe(false);
     expect(matcher()("Sony WH-1000XM5")).toBe(false);
   });
+});
+
+describe("createScopedSearchRuleMatcher", () => {
+  const scoped = (value: string, scope: number | null) => ({
+    rule: parseSearchRule(value),
+    scope,
+  });
+
+  it("applies global rules everywhere and scoped rules only in their scope", () => {
+    const matches = createScopedSearchRuleMatcher([
+      scoped("sony", null),
+      scoped("bosch", 1),
+    ]);
+    expect(matches("Sony A7", 1)).toBe(true);
+    expect(matches("Sony A7", 2)).toBe(true);
+    expect(matches("Bosch drill", 1)).toBe(true);
+    expect(matches("Bosch drill", 2)).toBe(false);
+    expect(matches("Bosch drill", null)).toBe(false);
+  });
+
+  it("limits a scoped exclusion-only rule to its scope", () => {
+    const matches = createScopedSearchRuleMatcher([
+      scoped("sony", null),
+      scoped("!etui", 1),
+    ]);
+    expect(matches("Sony etui", 1)).toBe(false);
+    expect(matches("Sony etui", 2)).toBe(true);
+  });
+
+  it("matches nothing in a scope without a positive rule", () => {
+    expect(
+      createScopedSearchRuleMatcher([scoped("bosch", 1)])("Bosch drill", 3)
+    ).toBe(false);
+  });
+});
+
+describe("validateSearchRule", () => {
+  it("returns the trimmed value", () => {
+    expect(validateSearchRule("  sony + !etui ")).toBe("sony + !etui");
+  });
+
+  it.each([[undefined], [5], [""], ["a++b"], ["x".repeat(64)]])(
+    "rejects %j with status 400",
+    (value) => {
+      expect(() => validateSearchRule(value)).toThrow(
+        expect.objectContaining({ status: 400 })
+      );
+    }
+  );
 });
