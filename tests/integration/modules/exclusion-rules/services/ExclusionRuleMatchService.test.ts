@@ -51,6 +51,27 @@ describe("ExclusionRuleMatchService (MySQL)", () => {
     expect((await adService.getForScraping(10)).map((ad) => ad.id)).toEqual([bose.id]);
   });
 
+  it("excludes ads of an inactive category until it is activated", async () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const service = new ExclusionRuleMatchService([new AmazonAdRepository()]);
+    const inactive = await seedCategory({ active: false });
+    await seedAd({ name: "Sony A7" });
+    await seedAd({ name: "Sony A7 II", categoryId: inactive.id });
+
+    await service.sync();
+    expect(await flags()).toEqual([
+      ["Sony A7", false],
+      ["Sony A7 II", true],
+    ]);
+
+    await prisma.amazonAdCategory.update({ where: { id: inactive.id }, data: { active: true } });
+    await service.sync();
+    expect(await flags()).toEqual([
+      ["Sony A7", false],
+      ["Sony A7 II", false],
+    ]);
+  });
+
   it("applies a category rule only to ads of that category", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     const a = await seedCategory();

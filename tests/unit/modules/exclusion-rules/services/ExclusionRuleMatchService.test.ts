@@ -10,6 +10,7 @@ const global = (...values: string[]): Rule[] =>
 
 const fakeTarget = (rules: Rule[] = []) => ({
   getExclusionRules: vi.fn().mockResolvedValue(rules),
+  getActiveScopes: vi.fn().mockResolvedValue([1, 2]),
   matchExclusionRules: vi.fn().mockResolvedValue({ excluded: 0, included: 0 }),
 });
 
@@ -110,6 +111,33 @@ describe("ExclusionRuleMatchService.sync", () => {
     expect(excludes("b", null)).toBe(true);
     expect(excludes("a", null)).toBe(false);
     error.mockRestore();
+    info.mockRestore();
+  });
+
+  it("excludes every ad of an inactive scope, whatever the rules", async () => {
+    const { service, targetA, info } = setup();
+    targetA.getActiveScopes.mockResolvedValue([1]);
+
+    await service.sync();
+
+    const [excludes] = targetA.matchExclusionRules.mock.calls[0];
+    expect(excludes("Bosch drill", 1)).toBe(false);
+    expect(excludes("Bosch drill", 2)).toBe(true);
+    info.mockRestore();
+  });
+
+  it("rematches when the active scopes change, not when only their order does", async () => {
+    const { service, targetA, info } = setup();
+    targetA.getActiveScopes
+      .mockResolvedValueOnce([1, 2])
+      .mockResolvedValueOnce([2, 1])
+      .mockResolvedValueOnce([2]);
+
+    await service.sync();
+    await service.sync();
+    await service.sync();
+
+    expect(onlyNewFlags(targetA)).toEqual([false, true, false]);
     info.mockRestore();
   });
 

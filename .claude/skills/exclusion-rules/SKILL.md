@@ -9,8 +9,8 @@ description: Use when asked to create, extend, review or fix AmazonExclusionRule
 
 `AmazonExclusionRule` rows decide which ads are skipped: every ad of an active `AmazonAdCategory` is scraped unless
 a rule matches it. `ExclusionRuleMatchCronService` sets `AmazonAd.excluded` with `ScopedExclusionRuleMatcher` from
-`src/modules/exclusion-rules/services/`: `true` when a rule matches, `false` otherwise. With no rules every ad is
-scraped; ads of inactive categories are never scraped. A rule with `categoryId = NULL` applies to every category, a
+`src/modules/exclusion-rules/services/`: `true` when a rule matches or the ad's category is inactive, `false`
+otherwise. With no rules every ad of an active category is scraped. A rule with `categoryId = NULL` applies to every category, a
 rule with a `categoryId` only to ads of that category. Rules are data in the production database; change them
 yourself through `/amazon/exclusion-rules`. Verify every rule set with the production matcher before applying it.
 
@@ -112,8 +112,8 @@ bash $K/api.sh POST /batch @<batch.json>             # every change at once, see
    and rerun `check`.
 4. `which` disagrees with `excluded`: the flag is stale (set before the cron rematch) or the database holds other
    rules; compare `scrapedAt` with `MAX(createdAt)` of `AmazonExclusionRule` and check the ad's `categoryId` against
-   the rule's, say which and leave the rules unchanged. An ad of an inactive category is never scraped, whatever
-   the rules say.
+   the rule's, say which and leave the rules unchanged. An ad of an inactive category has `excluded = true`
+   whatever the rules say; `which` does not see category activity.
 
 ## Rule design
 

@@ -18,7 +18,7 @@ vi.mock("@/modules/exclusion-rules/cron/ExclusionRuleMatchCronService", () => ({
 describe("createExclusionRulesModule", () => {
   it("runs the given targets from one match cron", () => {
     const targets = [
-      { getExclusionRules: vi.fn(), matchExclusionRules: vi.fn() },
+      { getExclusionRules: vi.fn(), getActiveScopes: vi.fn(), matchExclusionRules: vi.fn() },
     ] as ExclusionRuleTarget[];
 
     const module = createExclusionRulesModule(targets);

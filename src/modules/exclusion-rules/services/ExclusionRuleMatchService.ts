@@ -14,8 +14,8 @@ export class ExclusionRuleMatchService {
     this.parser = parser;
   }
 
-  // Rematches every ad of a target when its rules differ from the last
-  // successful run, otherwise only the ads that were never checked.
+  // Rematches every ad of a target when its rules or active scopes differ from
+  // the last successful run, otherwise only the ads that were never checked.
   async sync() {
     if (this.isRunning) return;
     this.isRunning = true;
@@ -31,10 +31,12 @@ export class ExclusionRuleMatchService {
 
   private async syncTarget(target: ExclusionRuleTarget) {
     const exclusionRules = await target.getExclusionRules();
-    const fingerprint = exclusionRules
-      .map((rule) => `${rule.scope ?? ""}\t${rule.value}`)
-      .sort()
-      .join("\n");
+    const activeScopes = await target.getActiveScopes();
+    const fingerprint = [
+      ...exclusionRules.map((rule) => `${rule.scope ?? ""}\t${rule.value}`).sort(),
+      `active\t${[...activeScopes].sort((a, b) => a - b).join(",")}`,
+    ].join("\n");
+    const active = new Set(activeScopes);
     const changed = fingerprint !== this.fingerprints.get(target);
     const startedAt = Date.now();
     const matcher = new ScopedExclusionRuleMatcher(
@@ -42,7 +44,8 @@ export class ExclusionRuleMatchService {
     );
 
     const { excluded, included } = await target.matchExclusionRules(
-      (name, scope) => matcher.excludes(name, scope),
+      (name, scope) =>
+        (scope !== null && !active.has(scope)) || matcher.excludes(name, scope),
       !changed
     );
     this.fingerprints.set(target, fingerprint);

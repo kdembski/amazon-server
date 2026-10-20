@@ -44,11 +44,11 @@ const buildAdService = () => {
 
 describe("AmazonAdService (MySQL)", () => {
   describe("getForScraping", () => {
-    it("returns ads of active categories that are not excluded and stamps only them", async () => {
+    it("returns ads that are not excluded from any category and stamps only them", async () => {
       const { service } = buildAdService();
       const inactive = await seedCategory({ active: false });
-      const wanted = await seedAd({ excluded: false });
-      const other = await seedAd({ categoryId: inactive.id, excluded: false });
+      const wanted = await seedAd({ categoryId: inactive.id, excluded: false });
+      const other = await seedAd({ excluded: true });
       const unchecked = await seedAd({ excluded: null });
 
       const ads = await service.getForScraping(10);
