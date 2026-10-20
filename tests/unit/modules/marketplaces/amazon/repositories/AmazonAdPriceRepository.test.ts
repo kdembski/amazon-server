@@ -23,12 +23,17 @@ const structure = {
   updatedAt: true,
   country: {
     select: {
-      id: true,
-      name: true,
-      code: true,
-      currencyId: true,
-      currency: true,
+      tld: true,
       active: true,
+      country: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          currencyId: true,
+          currency: true,
+        },
+      },
     },
   },
 };

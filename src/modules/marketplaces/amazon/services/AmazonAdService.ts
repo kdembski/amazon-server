@@ -84,7 +84,7 @@ export class AmazonAdService {
       .then((countryPrices) =>
         this.anomalyManager.check(
           ad,
-          this.priceMapper.map(countryPrices, scrapedCountryIds)
+          this.priceMapper.map(ad.asin, countryPrices, scrapedCountryIds)
         )
       );
   }

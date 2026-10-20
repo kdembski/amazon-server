@@ -18,9 +18,14 @@ vi.mock("@/modules/marketplaces/amazon/routes/AmazonAdPriceRouter", () => ({
     return { path: "/amazon/ads/prices" };
   }),
 }));
-vi.mock("@/modules/marketplaces/amazon/routes/AmazonSearchRuleRouter", () => ({
-  AmazonSearchRuleRouter: vi.fn(function () {
-    return { path: "/amazon/search-rules" };
+vi.mock("@/modules/marketplaces/amazon/routes/AmazonExclusionRuleRouter", () => ({
+  AmazonExclusionRuleRouter: vi.fn(function () {
+    return { path: "/amazon/exclusion-rules" };
+  }),
+}));
+vi.mock("@/modules/marketplaces/amazon/routes/AmazonCountryRouter", () => ({
+  AmazonCountryRouter: vi.fn(function () {
+    return { path: "/amazon/countries" };
   }),
 }));
 vi.mock("@/modules/marketplaces/amazon/repositories/AmazonAdRepository", () => ({
@@ -35,22 +40,23 @@ vi.mock("@/modules/marketplaces/amazon/services/AmazonAdDailyReportSection", () 
 }));
 
 describe("createAmazonModule", () => {
-  it("mounts the category, ad, price and search rule routers in order without crons", () => {
+  it("mounts the category, ad, price, exclusion rule and country routers in order without crons", () => {
     const module = createAmazonModule();
 
     expect(module.routers!.map((r) => r.path)).toEqual([
       "/amazon/ads/categories",
       "/amazon/ads",
       "/amazon/ads/prices",
-      "/amazon/search-rules",
+      "/amazon/exclusion-rules",
+      "/amazon/countries",
     ]);
     expect(module.crons).toBeUndefined();
   });
 
-  it("matches search rules through the ad repository", () => {
+  it("matches exclusion rules through the ad repository", () => {
     const module = createAmazonModule();
 
-    expect(module.searchRuleTarget).toBe(
+    expect(module.exclusionRuleTarget).toBe(
       vi.mocked(AmazonAdRepository).mock.results.at(-1)!.value
     );
   });

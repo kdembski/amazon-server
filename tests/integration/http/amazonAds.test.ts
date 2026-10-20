@@ -8,7 +8,7 @@ import { messagesSentTo } from "../../support/integration/discordInbox";
 import {
   seedAd,
   seedCategory,
-  seedCountry,
+  seedAmazonCountry,
   seedPrice,
 } from "../../support/integration/seed";
 
@@ -20,11 +20,11 @@ beforeAll(() => {
 });
 
 describe("GET /amazon/ads/scrap", () => {
-  it("returns the next ads flagged as matching and stamps scrapedAt", async () => {
-    const never = await seedAd({ matchesRules: true, scrapedAt: null });
-    const older = await seedAd({ matchesRules: true, scrapedAt: day(1) });
-    const newer = await seedAd({ matchesRules: true, scrapedAt: day(2) });
-    const unmatched = await seedAd({ matchesRules: false, scrapedAt: null });
+  it("returns the next ads that are not excluded and stamps scrapedAt", async () => {
+    const never = await seedAd({ excluded: false, scrapedAt: null });
+    const older = await seedAd({ excluded: false, scrapedAt: day(1) });
+    const newer = await seedAd({ excluded: false, scrapedAt: day(2) });
+    const excluded = await seedAd({ excluded: true, scrapedAt: null });
 
     const res = await request(app).get("/amazon/ads/scrap?count=2").expect(200);
 
@@ -33,7 +33,7 @@ describe("GET /amazon/ads/scrap", () => {
       { id: older.id, asin: older.asin, name: older.name },
     ]);
     const rows = await prisma.amazonAd.findMany({ orderBy: { id: "asc" } });
-    expect(rows.map((r) => r.id)).toEqual([never.id, older.id, newer.id, unmatched.id]);
+    expect(rows.map((r) => r.id)).toEqual([never.id, older.id, newer.id, excluded.id]);
     expect(rows.slice(0, 3).map((r) => r.scrapedAt!.getTime() > day(2).getTime())).toEqual([
       true,
       true,
@@ -42,8 +42,8 @@ describe("GET /amazon/ads/scrap", () => {
     expect(rows[3].scrapedAt).toBeNull();
   });
 
-  it("is not shadowed by GET /:id and returns [] when no ad matches", async () => {
-    await seedAd({ matchesRules: false });
+  it("is not shadowed by GET /:id and returns [] when every ad is excluded", async () => {
+    await seedAd({ excluded: true });
 
     const res = await request(app).get("/amazon/ads/scrap").expect(200);
 
@@ -54,12 +54,12 @@ describe("GET /amazon/ads/scrap", () => {
 describe("PUT /amazon/ads/:id", () => {
   it("stores prices, logs ad_scraped and posts a pricing error embed to Discord", async () => {
     const ad = await seedAd();
-    const country = await seedCountry({ active: true });
-    await seedPrice({ adId: ad.id, countryId: country.id, value: 100, createdAt: new Date(Date.now() - 3_600_000) });
+    const { countryId } = await seedAmazonCountry();
+    await seedPrice({ adId: ad.id, countryId, value: 100, createdAt: new Date(Date.now() - 3_600_000) });
 
     await request(app)
       .put(`/amazon/ads/${ad.id}`)
-      .send({ prices: [{ adId: ad.id, countryId: country.id, value: 40, dispatchFrom: "Amazon" }] })
+      .send({ prices: [{ adId: ad.id, countryId, value: 40, dispatchFrom: "Amazon" }] })
       .expect(200);
 
     expect(await prisma.amazonAdPrice.count({ where: { adId: ad.id } })).toBe(2);
@@ -113,7 +113,7 @@ describe("CRUD /amazon/ads", () => {
       .expect(200);
     const dup = await request(app).post("/amazon/ads").send(body).expect(422);
 
-    expect(one.body).toMatchObject({ asin: "B0HTTP0001", matchesRules: null });
+    expect(one.body).toMatchObject({ asin: "B0HTTP0001", excluded: null });
     expect(many.body).toHaveLength(2);
     expect(await prisma.amazonAdCategory.count()).toBe(1);
     expect(dup.text).toMatch(/^Unique constraint failed on the/);

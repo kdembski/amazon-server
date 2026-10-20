@@ -40,7 +40,7 @@ describe("AmazonAdPriceService", () => {
       expect.objectContaining({
         value: 5,
         ad: { connect: { id: 1 } },
-        country: { connect: { id: 2 } },
+        country: { connect: { countryId: 2 } },
         createdAt: expect.any(Date),
       })
     );

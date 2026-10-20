@@ -128,7 +128,7 @@ describe("AmazonAdService.updatePrices", () => {
     expect(adId).toBe(9);
     expect(since.getTime()).toBeGreaterThanOrEqual(before - 24 * 3_600_000);
     expect(since.getTime()).toBeLessThanOrEqual(Date.now() - 24 * 3_600_000);
-    expect(priceMapper.map).toHaveBeenCalledWith(countryPrices, [1]);
+    expect(priceMapper.map).toHaveBeenCalledWith(ad.asin, countryPrices, [1]);
     expect(anomalyManager.check).toHaveBeenCalledWith(ad, listingPrices);
   });
 

@@ -14,13 +14,12 @@ export class AmazonPricingErrorDiscordService {
   async send(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][]) {
     const fields = countryPrices.map((countryHistory) => {
       const prices = this.getPriceChanges(countryHistory);
-      const { name, code, currencyCode } = prices[0].country;
+      const { name, currencyCode } = prices[0].country;
 
       return {
         name,
         value: prices
           .map((price, i) => {
-            const link = this.getUrl(ad, code);
             const date = format(price.createdAt, "d MMM HH:mm");
             const value = price.value.toNumber();
             const difference = this.getDifference(value, prices, i);
@@ -28,7 +27,7 @@ export class AmazonPricingErrorDiscordService {
             const withCurrency = this.getValueWithCurrency(value, currencyCode);
             const text = this.getFullText(withCurrency, difference);
 
-            if (i === 0) return `${date} – [${text}](${link})`;
+            if (i === 0) return `${date} – [${text}](${price.url})`;
             return `${date} – ${text}`;
           })
           .reverse()
@@ -73,9 +72,5 @@ export class AmazonPricingErrorDiscordService {
     return difference
       ? `${withCurrency} *(${difference}%)*`
       : `${withCurrency}`;
-  }
-
-  private getUrl(ad: AmazonAdSelectDto, countryCode: string) {
-    return `https://www.amazon.${countryCode}/dp/${ad.asin}`;
   }
 }

@@ -14,7 +14,7 @@ export class AmazonAdPriceCreateMapper
       value: dto.value,
       dispatchFrom: dto.dispatchFrom,
       country: {
-        connect: { id: dto.countryId },
+        connect: { countryId: dto.countryId },
       },
       ad: {
         connect: { id: dto.adId },

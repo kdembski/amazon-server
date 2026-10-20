@@ -3,14 +3,16 @@ import { ScraperMetricCreateMapper } from "@/modules/monitoring/mappers/ScraperM
 import { ActivityEventCreateMapper } from "@/modules/monitoring/mappers/ActivityEventCreateMapper";
 import { AmazonAdCategoryCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCategoryCreateMapper";
 import { AmazonAdCategoryUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCategoryUpdateMapper";
-import { AmazonSearchRuleBatchMapper } from "@/modules/marketplaces/amazon/mappers/AmazonSearchRuleBatchMapper";
-import { AmazonSearchRuleCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonSearchRuleCreateMapper";
-import { AmazonSearchRuleUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonSearchRuleUpdateMapper";
+import { AmazonExclusionRuleBatchMapper } from "@/modules/marketplaces/amazon/mappers/AmazonExclusionRuleBatchMapper";
+import { AmazonExclusionRuleCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonExclusionRuleCreateMapper";
+import { AmazonExclusionRuleUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonExclusionRuleUpdateMapper";
 import { AmazonAdCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCreateMapper";
 import { AmazonAdUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdUpdateMapper";
 import { AmazonAdPriceCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdPriceCreateMapper";
 import { AmazonAdPriceUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdPriceUpdateMapper";
 import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingPriceMapper";
+import { AmazonCountryCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonCountryCreateMapper";
+import { AmazonCountryUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonCountryUpdateMapper";
 import { CountryCreateMapper } from "@/modules/currency/mappers/CountryCreateMapper";
 import { CountryUpdateMapper } from "@/modules/currency/mappers/CountryUpdateMapper";
 import { CurrencyCreateMapper } from "@/modules/currency/mappers/CurrencyCreateMapper";
@@ -55,8 +57,8 @@ describe("create mappers", () => {
       expected: { name: "tools", createdAt: NOW, updatedAt: NOW },
     },
     {
-      name: "AmazonSearchRuleCreateMapper",
-      map: (dto: any) => new AmazonSearchRuleCreateMapper().toCreateInput(dto),
+      name: "AmazonExclusionRuleCreateMapper",
+      map: (dto: any) => new AmazonExclusionRuleCreateMapper().toCreateInput(dto),
       dto: { value: " sony " },
       expected: { value: "sony", categoryId: null, createdAt: NOW },
     },
@@ -67,7 +69,7 @@ describe("create mappers", () => {
       expected: {
         asin: "A1",
         name: "Drill",
-        matchesRules: null,
+        excluded: null,
         image: "img",
         createdAt: NOW,
         updatedAt: NOW,
@@ -86,8 +88,21 @@ describe("create mappers", () => {
       expected: {
         value: 9.99,
         dispatchFrom: "Amazon",
-        country: { connect: { id: 4 } },
+        country: { connect: { countryId: 4 } },
         ad: { connect: { id: 3 } },
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+    },
+    {
+      name: "AmazonCountryCreateMapper",
+      map: (dto: any) => new AmazonCountryCreateMapper().toCreateInput(dto),
+      dto: { countryId: 2, tld: "com.be", scraped: true, active: true },
+      expected: {
+        countryId: 2,
+        tld: "com.be",
+        scraped: true,
+        active: true,
         createdAt: NOW,
         updatedAt: NOW,
       },
@@ -143,14 +158,14 @@ describe("update mappers", () => {
       expected: { name: "tools", updatedAt: NOW },
     },
     {
-      name: "AmazonSearchRuleUpdateMapper (clears the category)",
-      map: (dto: any) => new AmazonSearchRuleUpdateMapper().toUpdateInput(dto),
+      name: "AmazonExclusionRuleUpdateMapper (clears the category)",
+      map: (dto: any) => new AmazonExclusionRuleUpdateMapper().toUpdateInput(dto),
       dto: { categoryId: null },
       expected: { value: undefined, categoryId: null },
     },
     {
-      name: "AmazonSearchRuleUpdateMapper (keeps the category)",
-      map: (dto: any) => new AmazonSearchRuleUpdateMapper().toUpdateInput(dto),
+      name: "AmazonExclusionRuleUpdateMapper (keeps the category)",
+      map: (dto: any) => new AmazonExclusionRuleUpdateMapper().toUpdateInput(dto),
       dto: { value: "bose" },
       expected: { value: "bose", categoryId: undefined },
     },
@@ -165,6 +180,12 @@ describe("update mappers", () => {
       map: (dto: any) => new AmazonAdPriceUpdateMapper().toUpdateInput(dto),
       dto: { value: 1.5, countryId: 1, adId: 2 },
       expected: { value: 1.5, updatedAt: NOW },
+    },
+    {
+      name: "AmazonCountryUpdateMapper",
+      map: (dto: any) => new AmazonCountryUpdateMapper().toUpdateInput(dto),
+      dto: { tld: "com.be", scraped: false, active: false },
+      expected: { tld: "com.be", scraped: false, active: false, updatedAt: NOW },
     },
     {
       name: "CountryUpdateMapper",
@@ -203,6 +224,7 @@ describe("AmazonAdListingPriceMapper", () => {
     const de = buildPriceCountry({ id: 2 });
     const se = buildPriceCountry({ id: 3 });
     const countryPrices = mapper.map(
+      "B0X",
       [
         [
           buildPrice({ country: pl, dispatchFrom: "Amazon" }),
@@ -219,7 +241,7 @@ describe("AmazonAdListingPriceMapper", () => {
     ).toEqual([[true, false], [false], [false]]);
   });
 
-  it("copies value, createdAt, country fields and currency code", () => {
+  it("copies value, createdAt, country fields and currency code and builds the url from the tld", () => {
     const eur = buildCurrency({ code: "EUR" });
     const price = buildPrice({
       value: 12.5,
@@ -227,13 +249,14 @@ describe("AmazonAdListingPriceMapper", () => {
       country: buildPriceCountry({
         name: "Germany",
         code: "de",
+        tld: "de",
         active: false,
         currencyId: eur.id,
         currency: eur,
       }),
     });
 
-    const countryPrices = mapper.map([[price]], [price.countryId]);
+    const countryPrices = mapper.map("B0X", [[price]], [price.countryId]);
 
     expect(countryPrices).toStrictEqual([
       [
@@ -241,6 +264,7 @@ describe("AmazonAdListingPriceMapper", () => {
           value: price.value,
           createdAt: new Date("2026-02-03T04:05:06.000Z"),
           reportable: true,
+          url: "https://www.amazon.de/dp/B0X",
           country: {
             name: "Germany",
             code: "de",
@@ -280,35 +304,35 @@ describe("ScraperMetricCreateMapper", () => {
   });
 });
 
-describe("AmazonSearchRule mappers", () => {
+describe("AmazonExclusionRule mappers", () => {
   it("reject an invalid rule with status 400", () => {
     expect(() =>
-      new AmazonSearchRuleCreateMapper().toCreateInput({ value: "a++b" })
+      new AmazonExclusionRuleCreateMapper().toCreateInput({ value: "a++b" })
     ).toThrow(expect.objectContaining({ status: 400 }));
     expect(() =>
-      new AmazonSearchRuleUpdateMapper().toUpdateInput({ value: "a++b" })
+      new AmazonExclusionRuleUpdateMapper().toUpdateInput({ value: "a++b" })
     ).toThrow(expect.objectContaining({ status: 400 }));
   });
 });
 
-describe("AmazonSearchRule mappers categoryId", () => {
+describe("AmazonExclusionRule mappers categoryId", () => {
   it("reject a non-integer categoryId with status 400", () => {
     expect(() =>
-      new AmazonSearchRuleCreateMapper().toCreateInput({
+      new AmazonExclusionRuleCreateMapper().toCreateInput({
         value: "sony",
         categoryId: "12" as any,
       })
     ).toThrow(expect.objectContaining({ status: 400 }));
     expect(() =>
-      new AmazonSearchRuleUpdateMapper().toUpdateInput({ categoryId: 1.5 })
+      new AmazonExclusionRuleUpdateMapper().toUpdateInput({ categoryId: 1.5 })
     ).toThrow(expect.objectContaining({ status: 400 }));
   });
 });
 
-describe("AmazonSearchRuleBatchMapper", () => {
+describe("AmazonExclusionRuleBatchMapper", () => {
   it("maps creates, updates and deletes", () => {
     expect(
-      new AmazonSearchRuleBatchMapper().toBatchInput({
+      new AmazonExclusionRuleBatchMapper().toBatchInput({
         create: [{ value: " sony ", categoryId: 2 }],
         update: [{ id: 3, categoryId: null }],
         delete: [4],
@@ -321,7 +345,7 @@ describe("AmazonSearchRuleBatchMapper", () => {
   });
 
   it("treats missing lists as empty", () => {
-    expect(new AmazonSearchRuleBatchMapper().toBatchInput({})).toEqual({
+    expect(new AmazonExclusionRuleBatchMapper().toBatchInput({})).toEqual({
       create: [],
       update: [],
       delete: [],
@@ -336,7 +360,7 @@ describe("AmazonSearchRuleBatchMapper", () => {
     ["an invalid rule", { create: [{ value: "a +" }] }],
   ])("rejects %s with status 400", (_, dto) => {
     expect(() =>
-      new AmazonSearchRuleBatchMapper().toBatchInput(dto as any)
+      new AmazonExclusionRuleBatchMapper().toBatchInput(dto as any)
     ).toThrow(expect.objectContaining({ status: 400 }));
   });
 });

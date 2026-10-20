@@ -1,7 +1,7 @@
 import { AppModule } from "@/shared/interfaces/AppModule";
 import { createCurrencyModule } from "@/modules/currency";
 import { createMonitoringModule } from "@/modules/monitoring";
-import { createSearchRulesModule } from "@/modules/search-rules";
+import { createExclusionRulesModule } from "@/modules/exclusion-rules";
 import { createAmazonModule } from "@/modules/marketplaces/amazon";
 
 export function createModules(): AppModule[] {
@@ -10,7 +10,7 @@ export function createModules(): AppModule[] {
 
   return [
     currency,
-    createSearchRulesModule(marketplaces.map((m) => m.searchRuleTarget)),
+    createExclusionRulesModule(marketplaces.map((m) => m.exclusionRuleTarget)),
     createMonitoringModule([
       ...marketplaces.map((m) => m.dailyReportSection),
       currency.dailyReportSection,

@@ -4,6 +4,7 @@ export interface ListingPrice {
   value: Decimal;
   createdAt: Date;
   reportable: boolean;
+  url: string;
   country: {
     name: string;
     code: string;

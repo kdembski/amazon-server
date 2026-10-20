@@ -48,7 +48,7 @@ npm run test:integration  # tests/integration, needs a running Docker
 ## Architecture
 
 - Layout: `src/shared/` (`crud`, `http`, `discord`, `system`, `utils`, `interfaces`) and `src/modules/`
-  (`currency`, `monitoring`, `search-rules`, `anomalies`, `marketplaces/<name>`). Put no code in other
+  (`currency`, `monitoring`, `exclusion-rules`, `anomalies`, `marketplaces/<name>`). Put no code in other
   top-level `src/` folders.
 - Inside a module keep the layers `routes/` → `controllers/` → `services/` → `repositories/` (Prisma);
   `mappers/` turn DTOs into Prisma inputs; `dtos/`, `interfaces/` and `cron/` sit beside them. Generic CRUD
@@ -60,34 +60,42 @@ npm run test:integration  # tests/integration, needs a running Docker
 - Export `create<Name>Module()` from `src/modules/<name>/index.ts` (returns `AppModule`: `routers`, `crons`);
   marketplaces live at `src/modules/marketplaces/<name>/index.ts` and return `MarketplaceModule`.
   Register it in `createModules()` in `src/modules.ts`.
-- Dependency direction: `marketplaces/*` → `anomalies`, `search-rules`, `monitoring`, `currency` → `shared`;
+- Dependency direction: `marketplaces/*` → `anomalies`, `exclusion-rules`, `monitoring`, `currency` → `shared`;
   `anomalies` → `currency`; `currency` → `monitoring`. `src/shared` imports nothing from
-  `src/modules`. `currency`, `monitoring`, `search-rules` and `anomalies` import nothing from
+  `src/modules`. `currency`, `monitoring`, `exclusion-rules` and `anomalies` import nothing from
   `src/modules/marketplaces`; pass marketplace implementations in from `src/modules.ts`.
 - Add a marketplace: (1) Prisma models and a `src/modules/marketplaces/<name>/` folder with the layers;
   (2) a mapper to `ListingPrice`, implementations of `ConversionErrorReporter`/`PricingErrorReporter` that
   store an event and post to Discord, and a call to `AnomalyManager([...])` with the managers of the chosen
-  detectors after storing prices; (3) implementations of `SearchRuleTarget` and `DailyReportSection`;
+  detectors after storing prices; (3) implementations of `ExclusionRuleTarget` and `DailyReportSection`;
   (4) `create<Name>Module()` returning `MarketplaceModule`, added to `marketplaces` in `src/modules.ts`.
-- Anomaly detectors work on `ListingPrice` only; each marketplace passes its reporters to the managers. Rule matching goes through `SearchRuleTarget`; the daily Discord report gets its
+- Anomaly detectors work on `ListingPrice` only; each marketplace passes its reporters to the managers. Rule matching goes through `ExclusionRuleTarget`; the daily Discord report gets its
   sections through `DailyReportSection`.
 - Cross-cutting services are `getInstance()` singletons. `*SelectDto` types derive from repository return
   types. Controller errors go through `ResponseErrorService` (`error.status` if set, P2002/P2003 → 422, P1001 → 503).
-- Search rules are per marketplace (`AmazonSearchRule`, optional `categoryId`; `NULL` = every category). Change
-  them only through `GET|POST /amazon/search-rules`, `PUT|DELETE /amazon/search-rules/:id` and
-  `POST /amazon/search-rules/batch` (`{create, update: [{id, ...}], delete: [id]}` in one transaction: deletes, updates,
-  then creates; returns all rules) (skill `search-rules`); writes are validated with `SearchRuleValidator`
-  (invalid → 400).
-- Scraping: `GET /amazon/ads/scrap` hands out ads with `matchesRules = true`, oldest `scrapedAt` first, and
-  stamps them; never filter it by `name LIKE`. `SearchRuleMatchCronService` runs every minute: it rematches
-  every ad of a `SearchRuleTarget` when its rules (value or category) changed since the last run (and after each
-  restart), otherwise only ads with `matchesRules = null`. New ads start with `matchesRules: null`. Rule syntax lives in
-  `SearchRuleParser` (`src/modules/search-rules/services/`; `+` and, `|` or, `!` not; a rule of only `!` members
-  excludes globally; phrases match whole words, `*` at a phrase edge matches part of a word). Match rules in JS with
-  `ScopedSearchRuleMatcher` (an ad sees the rules of its category and those without one), not in SQL.
+- Exclusion rules are per marketplace (`AmazonExclusionRule`, optional `categoryId`; `NULL` = every category). Change
+  them only through `GET|POST /amazon/exclusion-rules`, `PUT|DELETE /amazon/exclusion-rules/:id` and
+  `POST /amazon/exclusion-rules/batch` (`{create, update: [{id, ...}], delete: [id]}` in one transaction: deletes,
+  updates, then creates; returns all rules) (skill `exclusion-rules`); writes are validated with
+  `ExclusionRuleValidator` (invalid → 400).
+- Scraping: `GET /amazon/ads/scrap` hands out ads with `excluded = false`, oldest `scrapedAt` first, and stamps
+  them; never filter it by `name LIKE` or by category. An ad of an inactive category or matching a rule of its
+  category or a rule without one gets `excluded = true`; otherwise `excluded = false`. `ExclusionRuleMatchCronService`
+  runs every minute: it rematches every ad of an `ExclusionRuleTarget` when its rules (value or category) or its
+  active scopes (`getActiveScopes`) changed since the last run (and after each restart), otherwise only ads with
+  `excluded = null`. New ads start with `excluded: null`. Rule
+  syntax lives in `ExclusionRuleParser` (`src/modules/exclusion-rules/services/`; `+` and, `|` or, `!` marks an
+  exception inside a rule; a rule of only `!` members is invalid; phrases match whole words, `*` at a phrase edge
+  matches part of a word). Match rules in JS with `ScopedExclusionRuleMatcher`, not in SQL.
   `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices, stores an `ad_scraped`
   `ActivityEvent` and asynchronously runs the anomaly managers (`src/modules/anomalies`); their marketplace reporters
   store `*_sent` events and post to Discord.
+- Amazon countries: keep Amazon's countries in `AmazonCountry` (`countryId` = `Country.id`, `tld`, `scraped`, `active`),
+  changed through `GET|POST /amazon/countries` and `PUT /amazon/countries/:id`; never delete rows, set `scraped = false`
+  instead. `GET /amazon/countries/scrap` hands out `countryId` and `tld` of `scraped` countries.
+  `AmazonAdPrice.countryId` references `AmazonCountry`. Build
+  listing URLs as `https://www.amazon.<tld>/dp/<asin>` (`ListingPrice.url`). Report anomalies only for countries with
+  `AmazonCountry.active = true` (`ListingPrice.country.active`).
 - Scraper metrics: scrapers send `POST /scrapers/:name/metrics` every minute; rows go to the `ScraperMetric`
   table (retention 30 days). Build the "Scrapers" field of the hourly Discord report from these metrics via
   `ScraperMetricService.getSummaries`.

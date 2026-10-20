@@ -19,11 +19,11 @@ describe("ResponseErrorService", () => {
   it("uses the status of the error", () => {
     const { response, status, send } = fakeResponse();
     new ResponseErrorService(response).send(
-      Object.assign(new Error("Search rule must be a string"), { status: 400 })
+      Object.assign(new Error("Exclusion rule must be a string"), { status: 400 })
     );
 
     expect(status).toHaveBeenCalledWith(400);
-    expect(send).toHaveBeenCalledWith("Search rule must be a string");
+    expect(send).toHaveBeenCalledWith("Exclusion rule must be a string");
   });
 
   it("returns 422 for a missing related record", () => {

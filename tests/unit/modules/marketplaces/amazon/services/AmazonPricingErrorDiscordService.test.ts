@@ -21,6 +21,7 @@ describe("AmazonPricingErrorDiscordService", () => {
     };
     const newest = buildListingPrice({
       value: 50,
+      url: "https://www.amazon.de/dp/B0X",
       country,
       createdAt: new Date("2026-01-02T10:00:00"),
     });
@@ -92,7 +93,12 @@ describe("AmazonPricingErrorDiscordService", () => {
       [80, 9],
       [100, 8],
     ].map(([value, hour]) =>
-      buildListingPrice({ value, country, createdAt: at(hour) })
+      buildListingPrice({
+        value,
+        country,
+        url: "https://www.amazon.de/dp/B0X",
+        createdAt: at(hour),
+      })
     );
 
     await service.send(buildAd({ asin: "B0X" }), [history]);

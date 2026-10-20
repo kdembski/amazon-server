@@ -1,21 +1,22 @@
 import { describe, expect, it, vi } from "vitest";
 import { Prisma } from "@prisma/client";
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
-import { AmazonSearchRuleRepository } from "@/modules/marketplaces/amazon/repositories/AmazonSearchRuleRepository";
+import { AmazonExclusionRuleRepository } from "@/modules/marketplaces/amazon/repositories/AmazonExclusionRuleRepository";
 import { fakePrisma } from "../../../../../support/fakes";
 
 const setup = (matchBatchSize?: number) => {
   const db = fakePrisma();
-  const searchRuleRepository = { getAll: vi.fn() };
+  const exclusionRuleRepository = { getAll: vi.fn() };
   const repository = new AmazonAdRepository(
     db.prisma,
     matchBatchSize,
-    searchRuleRepository as unknown as AmazonSearchRuleRepository
+    exclusionRuleRepository as unknown as AmazonExclusionRuleRepository
   );
   return {
     repository,
-    searchRuleRepository,
+    exclusionRuleRepository,
     delegate: db.amazonAd,
+    categories: db.amazonAdCategory,
     $executeRaw: db.$executeRaw,
   };
 };
@@ -45,39 +46,50 @@ describe("AmazonAdRepository", () => {
     });
   });
 
-  it("getForScraping reads matching ads, oldest scrapedAt first", async () => {
+  it("getForScraping reads ads that are not excluded, oldest scrapedAt first", async () => {
     const { repository, delegate } = setup();
 
     await repository.getForScraping(10);
 
     expect(delegate.findMany).toHaveBeenCalledWith({
-      where: { matchesRules: true },
+      where: { excluded: false },
       take: 10,
       orderBy: { scrapedAt: "asc" },
       select: { id: true, asin: true, name: true },
     });
   });
 
-  it("getSearchRules maps the category of each rule to its scope", async () => {
-    const { repository, searchRuleRepository } = setup();
-    searchRuleRepository.getAll.mockResolvedValue([
+  it("getExclusionRules maps the category of each rule to its scope", async () => {
+    const { repository, exclusionRuleRepository } = setup();
+    exclusionRuleRepository.getAll.mockResolvedValue([
       { id: 1, value: "sony", categoryId: 3, createdAt: new Date() },
       { id: 2, value: "bose", categoryId: null, createdAt: new Date() },
     ]);
 
-    await expect(repository.getSearchRules()).resolves.toEqual([
+    await expect(repository.getExclusionRules()).resolves.toEqual([
       { value: "sony", scope: 3 },
       { value: "bose", scope: null },
     ]);
   });
 
-  describe("matchSearchRules", () => {
-    const select = { id: true, name: true, categoryId: true, matchesRules: true };
-    const ad = (id: number, name: string, matchesRules: boolean | null) => ({
+  it("getActiveScopes returns the ids of active categories", async () => {
+    const { repository, categories } = setup();
+    categories.findMany.mockResolvedValue([{ id: 1 }, { id: 3 }]);
+
+    await expect(repository.getActiveScopes()).resolves.toEqual([1, 3]);
+    expect(categories.findMany).toHaveBeenCalledWith({
+      where: { active: true },
+      select: { id: true },
+    });
+  });
+
+  describe("matchExclusionRules", () => {
+    const select = { id: true, name: true, categoryId: true, excluded: true };
+    const ad = (id: number, name: string, excluded: boolean | null) => ({
       id,
       name,
       categoryId: 7,
-      matchesRules,
+      excluded,
     });
 
     it("passes the category of each ad as the scope", async () => {
@@ -86,16 +98,16 @@ describe("AmazonAdRepository", () => {
       delegate.updateMany.mockResolvedValue({ count: 1 });
       const scoped = vi.fn().mockReturnValue(true);
 
-      await repository.matchSearchRules(scoped, true);
+      await repository.matchExclusionRules(scoped, true);
 
       expect(scoped).toHaveBeenCalledWith("Bosch drill", 7);
     });
-    const matches = (name: string) => {
+    const excludes = (name: string) => {
       const lower = name.toLowerCase();
       return lower.includes("drill") && !lower.includes("used");
     };
 
-    it("rematches in id batches, flagging matches before clearing the rest, and sums the counts", async () => {
+    it("rematches in id batches, including ads before excluding the rest, and sums the counts", async () => {
       const { repository, delegate } = setup(10);
       delegate.aggregate.mockResolvedValue({ _max: { id: 25 } });
       delegate.findMany
@@ -111,9 +123,9 @@ describe("AmazonAdRepository", () => {
         count: where.id.in.length,
       }));
 
-      await expect(repository.matchSearchRules(matches)).resolves.toEqual({
-        matched: 2,
-        unmatched: 2,
+      await expect(repository.matchExclusionRules(excludes)).resolves.toEqual({
+        excluded: 2,
+        included: 2,
       });
 
       expect(delegate.aggregate).toHaveBeenCalledWith({ _max: { id: true } });
@@ -123,9 +135,9 @@ describe("AmazonAdRepository", () => {
         [{ where: { id: { gt: 20, lte: 30 } }, select }],
       ]);
       expect(delegate.updateMany.mock.calls).toEqual([
-        [{ where: { id: { in: [1] } }, data: { matchesRules: true } }],
-        [{ where: { id: { in: [3, 4] } }, data: { matchesRules: false } }],
-        [{ where: { id: { in: [21] } }, data: { matchesRules: true } }],
+        [{ where: { id: { in: [3, 4] } }, data: { excluded: false } }],
+        [{ where: { id: { in: [1] } }, data: { excluded: true } }],
+        [{ where: { id: { in: [21] } }, data: { excluded: true } }],
       ]);
     });
 
@@ -133,16 +145,16 @@ describe("AmazonAdRepository", () => {
       const { repository, delegate } = setup();
       delegate.aggregate.mockResolvedValue({ _max: { id: null } });
 
-      await expect(repository.matchSearchRules(matches)).resolves.toEqual({
-        matched: 0,
-        unmatched: 0,
+      await expect(repository.matchExclusionRules(excludes)).resolves.toEqual({
+        excluded: 0,
+        included: 0,
       });
 
       expect(delegate.findMany).not.toHaveBeenCalled();
       expect(delegate.updateMany).not.toHaveBeenCalled();
     });
 
-    it("with onlyNew checks the never matched ads in one go", async () => {
+    it("with onlyNew checks the never checked ads in one go", async () => {
       const { repository, delegate } = setup();
       delegate.findMany.mockResolvedValue([
         ad(1, "Bosch drill", null),
@@ -150,19 +162,19 @@ describe("AmazonAdRepository", () => {
       ]);
       delegate.updateMany.mockResolvedValue({ count: 1 });
 
-      await expect(repository.matchSearchRules(matches, true)).resolves.toEqual({
-        matched: 1,
-        unmatched: 1,
+      await expect(repository.matchExclusionRules(excludes, true)).resolves.toEqual({
+        excluded: 1,
+        included: 1,
       });
 
       expect(delegate.aggregate).not.toHaveBeenCalled();
       expect(delegate.findMany).toHaveBeenCalledWith({
-        where: { matchesRules: null },
+        where: { excluded: null },
         select,
       });
       expect(delegate.updateMany.mock.calls).toEqual([
-        [{ where: { id: { in: [1] } }, data: { matchesRules: true } }],
-        [{ where: { id: { in: [2] } }, data: { matchesRules: false } }],
+        [{ where: { id: { in: [2] } }, data: { excluded: false } }],
+        [{ where: { id: { in: [1] } }, data: { excluded: true } }],
       ]);
     });
   });

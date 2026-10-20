@@ -1,6 +1,6 @@
 ---
 name: database
-description: Use when a question needs live production data - ads, prices, categories, search rules, activity events, scraper metrics, currency rates - or when another task (e.g. search-rules) needs the current rows from the production MySQL database.
+description: Use when a question needs live production data - ads, prices, categories, exclusion rules, activity events, scraper metrics, currency rates - or when another task (e.g. exclusion-rules) needs the current rows from the production MySQL database.
 ---
 
 # Database
@@ -15,7 +15,7 @@ bash .claude/skills/database/scripts/query.sh --raw "SELECT ..." > out.txt   # b
 ```
 
 - Writes fail with `ERROR 1142`. Do not try them and do not look for other credentials; changes go to the user
-  as SQL, except search rules, which the `search-rules` skill changes through `/amazon/search-rules`.
+  as SQL, except exclusion rules, which the `exclusion-rules` skill changes through `/amazon/exclusion-rules`.
 - On a missing config or a closed tunnel, stop and pass the script's message to the user; do not open the
   tunnel yourself.
 - Never print or read `~/.mysql-readonly.cnf`.
