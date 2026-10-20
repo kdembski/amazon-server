@@ -8,6 +8,7 @@ export class ConversionErrorManager<T> implements AnomalyManagerI<T> {
   private reporter;
   private exchangeRateService;
   private strategy;
+  private minPriceChange = 0.05;
 
   constructor(
     reporter: ConversionErrorReporter<T>,
@@ -21,11 +22,14 @@ export class ConversionErrorManager<T> implements AnomalyManagerI<T> {
 
   async check(listing: T, countryPrices: ListingPrice[][]) {
     if (countryPrices.length < 3) return;
-    if (this.isUnchanged(countryPrices)) return;
 
     const newestPrices = countryPrices.map((prices) => prices[0]);
     const prices = await this.toPln(newestPrices);
     this.sortPrices(prices);
+    const cheapest = countryPrices.find(
+      ([price]) => price.country === prices[0].country
+    )!;
+    if (!this.hasChanged(cheapest)) return;
 
     for (const rule of this.strategy.getMatchingRules(prices)) {
       await this.reporter.report(listing, prices, rule.channel);
@@ -33,10 +37,11 @@ export class ConversionErrorManager<T> implements AnomalyManagerI<T> {
   }
 
   // Compares raw prices: PLN values move with exchange rates.
-  private isUnchanged(countryPrices: ListingPrice[][]) {
-    return countryPrices.every((prices) =>
-      prices[1]?.value.equals(prices[0].value)
-    );
+  private hasChanged([newest, previous]: ListingPrice[]) {
+    if (!previous) return true;
+
+    const change = newest.value.minus(previous.value).abs();
+    return change.gte(previous.value.times(this.minPriceChange));
   }
 
   // Returns copies: the same price objects are passed to the other error managers.
