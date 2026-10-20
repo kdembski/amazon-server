@@ -129,35 +129,54 @@ describe("ConversionErrorManager", () => {
     expect(reporter.report).not.toHaveBeenCalled();
   });
 
-  it("skips listings whose prices did not change since the previous scrape", async () => {
-    const { manager, reporter, getMatchingRules, listing } = setup();
-    const unchanged = (value: number) => [
-      buildListingPrice({ value }),
-      buildListingPrice({ value }),
-    ];
+  const history = (...values: number[]) =>
+    values.map((value) => buildListingPrice({ value }));
 
-    await manager.check(listing, [unchanged(10), unchanged(20), unchanged(30)]);
+  it.each([
+    ["the cheapest price did not change", [100, 100]],
+    ["the cheapest price changed by less than 5%", [104.99, 100]],
+  ])("skips the listing when %s", async (_, cheapest) => {
+    const { manager, reporter, getMatchingRules, listing } = setup();
+
+    await manager.check(listing, [
+      history(300, 200),
+      history(...cheapest),
+      history(400),
+    ]);
 
     expect(getMatchingRules).not.toHaveBeenCalled();
     expect(reporter.report).not.toHaveBeenCalled();
   });
 
   it.each([
-    ["one country changed", [buildListingPrice({ value: 25 })]],
-    ["one country has no previous price", []],
-  ])("checks the listing when %s", async (_, previous) => {
+    ["dropped by 5%", [95, 100]],
+    ["rose by 5%", [105, 100]],
+    ["has no previous price", [100]],
+  ])("checks the listing when the cheapest price %s", async (_, cheapest) => {
     const { manager, reporter, listing } = setup(["1"]);
-    const unchanged = (value: number) => [
-      buildListingPrice({ value }),
-      buildListingPrice({ value }),
-    ];
 
     await manager.check(listing, [
-      unchanged(10),
-      unchanged(20),
-      [buildListingPrice({ value: 30 }), ...previous],
+      history(300, 300),
+      history(...cheapest),
+      history(400, 400),
     ]);
 
     expect(reporter.report).toHaveBeenCalledTimes(1);
+  });
+
+  it("picks the cheapest country after converting to PLN", async () => {
+    const { manager, reporter, getPlnRates, listing } = setup(["1"]);
+    const eur = buildCurrency({ code: "EUR" });
+    getPlnRates.mockResolvedValue([buildRate({ source: eur, value: 4.5 })]);
+    const eurHistory = [10, 8].map((value) =>
+      buildListingPrice({
+        value,
+        country: { currencyId: eur.id, currencyCode: "EUR" },
+      })
+    );
+
+    await manager.check(listing, [history(30, 30), eurHistory, history(100, 100)]);
+
+    expect(reporter.report).not.toHaveBeenCalled();
   });
 });
