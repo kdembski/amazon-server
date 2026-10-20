@@ -28,7 +28,7 @@ export class AmazonAdRepository {
 
   constructor(
     prisma = PrismaClient.getInstance(),
-    matchBatchSize = 20_000,
+    matchBatchSize = 5_000,
     searchRuleRepository = new AmazonSearchRuleRepository(prisma)
   ) {
     this.delegate = prisma.amazonAd;
