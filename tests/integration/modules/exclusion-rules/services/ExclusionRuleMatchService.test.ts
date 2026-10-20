@@ -11,7 +11,7 @@ const flags = async () => {
 };
 
 describe("ExclusionRuleMatchService (MySQL)", () => {
-  it("flags ads on the first run, then picks up new ads and rule changes made anywhere", async () => {
+  it("excludes ads on the first run, then picks up new ads and rule changes made anywhere", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     const service = new ExclusionRuleMatchService([new AmazonAdRepository()]);
     await seedAd({ name: "Sony WH-1000XM5" });
@@ -38,17 +38,17 @@ describe("ExclusionRuleMatchService (MySQL)", () => {
     ]);
   });
 
-  it("feeds GET /scrap through AmazonAdService once the ads are matched", async () => {
+  it("feeds GET /scrap through AmazonAdService once the ads are checked", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
-    const sony = await seedAd({ name: "Sony WH-1000XM5" });
-    await seedAd({ name: "Bose QC45" });
+    await seedAd({ name: "Sony WH-1000XM5" });
+    const bose = await seedAd({ name: "Bose QC45" });
     await seedAmazonExclusionRule({ value: "sony" });
     const adService = new AmazonAdService();
 
     expect(await adService.getForScraping(10)).toEqual([]);
     await new ExclusionRuleMatchService([new AmazonAdRepository()]).sync();
 
-    expect((await adService.getForScraping(10)).map((ad) => ad.id)).toEqual([sony.id]);
+    expect((await adService.getForScraping(10)).map((ad) => ad.id)).toEqual([bose.id]);
   });
 
   it("applies a category rule only to ads of that category", async () => {

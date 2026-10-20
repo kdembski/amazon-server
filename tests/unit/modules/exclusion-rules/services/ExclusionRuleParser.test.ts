@@ -24,11 +24,10 @@ describe("ExclusionRuleParser.parse", () => {
     });
   });
 
-  it("returns a rule with exclusions only", () => {
-    expect(parseExclusionRule("!used|refurbished")).toEqual({
-      include: [],
-      exclude: [word("used"), word("refurbished")],
-    });
+  it("rejects a rule without a phrase outside !", () => {
+    expect(() => parseExclusionRule("!etui|!kabel")).toThrow(
+      'Exclusion rule "!etui|!kabel" needs at least one phrase without !'
+    );
   });
 
   it("turns * at the edges of a phrase into partial word matching", () => {

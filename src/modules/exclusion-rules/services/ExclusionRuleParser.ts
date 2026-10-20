@@ -24,6 +24,12 @@ export class ExclusionRuleParser {
       }
     }
 
+    if (!include.length) {
+      throw new Error(
+        `Exclusion rule "${value}" needs at least one phrase without !`
+      );
+    }
+
     return { include, exclude };
   }
 

@@ -44,6 +44,12 @@ describe("/amazon/exclusion-rules", () => {
     expect(await prisma.amazonExclusionRule.count()).toBe(1);
   });
 
+  it("POST / rejects a rule made only of ! members with 400", async () => {
+    await request(app).post("/amazon/exclusion-rules").send({ value: "!etui" }).expect(400);
+
+    expect(await prisma.amazonExclusionRule.count()).toBe(0);
+  });
+
   it("POST /batch rejects an unknown category with 422 and writes nothing", async () => {
     const rule = await seedAmazonExclusionRule({ value: "sony" });
 

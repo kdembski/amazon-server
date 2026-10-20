@@ -45,13 +45,13 @@ describe("AmazonAdRepository", () => {
     });
   });
 
-  it("getForScraping reads matching ads, oldest scrapedAt first", async () => {
+  it("getForScraping reads ads that are not excluded, oldest scrapedAt first", async () => {
     const { repository, delegate } = setup();
 
     await repository.getForScraping(10);
 
     expect(delegate.findMany).toHaveBeenCalledWith({
-      where: { excluded: true },
+      where: { excluded: false },
       take: 10,
       orderBy: { scrapedAt: "asc" },
       select: { id: true, asin: true, name: true },
@@ -90,12 +90,12 @@ describe("AmazonAdRepository", () => {
 
       expect(scoped).toHaveBeenCalledWith("Bosch drill", 7);
     });
-    const matches = (name: string) => {
+    const excludes = (name: string) => {
       const lower = name.toLowerCase();
       return lower.includes("drill") && !lower.includes("used");
     };
 
-    it("rematches in id batches, flagging matches before clearing the rest, and sums the counts", async () => {
+    it("rematches in id batches, including ads before excluding the rest, and sums the counts", async () => {
       const { repository, delegate } = setup(10);
       delegate.aggregate.mockResolvedValue({ _max: { id: 25 } });
       delegate.findMany
@@ -111,9 +111,9 @@ describe("AmazonAdRepository", () => {
         count: where.id.in.length,
       }));
 
-      await expect(repository.matchExclusionRules(matches)).resolves.toEqual({
-        matched: 2,
-        unmatched: 2,
+      await expect(repository.matchExclusionRules(excludes)).resolves.toEqual({
+        excluded: 2,
+        included: 2,
       });
 
       expect(delegate.aggregate).toHaveBeenCalledWith({ _max: { id: true } });
@@ -123,8 +123,8 @@ describe("AmazonAdRepository", () => {
         [{ where: { id: { gt: 20, lte: 30 } }, select }],
       ]);
       expect(delegate.updateMany.mock.calls).toEqual([
-        [{ where: { id: { in: [1] } }, data: { excluded: true } }],
         [{ where: { id: { in: [3, 4] } }, data: { excluded: false } }],
+        [{ where: { id: { in: [1] } }, data: { excluded: true } }],
         [{ where: { id: { in: [21] } }, data: { excluded: true } }],
       ]);
     });
@@ -133,16 +133,16 @@ describe("AmazonAdRepository", () => {
       const { repository, delegate } = setup();
       delegate.aggregate.mockResolvedValue({ _max: { id: null } });
 
-      await expect(repository.matchExclusionRules(matches)).resolves.toEqual({
-        matched: 0,
-        unmatched: 0,
+      await expect(repository.matchExclusionRules(excludes)).resolves.toEqual({
+        excluded: 0,
+        included: 0,
       });
 
       expect(delegate.findMany).not.toHaveBeenCalled();
       expect(delegate.updateMany).not.toHaveBeenCalled();
     });
 
-    it("with onlyNew checks the never matched ads in one go", async () => {
+    it("with onlyNew checks the never checked ads in one go", async () => {
       const { repository, delegate } = setup();
       delegate.findMany.mockResolvedValue([
         ad(1, "Bosch drill", null),
@@ -150,9 +150,9 @@ describe("AmazonAdRepository", () => {
       ]);
       delegate.updateMany.mockResolvedValue({ count: 1 });
 
-      await expect(repository.matchExclusionRules(matches, true)).resolves.toEqual({
-        matched: 1,
-        unmatched: 1,
+      await expect(repository.matchExclusionRules(excludes, true)).resolves.toEqual({
+        excluded: 1,
+        included: 1,
       });
 
       expect(delegate.aggregate).not.toHaveBeenCalled();
@@ -161,8 +161,8 @@ describe("AmazonAdRepository", () => {
         select,
       });
       expect(delegate.updateMany.mock.calls).toEqual([
-        [{ where: { id: { in: [1] } }, data: { excluded: true } }],
         [{ where: { id: { in: [2] } }, data: { excluded: false } }],
+        [{ where: { id: { in: [1] } }, data: { excluded: true } }],
       ]);
     });
   });

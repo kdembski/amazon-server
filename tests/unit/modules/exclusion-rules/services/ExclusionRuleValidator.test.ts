@@ -10,7 +10,7 @@ describe("ExclusionRuleValidator.validate", () => {
     expect(validateExclusionRule("  sony + !etui ")).toBe("sony + !etui");
   });
 
-  it.each([[undefined], [5], [""], ["a++b"], ["x".repeat(64)]])(
+  it.each([[undefined], [5], [""], ["a++b"], ["x".repeat(64)], ["!etui"]])(
     "rejects %j with status 400",
     (value) => {
       expect(() => validateExclusionRule(value)).toThrow(

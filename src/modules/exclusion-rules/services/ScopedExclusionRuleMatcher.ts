@@ -9,8 +9,8 @@ export class ScopedExclusionRuleMatcher {
     this.rules = rules;
   }
 
-  matches(name: string, scope: number | null) {
-    return this.getMatcher(scope).matches(name);
+  excludes(name: string, scope: number | null) {
+    return this.getMatcher(scope).excludes(name);
   }
 
   private getMatcher(scope: number | null) {

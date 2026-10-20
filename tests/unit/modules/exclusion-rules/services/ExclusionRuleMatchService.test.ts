@@ -10,7 +10,7 @@ const global = (...values: string[]): Rule[] =>
 
 const fakeTarget = (rules: Rule[] = []) => ({
   getExclusionRules: vi.fn().mockResolvedValue(rules),
-  matchExclusionRules: vi.fn().mockResolvedValue({ matched: 0, unmatched: 0 }),
+  matchExclusionRules: vi.fn().mockResolvedValue({ excluded: 0, included: 0 }),
 });
 
 const setup = (rulesA: Rule[] = [], rulesB: Rule[] = []) => {
@@ -51,15 +51,15 @@ describe("ExclusionRuleMatchService.sync", () => {
       global("drill"),
       global("bose")
     );
-    targetA.matchExclusionRules.mockResolvedValue({ matched: 2, unmatched: 1 });
-    targetB.matchExclusionRules.mockResolvedValue({ matched: 2, unmatched: 1 });
+    targetA.matchExclusionRules.mockResolvedValue({ excluded: 2, included: 1 });
+    targetB.matchExclusionRules.mockResolvedValue({ excluded: 2, included: 1 });
 
     await service.sync();
 
     expect(info).toHaveBeenCalledTimes(2);
     for (const [message] of info.mock.calls) {
       expect(message).toMatch(
-        /^ExclusionRuleMatchService: 1 exclusion rules matched 2 and unmatched 1 ads in \d+ ms$/
+        /^ExclusionRuleMatchService: 1 exclusion rules excluded 2 and included 1 ads in \d+ ms$/
       );
     }
     info.mockRestore();
@@ -67,7 +67,7 @@ describe("ExclusionRuleMatchService.sync", () => {
 
   it("runs the targets one after another", async () => {
     const { service, targetA, targetB, info } = setup(global("drill"));
-    const first = deferred<{ matched: number; unmatched: number }>();
+    const first = deferred<{ excluded: number; included: number }>();
     targetA.matchExclusionRules.mockReturnValueOnce(first.promise);
 
     const running = service.sync();
@@ -76,7 +76,7 @@ describe("ExclusionRuleMatchService.sync", () => {
     );
     expect(targetB.matchExclusionRules).not.toHaveBeenCalled();
 
-    first.resolve({ matched: 0, unmatched: 0 });
+    first.resolve({ excluded: 0, included: 0 });
     await running;
 
     expect(targetB.matchExclusionRules).toHaveBeenCalledTimes(1);
@@ -93,6 +93,22 @@ describe("ExclusionRuleMatchService.sync", () => {
       'ExclusionRuleMatchService: skipped exclusion rule a++b: Error: Exclusion rule "a++b" contains an empty part'
     );
     expect(targetA.matchExclusionRules.mock.calls[0][0]("drill", null)).toBe(true);
+    error.mockRestore();
+    info.mockRestore();
+  });
+
+  it("skips a rule made only of ! members and excludes by the others", async () => {
+    const { service, targetA, info } = setup(global("!a", "b"));
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await service.sync();
+
+    expect(error).toHaveBeenCalledWith(
+      'ExclusionRuleMatchService: skipped exclusion rule !a: Error: Exclusion rule "!a" needs at least one phrase without !'
+    );
+    const [excludes] = targetA.matchExclusionRules.mock.calls[0];
+    expect(excludes("b", null)).toBe(true);
+    expect(excludes("a", null)).toBe(false);
     error.mockRestore();
     info.mockRestore();
   });
@@ -159,7 +175,7 @@ describe("ExclusionRuleMatchService.sync", () => {
 
   it("skips a run while the previous one is still running", async () => {
     const { service, targetA, info } = setup(global("drill"));
-    const first = deferred<{ matched: number; unmatched: number }>();
+    const first = deferred<{ excluded: number; included: number }>();
     targetA.matchExclusionRules.mockReturnValueOnce(first.promise);
 
     const running = service.sync();
@@ -168,7 +184,7 @@ describe("ExclusionRuleMatchService.sync", () => {
       expect(targetA.matchExclusionRules).toHaveBeenCalledTimes(1)
     );
 
-    first.resolve({ matched: 0, unmatched: 0 });
+    first.resolve({ excluded: 0, included: 0 });
     await running;
     await service.sync();
 

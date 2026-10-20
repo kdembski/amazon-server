@@ -48,7 +48,7 @@ export class AmazonAdRepository {
   // would turn the ORDER BY into an expression the index cannot serve.
   getForScraping(count: number) {
     return this.delegate.findMany({
-      where: { excluded: true },
+      where: { excluded: false },
       take: count,
       orderBy: { scrapedAt: "asc" },
       select: {
@@ -68,22 +68,22 @@ export class AmazonAdRepository {
   }
 
   async matchExclusionRules(
-    matches: (name: string, scope: number | null) => boolean,
+    isExcluded: (name: string, scope: number | null) => boolean,
     onlyNew = false
   ) {
     if (onlyNew) {
-      return this.updateMatches(matches, { excluded: null });
+      return this.updateMatches(isExcluded, { excluded: null });
     }
 
     const { _max } = await this.delegate.aggregate({ _max: { id: true } });
-    const total = { matched: 0, unmatched: 0 };
+    const total = { excluded: 0, included: 0 };
 
     for (let lastId = 0; lastId < (_max.id ?? 0); lastId += this.matchBatchSize) {
-      const result = await this.updateMatches(matches, {
+      const result = await this.updateMatches(isExcluded, {
         id: { gt: lastId, lte: lastId + this.matchBatchSize },
       });
-      total.matched += result.matched;
-      total.unmatched += result.unmatched;
+      total.excluded += result.excluded;
+      total.included += result.included;
     }
 
     return total;
@@ -125,28 +125,29 @@ export class AmazonAdRepository {
     return this.delegate.delete({ where: { id } });
   }
 
-  // Flags matching ads before clearing the rest, so the scraping queue never
-  // runs empty in between.
+  // Includes ads before excluding the rest, so the scraping queue never runs
+  // empty in between.
   private async updateMatches(
-    matches: (name: string, scope: number | null) => boolean,
+    isExcluded: (name: string, scope: number | null) => boolean,
     where: Prisma.AmazonAdWhereInput
   ) {
     const ads = await this.delegate.findMany({
       where,
       select: { id: true, name: true, categoryId: true, excluded: true },
     });
-    const flagged: number[] = [];
-    const cleared: number[] = [];
+    const excluded: number[] = [];
+    const included: number[] = [];
 
     for (const ad of ads) {
-      const matched = matches(ad.name, ad.categoryId);
-      if (matched && ad.excluded !== true) flagged.push(ad.id);
-      if (!matched && ad.excluded !== false) cleared.push(ad.id);
+      const excludes = isExcluded(ad.name, ad.categoryId);
+      if (excludes && ad.excluded !== true) excluded.push(ad.id);
+      if (!excludes && ad.excluded !== false) included.push(ad.id);
     }
 
+    const includedCount = await this.setExcluded(included, false);
     return {
-      matched: await this.setExcluded(flagged, true),
-      unmatched: await this.setExcluded(cleared, false),
+      excluded: await this.setExcluded(excluded, true),
+      included: includedCount,
     };
   }
 

@@ -41,15 +41,15 @@ export class ExclusionRuleMatchService {
       this.parseExclusionRules(exclusionRules)
     );
 
-    const { matched, unmatched } = await target.matchExclusionRules(
-      (name, scope) => matcher.matches(name, scope),
+    const { excluded, included } = await target.matchExclusionRules(
+      (name, scope) => matcher.excludes(name, scope),
       !changed
     );
     this.fingerprints.set(target, fingerprint);
 
     if (changed) {
       console.log(
-        `ExclusionRuleMatchService: ${exclusionRules.length} exclusion rules matched ${matched} and unmatched ${unmatched} ads in ${Date.now() - startedAt} ms`
+        `ExclusionRuleMatchService: ${exclusionRules.length} exclusion rules excluded ${excluded} and included ${included} ads in ${Date.now() - startedAt} ms`
       );
     }
   }

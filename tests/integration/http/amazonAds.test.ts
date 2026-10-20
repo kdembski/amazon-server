@@ -20,11 +20,11 @@ beforeAll(() => {
 });
 
 describe("GET /amazon/ads/scrap", () => {
-  it("returns the next ads flagged as matching and stamps scrapedAt", async () => {
-    const never = await seedAd({ excluded: true, scrapedAt: null });
-    const older = await seedAd({ excluded: true, scrapedAt: day(1) });
-    const newer = await seedAd({ excluded: true, scrapedAt: day(2) });
-    const unmatched = await seedAd({ excluded: false, scrapedAt: null });
+  it("returns the next ads that are not excluded and stamps scrapedAt", async () => {
+    const never = await seedAd({ excluded: false, scrapedAt: null });
+    const older = await seedAd({ excluded: false, scrapedAt: day(1) });
+    const newer = await seedAd({ excluded: false, scrapedAt: day(2) });
+    const excluded = await seedAd({ excluded: true, scrapedAt: null });
 
     const res = await request(app).get("/amazon/ads/scrap?count=2").expect(200);
 
@@ -33,7 +33,7 @@ describe("GET /amazon/ads/scrap", () => {
       { id: older.id, asin: older.asin, name: older.name },
     ]);
     const rows = await prisma.amazonAd.findMany({ orderBy: { id: "asc" } });
-    expect(rows.map((r) => r.id)).toEqual([never.id, older.id, newer.id, unmatched.id]);
+    expect(rows.map((r) => r.id)).toEqual([never.id, older.id, newer.id, excluded.id]);
     expect(rows.slice(0, 3).map((r) => r.scrapedAt!.getTime() > day(2).getTime())).toEqual([
       true,
       true,
@@ -42,8 +42,8 @@ describe("GET /amazon/ads/scrap", () => {
     expect(rows[3].scrapedAt).toBeNull();
   });
 
-  it("is not shadowed by GET /:id and returns [] when no ad matches", async () => {
-    await seedAd({ excluded: false });
+  it("is not shadowed by GET /:id and returns [] when every ad is excluded", async () => {
+    await seedAd({ excluded: true });
 
     const res = await request(app).get("/amazon/ads/scrap").expect(200);
 

@@ -44,11 +44,11 @@ const buildAdService = () => {
 
 describe("AmazonAdService (MySQL)", () => {
   describe("getForScraping", () => {
-    it("returns ads flagged as matching from any category and stamps only them", async () => {
+    it("returns ads that are not excluded from any category and stamps only them", async () => {
       const { service } = buildAdService();
       const inactive = await seedCategory({ active: false });
-      const wanted = await seedAd({ categoryId: inactive.id, excluded: true });
-      const other = await seedAd({ excluded: false });
+      const wanted = await seedAd({ categoryId: inactive.id, excluded: false });
+      const other = await seedAd({ excluded: true });
       const unchecked = await seedAd({ excluded: null });
 
       const ads = await service.getForScraping(10);
@@ -61,10 +61,10 @@ describe("AmazonAdService (MySQL)", () => {
       expect(rows.map((row) => row.scrapedAt instanceof Date)).toEqual([true, false, false]);
     });
 
-    it("hands out the same ads again once every matching ad was stamped", async () => {
+    it("hands out the same ads again once every included ad was stamped", async () => {
       const { service } = buildAdService();
-      const first = await seedAd({ excluded: true });
-      const second = await seedAd({ excluded: true });
+      const first = await seedAd({ excluded: false });
+      const second = await seedAd({ excluded: false });
 
       const round1 = await service.getForScraping(1);
       await prisma.amazonAd.update({ where: { id: round1[0].id }, data: { scrapedAt: new Date(FIXED_DATE.getTime() + 1000) } });
@@ -80,8 +80,8 @@ describe("AmazonAdService (MySQL)", () => {
 
     it("serialises concurrent calls so they hand out disjoint ads", async () => {
       const { service } = buildAdService();
-      const first = await seedAd({ excluded: true });
-      const second = await seedAd({ excluded: true });
+      const first = await seedAd({ excluded: false });
+      const second = await seedAd({ excluded: false });
 
       // The second caller waits 1 s on the static lock before retrying.
       const [a, b] = await Promise.all([

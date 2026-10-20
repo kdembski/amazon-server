@@ -6,10 +6,10 @@ import { ScopedExclusionRule } from "@/modules/exclusion-rules/interfaces/Scoped
 const parser = new ExclusionRuleParser();
 const createScopedExclusionRuleMatcher = (rules: ScopedExclusionRule[]) => {
   const instance = new ScopedExclusionRuleMatcher(rules);
-  return (name: string, scope: number | null) => instance.matches(name, scope);
+  return (name: string, scope: number | null) => instance.excludes(name, scope);
 };
 
-describe("ScopedExclusionRuleMatcher.matches", () => {
+describe("ScopedExclusionRuleMatcher.excludes", () => {
   const scoped = (value: string, scope: number | null) => ({
     rule: parser.parse(value),
     scope,
@@ -27,16 +27,7 @@ describe("ScopedExclusionRuleMatcher.matches", () => {
     expect(matches("Bosch drill", null)).toBe(false);
   });
 
-  it("limits a scoped exclusion-only rule to its scope", () => {
-    const matches = createScopedExclusionRuleMatcher([
-      scoped("sony", null),
-      scoped("!etui", 1),
-    ]);
-    expect(matches("Sony etui", 1)).toBe(false);
-    expect(matches("Sony etui", 2)).toBe(true);
-  });
-
-  it("matches nothing in a scope without a positive rule", () => {
+  it("excludes nothing in a scope without rules", () => {
     expect(
       createScopedExclusionRuleMatcher([scoped("bosch", 1)])("Bosch drill", 3)
     ).toBe(false);

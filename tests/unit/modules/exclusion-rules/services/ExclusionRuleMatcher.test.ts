@@ -5,10 +5,10 @@ import { ExclusionRuleMatcher } from "@/modules/exclusion-rules/services/Exclusi
 const parser = new ExclusionRuleParser();
 const matcher = (...values: string[]) => {
   const instance = new ExclusionRuleMatcher(values.map((value) => parser.parse(value)));
-  return (name: string) => instance.matches(name);
+  return (name: string) => instance.excludes(name);
 };
 
-describe("ExclusionRuleMatcher.matches", () => {
+describe("ExclusionRuleMatcher.excludes", () => {
   it("matches whole words only by default", () => {
     const matches = matcher("hape", "tor");
 
@@ -63,16 +63,22 @@ describe("ExclusionRuleMatcher.matches", () => {
     expect(matches("RTX 4070")).toBe(false);
   });
 
-  it("applies exclusion-only rules to every other rule", () => {
-    const matches = matcher("sony", "bose", "!refurbished|used");
-
-    expect(matches("Sony WH-1000XM5")).toBe(true);
-    expect(matches("Sony WH-1000XM5 (Refurbished)")).toBe(false);
-    expect(matches("Used Bose QC45")).toBe(false);
+  it("excludes nothing without rules", () => {
+    expect(matcher()("RTX 4090")).toBe(false);
   });
 
-  it("matches nothing without a positive rule", () => {
-    expect(matcher("!used")("Sony WH-1000XM5")).toBe(false);
-    expect(matcher()("Sony WH-1000XM5")).toBe(false);
+  it("keeps a name that contains a ! exception of the matching rule", () => {
+    const excludes = matcher("etui + !iphone 16");
+
+    expect(excludes("Etui Samsung S24")).toBe(true);
+    expect(excludes("Etui iPhone 16 Pro")).toBe(false);
+  });
+
+  it("excludes when any rule matches", () => {
+    const excludes = matcher("etui", "kabel + usb");
+
+    expect(excludes("Kabel USB-C")).toBe(true);
+    expect(excludes("Etui")).toBe(true);
+    expect(excludes("Kabel HDMI")).toBe(false);
   });
 });
