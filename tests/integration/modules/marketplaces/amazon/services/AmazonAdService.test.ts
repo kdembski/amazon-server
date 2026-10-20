@@ -16,7 +16,7 @@ import { prisma } from "../../../../../support/integration/db";
 import {
   seedAd,
   seedCategory,
-  seedCountry,
+  seedAmazonCountry,
   seedMarket,
   seedPrice,
 } from "../../../../../support/integration/seed";
@@ -99,11 +99,11 @@ describe("AmazonAdService (MySQL)", () => {
     it("stores prices, logs ad_scraped and reports a halved price as a pricing error", async () => {
       const { service, pricing } = buildAdService();
       const ad = await seedAd();
-      const country = await seedCountry({ active: true });
-      await seedPrice({ adId: ad.id, countryId: country.id, value: 100, createdAt: new Date(Date.now() - 3_600_000) });
+      const { countryId } = await seedAmazonCountry();
+      await seedPrice({ adId: ad.id, countryId, value: 100, createdAt: new Date(Date.now() - 3_600_000) });
 
       await service.updatePrices(ad.id, [
-        { adId: ad.id, countryId: country.id, value: 40, dispatchFrom: "Amazon" },
+        { adId: ad.id, countryId, value: 40, dispatchFrom: "Amazon" },
       ]);
 
       expect(await prisma.amazonAdPrice.count({ where: { adId: ad.id } })).toBe(2);

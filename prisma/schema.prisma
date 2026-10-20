@@ -43,8 +43,8 @@ model AmazonAdPrice {
   dispatchFrom String?  @db.VarChar(63)
   createdAt    DateTime @db.Timestamp(2)
   updatedAt    DateTime @db.Timestamp(2)
-  ad           AmazonAd @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_ad_price_ad_id_fk")
-  country      Country  @relation(fields: [countryId], references: [id], onDelete: Cascade, map: "amazon_ad_price_country_id_fk")
+  ad           AmazonAd      @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_ad_price_ad_id_fk")
+  country      AmazonCountry @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "amazon_ad_price_amazon_country_id_fk")
 
   @@index([adId], map: "amazon_ad_price_ad_id_fk")
   @@index([countryId], map: "amazon_ad_price_country_id_fk")
@@ -57,11 +57,21 @@ model Country {
   currencyId    Int
   createdAt     DateTime        @db.Timestamp(2)
   updatedAt     DateTime        @db.Timestamp(2)
-  active        Boolean         @default(false)
-  AmazonAdPrice AmazonAdPrice[]
+  AmazonCountry AmazonCountry?
   currency      Currency        @relation(fields: [currencyId], references: [id], onDelete: Cascade, map: "country_currency_id_fk")
 
   @@index([currencyId], map: "country_currency_id_fk")
+}
+
+model AmazonCountry {
+  countryId     Int             @id
+  tld           String          @db.VarChar(15)
+  scraped       Boolean
+  active        Boolean
+  createdAt     DateTime        @db.Timestamp(2)
+  updatedAt     DateTime        @db.Timestamp(2)
+  country       Country         @relation(fields: [countryId], references: [id], onDelete: Cascade, map: "amazon_country_country_id_fk")
+  AmazonAdPrice AmazonAdPrice[]
 }
 
 model Currency {

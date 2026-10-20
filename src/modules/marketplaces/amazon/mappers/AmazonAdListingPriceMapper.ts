@@ -3,24 +3,35 @@ import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 
 export class AmazonAdListingPriceMapper {
   // Prices of countries outside scrapedCountryIds are only compared with, never reported.
-  map(countryPrices: AmazonAdPriceSelectDto[][], scrapedCountryIds: number[]) {
+  map(
+    asin: string,
+    countryPrices: AmazonAdPriceSelectDto[][],
+    scrapedCountryIds: number[]
+  ) {
     return countryPrices.map((prices) =>
       prices.map((price) =>
-        this.toListingPrice(price, scrapedCountryIds.includes(price.countryId))
+        this.toListingPrice(
+          price,
+          asin,
+          scrapedCountryIds.includes(price.countryId)
+        )
       )
     );
   }
 
   private toListingPrice(
     price: AmazonAdPriceSelectDto,
+    asin: string,
     scraped: boolean
   ): ListingPrice {
-    const { name, code, active, currencyId, currency } = price.country;
+    const { tld, active, country } = price.country;
+    const { name, code, currencyId, currency } = country;
 
     return {
       value: price.value,
       createdAt: price.createdAt,
       reportable: scraped && price.dispatchFrom === "Amazon",
+      url: `https://www.amazon.${tld}/dp/${asin}`,
       country: { name, code, active, currencyId, currencyCode: currency.code },
     };
   }

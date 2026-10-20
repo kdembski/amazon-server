@@ -8,6 +8,7 @@ export const TABLES = [
   "AmazonAd",
   "AmazonExclusionRule",
   "AmazonAdCategory",
+  "AmazonCountry",
   "Country",
   "Currency",
   "CurrencyExchangeRate",

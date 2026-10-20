@@ -61,19 +61,26 @@ export const buildAd = (
 };
 
 type PriceCountry = AmazonAdPriceSelectDto["country"];
+type PriceCountryOverrides = Partial<
+  Omit<PriceCountry, "country"> & PriceCountry["country"]
+>;
 
 export const buildPriceCountry = (
-  overrides: Partial<PriceCountry> = {}
+  overrides: PriceCountryOverrides = {}
 ): PriceCountry => {
   const currency = buildCurrency();
+  const { tld, active, ...country } = overrides;
   return {
-    id: nextId(),
-    name: "Poland",
-    code: "pl",
-    currencyId: currency.id,
-    currency,
-    active: true,
-    ...overrides,
+    tld: tld ?? "pl",
+    active: active ?? true,
+    country: {
+      id: nextId(),
+      name: "Poland",
+      code: "pl",
+      currencyId: currency.id,
+      currency,
+      ...country,
+    },
   };
 };
 
@@ -89,7 +96,7 @@ export const buildPrice = (
   return {
     id: nextId(),
     adId: 1,
-    countryId: resolvedCountry.id,
+    countryId: resolvedCountry.country.id,
     value: new Decimal(value ?? 100),
     dispatchFrom: "Amazon",
     createdAt: FIXED_DATE,
@@ -114,6 +121,7 @@ export const buildListingPrice = (
     value: new Decimal(value ?? 100),
     createdAt: FIXED_DATE,
     reportable: true,
+    url: "https://www.amazon.pl/dp/B0TESTASIN",
     country: {
       name: "Poland",
       code: "pl",

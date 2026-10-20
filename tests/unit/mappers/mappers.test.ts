@@ -11,6 +11,8 @@ import { AmazonAdUpdateMapper } from "@/modules/marketplaces/amazon/mappers/Amaz
 import { AmazonAdPriceCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdPriceCreateMapper";
 import { AmazonAdPriceUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdPriceUpdateMapper";
 import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingPriceMapper";
+import { AmazonCountryCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonCountryCreateMapper";
+import { AmazonCountryUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonCountryUpdateMapper";
 import { CountryCreateMapper } from "@/modules/currency/mappers/CountryCreateMapper";
 import { CountryUpdateMapper } from "@/modules/currency/mappers/CountryUpdateMapper";
 import { CurrencyCreateMapper } from "@/modules/currency/mappers/CurrencyCreateMapper";
@@ -86,8 +88,21 @@ describe("create mappers", () => {
       expected: {
         value: 9.99,
         dispatchFrom: "Amazon",
-        country: { connect: { id: 4 } },
+        country: { connect: { countryId: 4 } },
         ad: { connect: { id: 3 } },
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+    },
+    {
+      name: "AmazonCountryCreateMapper",
+      map: (dto: any) => new AmazonCountryCreateMapper().toCreateInput(dto),
+      dto: { countryId: 2, tld: "com.be", scraped: true, active: true },
+      expected: {
+        countryId: 2,
+        tld: "com.be",
+        scraped: true,
+        active: true,
         createdAt: NOW,
         updatedAt: NOW,
       },
@@ -167,6 +182,12 @@ describe("update mappers", () => {
       expected: { value: 1.5, updatedAt: NOW },
     },
     {
+      name: "AmazonCountryUpdateMapper",
+      map: (dto: any) => new AmazonCountryUpdateMapper().toUpdateInput(dto),
+      dto: { tld: "com.be", scraped: false, active: false },
+      expected: { tld: "com.be", scraped: false, active: false, updatedAt: NOW },
+    },
+    {
       name: "CountryUpdateMapper",
       map: (dto: any) => new CountryUpdateMapper().toUpdateInput(dto),
       dto: { name: "Germany", code: "de", currencyId: 2 },
@@ -203,6 +224,7 @@ describe("AmazonAdListingPriceMapper", () => {
     const de = buildPriceCountry({ id: 2 });
     const se = buildPriceCountry({ id: 3 });
     const countryPrices = mapper.map(
+      "B0X",
       [
         [
           buildPrice({ country: pl, dispatchFrom: "Amazon" }),
@@ -219,7 +241,7 @@ describe("AmazonAdListingPriceMapper", () => {
     ).toEqual([[true, false], [false], [false]]);
   });
 
-  it("copies value, createdAt, country fields and currency code", () => {
+  it("copies value, createdAt, country fields and currency code and builds the url from the tld", () => {
     const eur = buildCurrency({ code: "EUR" });
     const price = buildPrice({
       value: 12.5,
@@ -227,13 +249,14 @@ describe("AmazonAdListingPriceMapper", () => {
       country: buildPriceCountry({
         name: "Germany",
         code: "de",
+        tld: "de",
         active: false,
         currencyId: eur.id,
         currency: eur,
       }),
     });
 
-    const countryPrices = mapper.map([[price]], [price.countryId]);
+    const countryPrices = mapper.map("B0X", [[price]], [price.countryId]);
 
     expect(countryPrices).toStrictEqual([
       [
@@ -241,6 +264,7 @@ describe("AmazonAdListingPriceMapper", () => {
           value: price.value,
           createdAt: new Date("2026-02-03T04:05:06.000Z"),
           reportable: true,
+          url: "https://www.amazon.de/dp/B0X",
           country: {
             name: "Germany",
             code: "de",

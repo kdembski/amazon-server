@@ -8,7 +8,7 @@ import { messagesSentTo } from "../../support/integration/discordInbox";
 import {
   seedAd,
   seedCategory,
-  seedCountry,
+  seedAmazonCountry,
   seedPrice,
 } from "../../support/integration/seed";
 
@@ -54,12 +54,12 @@ describe("GET /amazon/ads/scrap", () => {
 describe("PUT /amazon/ads/:id", () => {
   it("stores prices, logs ad_scraped and posts a pricing error embed to Discord", async () => {
     const ad = await seedAd();
-    const country = await seedCountry({ active: true });
-    await seedPrice({ adId: ad.id, countryId: country.id, value: 100, createdAt: new Date(Date.now() - 3_600_000) });
+    const { countryId } = await seedAmazonCountry();
+    await seedPrice({ adId: ad.id, countryId, value: 100, createdAt: new Date(Date.now() - 3_600_000) });
 
     await request(app)
       .put(`/amazon/ads/${ad.id}`)
-      .send({ prices: [{ adId: ad.id, countryId: country.id, value: 40, dispatchFrom: "Amazon" }] })
+      .send({ prices: [{ adId: ad.id, countryId, value: 40, dispatchFrom: "Amazon" }] })
       .expect(200);
 
     expect(await prisma.amazonAdPrice.count({ where: { adId: ad.id } })).toBe(2);

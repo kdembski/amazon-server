@@ -23,6 +23,11 @@ vi.mock("@/modules/marketplaces/amazon/routes/AmazonExclusionRuleRouter", () => 
     return { path: "/amazon/exclusion-rules" };
   }),
 }));
+vi.mock("@/modules/marketplaces/amazon/routes/AmazonCountryRouter", () => ({
+  AmazonCountryRouter: vi.fn(function () {
+    return { path: "/amazon/countries" };
+  }),
+}));
 vi.mock("@/modules/marketplaces/amazon/repositories/AmazonAdRepository", () => ({
   AmazonAdRepository: vi.fn(function () {
     return { id: "ad-repository" };
@@ -35,7 +40,7 @@ vi.mock("@/modules/marketplaces/amazon/services/AmazonAdDailyReportSection", () 
 }));
 
 describe("createAmazonModule", () => {
-  it("mounts the category, ad, price and exclusion rule routers in order without crons", () => {
+  it("mounts the category, ad, price, exclusion rule and country routers in order without crons", () => {
     const module = createAmazonModule();
 
     expect(module.routers!.map((r) => r.path)).toEqual([
@@ -43,6 +48,7 @@ describe("createAmazonModule", () => {
       "/amazon/ads",
       "/amazon/ads/prices",
       "/amazon/exclusion-rules",
+      "/amazon/countries",
     ]);
     expect(module.crons).toBeUndefined();
   });

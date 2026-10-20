@@ -22,10 +22,7 @@ export class AmazonConversionErrorDiscordService {
         ...prices.map((price) => {
           return {
             name: price.country.name,
-            value: `[${roundToTwoDecimals(price.value)} PLN](${this.getUrl(
-              ad,
-              price.country.code
-            )})`,
+            value: `[${roundToTwoDecimals(price.value)} PLN](${price.url})`,
           };
         }),
       ],
@@ -38,9 +35,5 @@ export class AmazonConversionErrorDiscordService {
 
   setChannel(channel: string) {
     this.service.client = `DISCORD_CONVERSION_ERROR_${channel}_TOKEN`;
-  }
-
-  private getUrl(ad: AmazonAdSelectDto, countryCode: string) {
-    return `https://www.amazon.${countryCode}/dp/${ad.asin}`;
   }
 }

@@ -15,6 +15,7 @@ describe("AmazonConversionErrorDiscordService", () => {
     });
     const de = buildListingPrice({
       value: 12.344,
+      url: "https://www.amazon.de/dp/B0X",
       country: { name: "Germany", code: "de", currencyCode: "EUR" },
     });
 

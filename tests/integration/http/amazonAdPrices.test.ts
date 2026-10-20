@@ -3,7 +3,7 @@ import request from "supertest";
 import type { Express } from "express";
 import { createTestApp } from "../../support/integration/app";
 import { prisma } from "../../support/integration/db";
-import { seedAd, seedCountry } from "../../support/integration/seed";
+import { seedAd, seedAmazonCountry } from "../../support/integration/seed";
 
 let app: Express;
 beforeAll(() => {
@@ -13,23 +13,23 @@ beforeAll(() => {
 describe("/amazon/ads/prices", () => {
   it("POST / creates, PUT /:id changes the value and DELETE /:id removes the price", async () => {
     const ad = await seedAd();
-    const country = await seedCountry();
+    const { countryId } = await seedAmazonCountry();
 
     const created = await request(app)
       .post("/amazon/ads/prices")
-      .send({ adId: ad.id, countryId: country.id, value: 99.99, dispatchFrom: "Amazon" })
+      .send({ adId: ad.id, countryId, value: 99.99, dispatchFrom: "Amazon" })
       .expect(200);
     // Decimal serialises to a string in JSON.
     expect(created.body).toMatchObject({
       adId: ad.id,
-      countryId: country.id,
+      countryId,
       value: "99.99",
       dispatchFrom: "Amazon",
     });
 
     await request(app)
       .put(`/amazon/ads/prices/${created.body.id}`)
-      .send({ value: 49.5, adId: ad.id, countryId: country.id })
+      .send({ value: 49.5, adId: ad.id, countryId })
       .expect(200);
     const updated = await prisma.amazonAdPrice.findUniqueOrThrow({ where: { id: created.body.id } });
     expect(updated.value.toString()).toBe("49.5");

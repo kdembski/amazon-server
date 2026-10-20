@@ -19,7 +19,7 @@ describe("/countries", () => {
       .post("/countries")
       .send({ name: "Poland", code: "pl", currencyId: pln.id })
       .expect(200);
-    expect(created.body).toMatchObject({ name: "Poland", code: "pl", currencyId: pln.id, active: false });
+    expect(created.body).toMatchObject({ name: "Poland", code: "pl", currencyId: pln.id });
 
     const list = await request(app).get("/countries").expect(200);
     expect(list.body.map((c: { id: number }) => c.id)).toEqual([created.body.id]);

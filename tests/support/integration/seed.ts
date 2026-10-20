@@ -30,10 +30,25 @@ export async function seedCountry(
     data: {
       name: `Country ${n}`,
       code: `c${n}`,
-      active: true,
       ...stamps(),
       ...overrides,
       currencyId,
+    },
+  });
+}
+
+export async function seedAmazonCountry(
+  overrides: Partial<Prisma.AmazonCountryUncheckedCreateInput> = {}
+) {
+  const countryId = overrides.countryId ?? (await seedCountry()).id;
+  return prisma.amazonCountry.create({
+    data: {
+      tld: "pl",
+      scraped: true,
+      active: true,
+      ...stamps(),
+      ...overrides,
+      countryId,
     },
   });
 }
@@ -75,7 +90,8 @@ export async function seedPrice(
   overrides: Partial<Prisma.AmazonAdPriceUncheckedCreateInput> = {}
 ) {
   const adId = overrides.adId ?? (await seedAd()).id;
-  const countryId = overrides.countryId ?? (await seedCountry()).id;
+  const countryId =
+    overrides.countryId ?? (await seedAmazonCountry()).countryId;
   return prisma.amazonAdPrice.create({
     data: {
       value: 100,
@@ -146,7 +162,7 @@ export function seedPln() {
   });
 }
 
-// Currency + country + (optionally) the currency's rate to PLN.
+// Currency + country with its Amazon country + (optionally) the currency's rate to PLN.
 export async function seedMarket(options: {
   countryCode: string;
   currencyCode: string;
@@ -161,6 +177,10 @@ export async function seedMarket(options: {
   const country = await seedCountry({
     code: options.countryCode,
     currencyId: currency.id,
+  });
+  await seedAmazonCountry({
+    countryId: country.id,
+    tld: options.countryCode,
     active: options.active ?? true,
   });
   const rate =

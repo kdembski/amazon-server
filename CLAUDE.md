@@ -90,6 +90,12 @@ npm run test:integration  # tests/integration, needs a running Docker
   `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices, stores an `ad_scraped`
   `ActivityEvent` and asynchronously runs the anomaly managers (`src/modules/anomalies`); their marketplace reporters
   store `*_sent` events and post to Discord.
+- Amazon countries: keep Amazon's countries in `AmazonCountry` (`countryId` = `Country.id`, `tld`, `scraped`, `active`),
+  changed through `GET|POST /amazon/countries` and `PUT /amazon/countries/:id`; never delete rows, set `scraped = false`
+  instead. `GET /amazon/countries/scrap` hands out `countryId` and `tld` of `scraped` countries.
+  `AmazonAdPrice.countryId` references `AmazonCountry`. Build
+  listing URLs as `https://www.amazon.<tld>/dp/<asin>` (`ListingPrice.url`). Report anomalies only for countries with
+  `AmazonCountry.active = true` (`ListingPrice.country.active`).
 - Scraper metrics: scrapers send `POST /scrapers/:name/metrics` every minute; rows go to the `ScraperMetric`
   table (retention 30 days). Build the "Scrapers" field of the hourly Discord report from these metrics via
   `ScraperMetricService.getSummaries`.
