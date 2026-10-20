@@ -13,9 +13,9 @@ const history = (...values: number[]) =>
   values.map((value) => buildListingPrice({ value }));
 
 describe("PricingErrorManager", () => {
-  it("sends when the newest price is at most 50% of the previous and below all older ones", async () => {
+  it("sends when the newest price is at most 50% of the previous and of the median of the older ones", async () => {
     const { manager, reporter, listing } = setup();
-    const country = history(50, 100, 80);
+    const country = history(45, 100, 80);
 
     await manager.check(listing, [country]);
 
@@ -30,10 +30,10 @@ describe("PricingErrorManager", () => {
     expect(reporter.report).not.toHaveBeenCalled();
   });
 
-  it("does not send when an older price was lower than or equal to the newest", async () => {
+  it("does not send when the price had already been low for most of the window", async () => {
     const { manager, reporter, listing } = setup();
 
-    await manager.check(listing, [history(40, 100, 30), history(40, 100, 40)]);
+    await manager.check(listing, [history(40, 100, 30, 30), history(40, 100, 40)]);
 
     expect(reporter.report).not.toHaveBeenCalled();
   });
