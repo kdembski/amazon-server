@@ -1,0 +1,48 @@
+# Conversion error
+
+The same listing costs much less in one country than in the others once all prices are converted to PLN.
+
+## Input (marketplace)
+
+1. The marketplace's price update stores the scraped prices and an `ad_scraped` event, then runs the detectors
+   asynchronously.
+2. It loads the listing's prices of the last 24 hours, grouped per country, newest first. Countries missing from this
+   scrape take part with their recent prices; countries without a price in the window do not.
+3. Its `ListingPrice` mapper sets `reportable` only for prices of countries in this scrape that the marketplace
+   considers reportable (Amazon: `dispatchFrom === "Amazon"`). Other prices are only compared with.
+4. It calls `AnomalyManager` with its `ConversionErrorManager` and `PricingErrorManager`; both get the same prices.
+
+## Steps (`src/modules/anomalies/conversion-error/`)
+
+1. `ConversionErrorManager.check` stops with fewer than 3 countries.
+2. Takes the newest price of each country and converts it to PLN (`CurrencyExchangeRateService.getPlnRates`); the
+   copies keep the original `country` object.
+3. Sorts the PLN prices ascending; the first one is the cheapest.
+4. Duplicate check (`hasChanged`) on the cheapest country, in its own currency: it goes on when that country has no
+   previous price in the window or its newest price differs from the previous one by at least 5% (`minPriceChange`,
+   up or down); otherwise it stops.
+5. `ConversionErrorStrategy.getMatchingRules` returns nothing unless the cheapest price is reportable (country
+   `active` and `reportable`).
+6. `ConversionErrorEvaluator.isOverPercentageDifference` compares the cheapest price with the median of all other PLN
+   prices (mean of the two middle ones for an even count). Each rule group reports its first matching rule:
+
+   | Group | Rule | Channel |
+   |---|---|---|
+   | percentage | at least 90% below the median | `3` |
+   | | at least 70% below | `2` |
+   | | at least 50% below | `1` |
+   | amount (needs at least 70% below the median) | cheapest 0-50 PLN | `4` |
+   | | 50-200 PLN | `5` |
+   | | over 200 PLN | `6` |
+
+7. For each matched channel (at most two, one per group) the marketplace's `ConversionErrorReporter.report` gets the
+   listing, the sorted PLN prices and the channel; it stores a `conversion_error_sent` event and posts to that
+   channel's Discord webhook (Amazon: `DISCORD_CONVERSION_ERROR_<channel>_TOKEN`).
+
+## Known limits
+
+- When the cheapest price stays within 5% and the rule starts to match for another reason (exchange rate, another
+  country's price, a country appearing or disappearing, a rule change), the listing is not reported until the cheapest
+  price moves by 5%.
+- A country the scraper stops returning (listing unavailable there) still counts with its last price for up to 24 hours.
+- PLN prices in the event drift with exchange rates; the duplicate check uses the original currency.
