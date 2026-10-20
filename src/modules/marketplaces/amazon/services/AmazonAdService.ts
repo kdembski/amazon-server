@@ -16,6 +16,8 @@ import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDt
 import { UpdatableService } from "@/shared/crud/services/UpdatableService";
 import { AmazonAdPriceCreateDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
 
+const PRICE_WINDOW_HOURS = 24;
+
 export class AmazonAdService {
   private repository;
   private priceService;
@@ -74,13 +76,16 @@ export class AmazonAdService {
       data: { asin: ad.asin },
     });
 
+    // Includes countries missing from the scrape so they still count as prices to compare with.
+    const since = new Date(Date.now() - PRICE_WINDOW_HOURS * 3_600_000);
+    const scrapedCountryIds = prices.map((price) => price.countryId);
     this.priceService
-      .getByAdAndCountry(
-        ad.id,
-        prices.map((price) => price.countryId)
-      )
+      .getRecentByAd(ad.id, since)
       .then((countryPrices) =>
-        this.anomalyManager.check(ad, this.priceMapper.map(countryPrices))
+        this.anomalyManager.check(
+          ad,
+          this.priceMapper.map(countryPrices, scrapedCountryIds)
+        )
       );
   }
 

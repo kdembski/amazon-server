@@ -198,18 +198,25 @@ describe("update mappers", () => {
 describe("AmazonAdListingPriceMapper", () => {
   const mapper = new AmazonAdListingPriceMapper();
 
-  it("marks only Amazon-dispatched prices as reportable", () => {
-    const countryPrices = mapper.map([
+  it("marks only Amazon-dispatched prices of scraped countries as reportable", () => {
+    const pl = buildPriceCountry({ id: 1 });
+    const de = buildPriceCountry({ id: 2 });
+    const se = buildPriceCountry({ id: 3 });
+    const countryPrices = mapper.map(
       [
-        buildPrice({ dispatchFrom: "Amazon" }),
-        buildPrice({ dispatchFrom: "Seller" }),
+        [
+          buildPrice({ country: pl, dispatchFrom: "Amazon" }),
+          buildPrice({ country: pl, dispatchFrom: "Seller" }),
+        ],
+        [buildPrice({ country: de, dispatchFrom: null })],
+        [buildPrice({ country: se, dispatchFrom: "Amazon" })],
       ],
-      [buildPrice({ dispatchFrom: null })],
-    ]);
+      [1, 2]
+    );
 
     expect(
       countryPrices.map((prices) => prices.map((price) => price.reportable))
-    ).toEqual([[true, false], [false]]);
+    ).toEqual([[true, false], [false], [false]]);
   });
 
   it("copies value, createdAt, country fields and currency code", () => {
@@ -226,7 +233,7 @@ describe("AmazonAdListingPriceMapper", () => {
       }),
     });
 
-    const countryPrices = mapper.map([[price]]);
+    const countryPrices = mapper.map([[price]], [price.countryId]);
 
     expect(countryPrices).toStrictEqual([
       [

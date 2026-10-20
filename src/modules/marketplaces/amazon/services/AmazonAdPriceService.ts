@@ -29,7 +29,7 @@ export class AmazonAdPriceService {
     this.updatable = updatable;
   }
 
-  getByAdAndCountry(adId: number, countryIds: number[]) {
-    return this.repository.getByAdAndCountry(adId, countryIds);
+  getRecentByAd(adId: number, since: Date) {
+    return this.repository.getRecentByAd(adId, since);
   }
 }

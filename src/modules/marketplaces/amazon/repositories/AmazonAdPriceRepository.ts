@@ -34,19 +34,20 @@ export class AmazonAdPriceRepository {
     });
   }
 
-  async getByAdAndCountry(adId: number, countryIds: number[]) {
-    const countryPrices = await Promise.all(
-      countryIds.map((countryId) =>
-        this.delegate.findMany({
-          where: { adId, countryId },
-          take: 5,
-          orderBy: { createdAt: "desc" },
-          select: this.structure,
-        })
-      )
-    );
+  // Groups keep the order of each country's newest price; prices inside a group are newest first.
+  async getRecentByAd(adId: number, since: Date) {
+    const prices = await this.delegate.findMany({
+      where: { adId, createdAt: { gte: since } },
+      orderBy: { createdAt: "desc" },
+      select: this.structure,
+    });
 
-    return countryPrices.filter((prices) => prices.length);
+    const countryPrices = new Map<number, typeof prices>();
+    for (const price of prices) {
+      const group = countryPrices.get(price.countryId) ?? [];
+      countryPrices.set(price.countryId, [...group, price]);
+    }
+    return [...countryPrices.values()];
   }
 
   create(data: Prisma.AmazonAdPriceCreateInput) {
