@@ -29,18 +29,20 @@ const setup = (channels = ["1", "4"]) => {
   };
 };
 
-const threeCountries = () => [
+const fourCountries = () => [
+  [buildListingPrice()],
   [buildListingPrice()],
   [buildListingPrice()],
   [buildListingPrice()],
 ];
 
 describe("ConversionErrorManager", () => {
-  it("ignores listings with fewer than 3 countries", async () => {
+  it("ignores listings with fewer than 4 countries", async () => {
     const { manager, getPlnRates, getMatchingRules, listing } = setup();
 
     await manager.check(listing, [
       [buildListingPrice(), buildListingPrice()],
+      [buildListingPrice()],
       [buildListingPrice()],
     ]);
 
@@ -73,11 +75,12 @@ describe("ConversionErrorManager", () => {
       [otherPln, buildListingPrice({ value: 1 })],
       [eurPrice],
       [plnPrice],
+      [buildListingPrice({ value: 200, country: { currencyId: pln.id } })],
     ]);
 
     expect(getPlnRates).toHaveBeenCalled();
     const [matched] = getMatchingRules.mock.calls[0] as [ListingPrice[]];
-    expect(matched.map((p) => p.value.toNumber())).toEqual([30, 45, 100]);
+    expect(matched.map((p) => p.value.toNumber())).toEqual([30, 45, 100, 200]);
     expect(matched[0]).toBe(plnPrice);
     expect(matched[1]).toMatchObject({
       createdAt: eurPrice.createdAt,
@@ -97,6 +100,7 @@ describe("ConversionErrorManager", () => {
       [buildListingPrice({ value: 100 })],
       [eurPrice],
       [buildListingPrice({ value: 30 })],
+      [buildListingPrice({ value: 200 })],
     ];
     const order = countryPrices.map(([price]) => price);
 
@@ -112,7 +116,7 @@ describe("ConversionErrorManager", () => {
       "5",
     ]);
 
-    await manager.check(listing, threeCountries());
+    await manager.check(listing, fourCountries());
 
     const [matched] = getMatchingRules.mock.calls[0];
     expect(reporter.report.mock.calls).toEqual([
@@ -124,7 +128,7 @@ describe("ConversionErrorManager", () => {
   it("reports nothing when no rule matches", async () => {
     const { manager, reporter, listing } = setup([]);
 
-    await manager.check(listing, threeCountries());
+    await manager.check(listing, fourCountries());
 
     expect(reporter.report).not.toHaveBeenCalled();
   });
@@ -142,6 +146,7 @@ describe("ConversionErrorManager", () => {
       history(300, 200),
       history(...cheapest),
       history(400),
+      history(500),
     ]);
 
     expect(getMatchingRules).not.toHaveBeenCalled();
@@ -159,6 +164,7 @@ describe("ConversionErrorManager", () => {
       history(300, 300),
       history(...cheapest),
       history(400, 400),
+      history(500, 500),
     ]);
 
     expect(reporter.report).toHaveBeenCalledTimes(1);
@@ -175,7 +181,12 @@ describe("ConversionErrorManager", () => {
       })
     );
 
-    await manager.check(listing, [history(30, 30), eurHistory, history(100, 100)]);
+    await manager.check(listing, [
+      history(30, 30),
+      eurHistory,
+      history(100, 100),
+      history(200, 200),
+    ]);
 
     expect(reporter.report).not.toHaveBeenCalled();
   });

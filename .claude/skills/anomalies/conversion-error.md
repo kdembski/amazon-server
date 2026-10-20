@@ -14,7 +14,7 @@ The same listing costs much less in one country than in the others once all pric
 
 ## Steps (`src/modules/anomalies/conversion-error/`)
 
-1. `ConversionErrorManager.check` stops with fewer than 3 countries.
+1. `ConversionErrorManager.check` stops with fewer than 4 countries.
 2. Takes the newest price of each country and converts it to PLN (`CurrencyExchangeRateService.getPlnRates`); the
    copies keep the original `country` object.
 3. Sorts the PLN prices ascending; the first one is the cheapest.
