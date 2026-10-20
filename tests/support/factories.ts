@@ -4,7 +4,7 @@ import { AmazonAdPriceSelectDto } from "@/modules/marketplaces/amazon/dtos/Amazo
 import { AmazonAdCategorySelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdCategoryDtos";
 import { CurrencySelectDto } from "@/modules/currency/dtos/CurrencyDtos";
 import { CurrencyExchangeRateSelectDto } from "@/modules/currency/dtos/CurrencyExchangeRateDtos";
-import { AmazonSearchRuleSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonSearchRuleDtos";
+import { AmazonExclusionRuleSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonExclusionRuleDtos";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 
 export const FIXED_DATE = new Date("2026-01-01T12:00:00.000Z");
@@ -150,9 +150,9 @@ export const buildRate = (
   };
 };
 
-export const buildAmazonSearchRule = (
-  overrides: Partial<AmazonSearchRuleSelectDto> = {}
-): AmazonSearchRuleSelectDto => ({
+export const buildAmazonExclusionRule = (
+  overrides: Partial<AmazonExclusionRuleSelectDto> = {}
+): AmazonExclusionRuleSelectDto => ({
   id: nextId(),
   value: "refurbished",
   categoryId: null,

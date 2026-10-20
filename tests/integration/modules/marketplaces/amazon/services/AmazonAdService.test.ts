@@ -47,9 +47,9 @@ describe("AmazonAdService (MySQL)", () => {
     it("returns ads flagged as matching from any category and stamps only them", async () => {
       const { service } = buildAdService();
       const inactive = await seedCategory({ active: false });
-      const wanted = await seedAd({ categoryId: inactive.id, matchesRules: true });
-      const other = await seedAd({ matchesRules: false });
-      const unchecked = await seedAd({ matchesRules: null });
+      const wanted = await seedAd({ categoryId: inactive.id, excluded: true });
+      const other = await seedAd({ excluded: false });
+      const unchecked = await seedAd({ excluded: null });
 
       const ads = await service.getForScraping(10);
 
@@ -63,8 +63,8 @@ describe("AmazonAdService (MySQL)", () => {
 
     it("hands out the same ads again once every matching ad was stamped", async () => {
       const { service } = buildAdService();
-      const first = await seedAd({ matchesRules: true });
-      const second = await seedAd({ matchesRules: true });
+      const first = await seedAd({ excluded: true });
+      const second = await seedAd({ excluded: true });
 
       const round1 = await service.getForScraping(1);
       await prisma.amazonAd.update({ where: { id: round1[0].id }, data: { scrapedAt: new Date(FIXED_DATE.getTime() + 1000) } });
@@ -80,8 +80,8 @@ describe("AmazonAdService (MySQL)", () => {
 
     it("serialises concurrent calls so they hand out disjoint ads", async () => {
       const { service } = buildAdService();
-      const first = await seedAd({ matchesRules: true });
-      const second = await seedAd({ matchesRules: true });
+      const first = await seedAd({ excluded: true });
+      const second = await seedAd({ excluded: true });
 
       // The second caller waits 1 s on the static lock before retrying.
       const [a, b] = await Promise.all([

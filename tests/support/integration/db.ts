@@ -6,7 +6,7 @@ export const prisma = PrismaClient.getInstance();
 export const TABLES = [
   "AmazonAdPrice",
   "AmazonAd",
-  "AmazonSearchRule",
+  "AmazonExclusionRule",
   "AmazonAdCategory",
   "Country",
   "Currency",

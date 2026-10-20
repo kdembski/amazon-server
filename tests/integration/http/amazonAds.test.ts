@@ -21,10 +21,10 @@ beforeAll(() => {
 
 describe("GET /amazon/ads/scrap", () => {
   it("returns the next ads flagged as matching and stamps scrapedAt", async () => {
-    const never = await seedAd({ matchesRules: true, scrapedAt: null });
-    const older = await seedAd({ matchesRules: true, scrapedAt: day(1) });
-    const newer = await seedAd({ matchesRules: true, scrapedAt: day(2) });
-    const unmatched = await seedAd({ matchesRules: false, scrapedAt: null });
+    const never = await seedAd({ excluded: true, scrapedAt: null });
+    const older = await seedAd({ excluded: true, scrapedAt: day(1) });
+    const newer = await seedAd({ excluded: true, scrapedAt: day(2) });
+    const unmatched = await seedAd({ excluded: false, scrapedAt: null });
 
     const res = await request(app).get("/amazon/ads/scrap?count=2").expect(200);
 
@@ -43,7 +43,7 @@ describe("GET /amazon/ads/scrap", () => {
   });
 
   it("is not shadowed by GET /:id and returns [] when no ad matches", async () => {
-    await seedAd({ matchesRules: false });
+    await seedAd({ excluded: false });
 
     const res = await request(app).get("/amazon/ads/scrap").expect(200);
 
@@ -113,7 +113,7 @@ describe("CRUD /amazon/ads", () => {
       .expect(200);
     const dup = await request(app).post("/amazon/ads").send(body).expect(422);
 
-    expect(one.body).toMatchObject({ asin: "B0HTTP0001", matchesRules: null });
+    expect(one.body).toMatchObject({ asin: "B0HTTP0001", excluded: null });
     expect(many.body).toHaveLength(2);
     expect(await prisma.amazonAdCategory.count()).toBe(1);
     expect(dup.text).toMatch(/^Unique constraint failed on the/);

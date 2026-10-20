@@ -3,9 +3,9 @@ import { ScraperMetricCreateMapper } from "@/modules/monitoring/mappers/ScraperM
 import { ActivityEventCreateMapper } from "@/modules/monitoring/mappers/ActivityEventCreateMapper";
 import { AmazonAdCategoryCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCategoryCreateMapper";
 import { AmazonAdCategoryUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCategoryUpdateMapper";
-import { AmazonSearchRuleBatchMapper } from "@/modules/marketplaces/amazon/mappers/AmazonSearchRuleBatchMapper";
-import { AmazonSearchRuleCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonSearchRuleCreateMapper";
-import { AmazonSearchRuleUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonSearchRuleUpdateMapper";
+import { AmazonExclusionRuleBatchMapper } from "@/modules/marketplaces/amazon/mappers/AmazonExclusionRuleBatchMapper";
+import { AmazonExclusionRuleCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonExclusionRuleCreateMapper";
+import { AmazonExclusionRuleUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonExclusionRuleUpdateMapper";
 import { AmazonAdCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCreateMapper";
 import { AmazonAdUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdUpdateMapper";
 import { AmazonAdPriceCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdPriceCreateMapper";
@@ -55,8 +55,8 @@ describe("create mappers", () => {
       expected: { name: "tools", createdAt: NOW, updatedAt: NOW },
     },
     {
-      name: "AmazonSearchRuleCreateMapper",
-      map: (dto: any) => new AmazonSearchRuleCreateMapper().toCreateInput(dto),
+      name: "AmazonExclusionRuleCreateMapper",
+      map: (dto: any) => new AmazonExclusionRuleCreateMapper().toCreateInput(dto),
       dto: { value: " sony " },
       expected: { value: "sony", categoryId: null, createdAt: NOW },
     },
@@ -67,7 +67,7 @@ describe("create mappers", () => {
       expected: {
         asin: "A1",
         name: "Drill",
-        matchesRules: null,
+        excluded: null,
         image: "img",
         createdAt: NOW,
         updatedAt: NOW,
@@ -143,14 +143,14 @@ describe("update mappers", () => {
       expected: { name: "tools", updatedAt: NOW },
     },
     {
-      name: "AmazonSearchRuleUpdateMapper (clears the category)",
-      map: (dto: any) => new AmazonSearchRuleUpdateMapper().toUpdateInput(dto),
+      name: "AmazonExclusionRuleUpdateMapper (clears the category)",
+      map: (dto: any) => new AmazonExclusionRuleUpdateMapper().toUpdateInput(dto),
       dto: { categoryId: null },
       expected: { value: undefined, categoryId: null },
     },
     {
-      name: "AmazonSearchRuleUpdateMapper (keeps the category)",
-      map: (dto: any) => new AmazonSearchRuleUpdateMapper().toUpdateInput(dto),
+      name: "AmazonExclusionRuleUpdateMapper (keeps the category)",
+      map: (dto: any) => new AmazonExclusionRuleUpdateMapper().toUpdateInput(dto),
       dto: { value: "bose" },
       expected: { value: "bose", categoryId: undefined },
     },
@@ -280,35 +280,35 @@ describe("ScraperMetricCreateMapper", () => {
   });
 });
 
-describe("AmazonSearchRule mappers", () => {
+describe("AmazonExclusionRule mappers", () => {
   it("reject an invalid rule with status 400", () => {
     expect(() =>
-      new AmazonSearchRuleCreateMapper().toCreateInput({ value: "a++b" })
+      new AmazonExclusionRuleCreateMapper().toCreateInput({ value: "a++b" })
     ).toThrow(expect.objectContaining({ status: 400 }));
     expect(() =>
-      new AmazonSearchRuleUpdateMapper().toUpdateInput({ value: "a++b" })
+      new AmazonExclusionRuleUpdateMapper().toUpdateInput({ value: "a++b" })
     ).toThrow(expect.objectContaining({ status: 400 }));
   });
 });
 
-describe("AmazonSearchRule mappers categoryId", () => {
+describe("AmazonExclusionRule mappers categoryId", () => {
   it("reject a non-integer categoryId with status 400", () => {
     expect(() =>
-      new AmazonSearchRuleCreateMapper().toCreateInput({
+      new AmazonExclusionRuleCreateMapper().toCreateInput({
         value: "sony",
         categoryId: "12" as any,
       })
     ).toThrow(expect.objectContaining({ status: 400 }));
     expect(() =>
-      new AmazonSearchRuleUpdateMapper().toUpdateInput({ categoryId: 1.5 })
+      new AmazonExclusionRuleUpdateMapper().toUpdateInput({ categoryId: 1.5 })
     ).toThrow(expect.objectContaining({ status: 400 }));
   });
 });
 
-describe("AmazonSearchRuleBatchMapper", () => {
+describe("AmazonExclusionRuleBatchMapper", () => {
   it("maps creates, updates and deletes", () => {
     expect(
-      new AmazonSearchRuleBatchMapper().toBatchInput({
+      new AmazonExclusionRuleBatchMapper().toBatchInput({
         create: [{ value: " sony ", categoryId: 2 }],
         update: [{ id: 3, categoryId: null }],
         delete: [4],
@@ -321,7 +321,7 @@ describe("AmazonSearchRuleBatchMapper", () => {
   });
 
   it("treats missing lists as empty", () => {
-    expect(new AmazonSearchRuleBatchMapper().toBatchInput({})).toEqual({
+    expect(new AmazonExclusionRuleBatchMapper().toBatchInput({})).toEqual({
       create: [],
       update: [],
       delete: [],
@@ -336,7 +336,7 @@ describe("AmazonSearchRuleBatchMapper", () => {
     ["an invalid rule", { create: [{ value: "a +" }] }],
   ])("rejects %s with status 400", (_, dto) => {
     expect(() =>
-      new AmazonSearchRuleBatchMapper().toBatchInput(dto as any)
+      new AmazonExclusionRuleBatchMapper().toBatchInput(dto as any)
     ).toThrow(expect.objectContaining({ status: 400 }));
   });
 });

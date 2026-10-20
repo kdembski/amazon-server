@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { PrismaClient } from "@@prisma/PrismaClient";
-import { AmazonSearchRuleRepository } from "@/modules/marketplaces/amazon/repositories/AmazonSearchRuleRepository";
+import { AmazonExclusionRuleRepository } from "@/modules/marketplaces/amazon/repositories/AmazonExclusionRuleRepository";
 
 export class AmazonAdRepository {
   private delegate;
@@ -24,17 +24,17 @@ export class AmazonAdRepository {
   };
 
   private matchBatchSize;
-  private searchRuleRepository;
+  private exclusionRuleRepository;
 
   constructor(
     prisma = PrismaClient.getInstance(),
     matchBatchSize = 5_000,
-    searchRuleRepository = new AmazonSearchRuleRepository(prisma)
+    exclusionRuleRepository = new AmazonExclusionRuleRepository(prisma)
   ) {
     this.delegate = prisma.amazonAd;
     this.prisma = prisma;
     this.matchBatchSize = matchBatchSize;
-    this.searchRuleRepository = searchRuleRepository;
+    this.exclusionRuleRepository = exclusionRuleRepository;
   }
 
   getById(id: number) {
@@ -48,7 +48,7 @@ export class AmazonAdRepository {
   // would turn the ORDER BY into an expression the index cannot serve.
   getForScraping(count: number) {
     return this.delegate.findMany({
-      where: { matchesRules: true },
+      where: { excluded: true },
       take: count,
       orderBy: { scrapedAt: "asc" },
       select: {
@@ -59,20 +59,20 @@ export class AmazonAdRepository {
     });
   }
 
-  // Ads with matchesRules = null have not been checked yet; onlyNew limits the
+  // Ads with excluded = null have not been checked yet; onlyNew limits the
   // check to them. A full rematch walks the table in id ranges so each UPDATE
   // commits quickly and only briefly locks the rows /scrap stamps.
-  async getSearchRules() {
-    const rules = await this.searchRuleRepository.getAll();
+  async getExclusionRules() {
+    const rules = await this.exclusionRuleRepository.getAll();
     return rules.map((rule) => ({ value: rule.value, scope: rule.categoryId }));
   }
 
-  async matchSearchRules(
+  async matchExclusionRules(
     matches: (name: string, scope: number | null) => boolean,
     onlyNew = false
   ) {
     if (onlyNew) {
-      return this.updateMatches(matches, { matchesRules: null });
+      return this.updateMatches(matches, { excluded: null });
     }
 
     const { _max } = await this.delegate.aggregate({ _max: { id: true } });
@@ -133,29 +133,29 @@ export class AmazonAdRepository {
   ) {
     const ads = await this.delegate.findMany({
       where,
-      select: { id: true, name: true, categoryId: true, matchesRules: true },
+      select: { id: true, name: true, categoryId: true, excluded: true },
     });
     const flagged: number[] = [];
     const cleared: number[] = [];
 
     for (const ad of ads) {
       const matched = matches(ad.name, ad.categoryId);
-      if (matched && ad.matchesRules !== true) flagged.push(ad.id);
-      if (!matched && ad.matchesRules !== false) cleared.push(ad.id);
+      if (matched && ad.excluded !== true) flagged.push(ad.id);
+      if (!matched && ad.excluded !== false) cleared.push(ad.id);
     }
 
     return {
-      matched: await this.setMatchesRules(flagged, true),
-      unmatched: await this.setMatchesRules(cleared, false),
+      matched: await this.setExcluded(flagged, true),
+      unmatched: await this.setExcluded(cleared, false),
     };
   }
 
-  private async setMatchesRules(ids: number[], matchesRules: boolean) {
+  private async setExcluded(ids: number[], excluded: boolean) {
     if (!ids.length) return 0;
 
     const { count } = await this.delegate.updateMany({
       where: { id: { in: ids } },
-      data: { matchesRules },
+      data: { excluded },
     });
     return count;
   }

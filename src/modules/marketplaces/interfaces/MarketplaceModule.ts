@@ -1,8 +1,8 @@
 import { AppModule } from "@/shared/interfaces/AppModule";
-import { SearchRuleTarget } from "@/modules/search-rules/interfaces/SearchRuleTarget";
+import { ExclusionRuleTarget } from "@/modules/exclusion-rules/interfaces/ExclusionRuleTarget";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
 
 export interface MarketplaceModule extends AppModule {
-  searchRuleTarget: SearchRuleTarget;
+  exclusionRuleTarget: ExclusionRuleTarget;
   dailyReportSection: DailyReportSection;
 }

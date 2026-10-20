@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
 import { AmazonAdCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCreateMapper";
 import { FIXED_DATE } from "../../../../../support/factories";
-import { SearchRuleParser } from "@/modules/search-rules/services/SearchRuleParser";
-import { SearchRuleMatcher } from "@/modules/search-rules/services/SearchRuleMatcher";
+import { ExclusionRuleParser } from "@/modules/exclusion-rules/services/ExclusionRuleParser";
+import { ExclusionRuleMatcher } from "@/modules/exclusion-rules/services/ExclusionRuleMatcher";
 import { prisma } from "../../../../../support/integration/db";
 import {
   seedAd,
@@ -12,9 +12,9 @@ import {
 } from "../../../../../support/integration/seed";
 
 const repository = new AmazonAdRepository(prisma);
-const parser = new SearchRuleParser();
+const parser = new ExclusionRuleParser();
 const rules = (...values: string[]) => {
-  const matcher = new SearchRuleMatcher(values.map((value) => parser.parse(value)));
+  const matcher = new ExclusionRuleMatcher(values.map((value) => parser.parse(value)));
   return (name: string) => matcher.matches(name);
 };
 const day = (n: number) => new Date(FIXED_DATE.getTime() + n * 86_400_000);
@@ -48,11 +48,11 @@ describe("AmazonAdRepository (MySQL)", () => {
   describe("getForScraping", () => {
     it("returns matching ads of any category, never scraped first, then oldest scrapedAt", async () => {
       const inactive = await seedCategory({ active: false });
-      const recent = await seedAd({ matchesRules: true, scrapedAt: day(2) });
-      const never = await seedAd({ categoryId: inactive.id, matchesRules: true, scrapedAt: null });
-      const old = await seedAd({ matchesRules: true, scrapedAt: day(1) });
-      await seedAd({ matchesRules: false, scrapedAt: null });
-      await seedAd({ matchesRules: null, scrapedAt: null });
+      const recent = await seedAd({ excluded: true, scrapedAt: day(2) });
+      const never = await seedAd({ categoryId: inactive.id, excluded: true, scrapedAt: null });
+      const old = await seedAd({ excluded: true, scrapedAt: day(1) });
+      await seedAd({ excluded: false, scrapedAt: null });
+      await seedAd({ excluded: null, scrapedAt: null });
 
       const ads = await repository.getForScraping(10);
 
@@ -64,30 +64,30 @@ describe("AmazonAdRepository (MySQL)", () => {
     });
 
     it("limits the result to count", async () => {
-      await seedAd({ matchesRules: true });
-      await seedAd({ matchesRules: true });
-      await seedAd({ matchesRules: true });
+      await seedAd({ excluded: true });
+      await seedAd({ excluded: true });
+      await seedAd({ excluded: true });
 
       expect(await repository.getForScraping(2)).toHaveLength(2);
     });
 
-    it("reads the matchesRules, scrapedAt index without a filesort", async () => {
-      await seedAd({ matchesRules: true });
+    it("reads the excluded, scrapedAt index without a filesort", async () => {
+      await seedAd({ excluded: true });
 
       // Prisma names the EXPLAIN columns f0..f11: f6 is `key`, f11 is `Extra`.
       const [plan] = await prisma.$queryRawUnsafe<{ f6: string; f11: string | null }[]>(
-        "EXPLAIN SELECT id, asin, name FROM AmazonAd WHERE matchesRules = true ORDER BY scrapedAt ASC LIMIT 50"
+        "EXPLAIN SELECT id, asin, name FROM AmazonAd WHERE excluded = true ORDER BY scrapedAt ASC LIMIT 50"
       );
 
-      expect(plan.f6).toBe("amazon_ad_matches_rules_scraped_at_idx");
+      expect(plan.f6).toBe("amazon_ad_excluded_scraped_at_idx");
       expect(plan.f11 ?? "").not.toContain("filesort");
     });
   });
 
-  describe("matchSearchRules", () => {
+  describe("matchExclusionRules", () => {
     const flags = async () => {
       const rows = await prisma.amazonAd.findMany({ orderBy: { id: "asc" } });
-      return rows.map((row) => [row.name, row.matchesRules]);
+      return rows.map((row) => [row.name, row.excluded]);
     };
 
     it("flags ads matching any rule, case-insensitively, and counts the changes", async () => {
@@ -96,7 +96,7 @@ describe("AmazonAdRepository (MySQL)", () => {
       await seedAd({ name: "JBL Tune 760" });
       const matches = rules("SONY", "bose");
 
-      const result = await repository.matchSearchRules(matches);
+      const result = await repository.matchExclusionRules(matches);
 
       expect(result).toEqual({ matched: 2, unmatched: 1 });
       expect(await flags()).toEqual([
@@ -115,7 +115,7 @@ describe("AmazonAdRepository (MySQL)", () => {
       await seedAd({ name: "Sony headphones open-box" });
       const matches = rules("rtx+4090|4080+!laptop", "sony+open box");
 
-      await repository.matchSearchRules(matches);
+      await repository.matchExclusionRules(matches);
 
       expect(await flags()).toEqual([
         ["RTX 4090 Founders Edition", true],
@@ -133,7 +133,7 @@ describe("AmazonAdRepository (MySQL)", () => {
       await seedAd({ name: "Used Bose QC45" });
       const matches = rules("sony", "bose", "!refurbished|used");
 
-      await repository.matchSearchRules(matches);
+      await repository.matchExclusionRules(matches);
 
       expect(await flags()).toEqual([
         ["Sony WH-1000XM5", true],
@@ -143,11 +143,11 @@ describe("AmazonAdRepository (MySQL)", () => {
     });
 
     it("clears every ad when no rule has a positive member", async () => {
-      await seedAd({ name: "Sony WH-1000XM5", matchesRules: true });
-      await seedAd({ name: "Bose QC45", matchesRules: null });
+      await seedAd({ name: "Sony WH-1000XM5", excluded: true });
+      await seedAd({ name: "Bose QC45", excluded: null });
       const matches = rules("!used");
 
-      expect(await repository.matchSearchRules(matches)).toEqual({ matched: 0, unmatched: 2 });
+      expect(await repository.matchExclusionRules(matches)).toEqual({ matched: 0, unmatched: 2 });
       expect(await flags()).toEqual([
         ["Sony WH-1000XM5", false],
         ["Bose QC45", false],
@@ -161,7 +161,7 @@ describe("AmazonAdRepository (MySQL)", () => {
       await seedAd({ name: "Zdalnie sterowana łódź" });
       const matches = rules("hape+drewn*", "*sterowan*+lodz");
 
-      await repository.matchSearchRules(matches);
+      await repository.matchExclusionRules(matches);
 
       expect(await flags()).toEqual([
         ["Hape drewniana kuchnia", true],
@@ -178,7 +178,7 @@ describe("AmazonAdRepository (MySQL)", () => {
       await seedAd({ name: "cable-usb" });
       const matches = rules("50%", "cable_usb");
 
-      await repository.matchSearchRules(matches);
+      await repository.matchExclusionRules(matches);
 
       expect(await flags()).toEqual([
         ["Save 50% today", true],
@@ -189,11 +189,11 @@ describe("AmazonAdRepository (MySQL)", () => {
     });
 
     it("rematches previously flagged ads when the rules change", async () => {
-      await seedAd({ name: "Sony WH-1000XM5", matchesRules: true });
-      await seedAd({ name: "Bose QC45", matchesRules: false });
+      await seedAd({ name: "Sony WH-1000XM5", excluded: true });
+      await seedAd({ name: "Bose QC45", excluded: false });
       const matches = rules("bose");
 
-      expect(await repository.matchSearchRules(matches)).toEqual({ matched: 1, unmatched: 1 });
+      expect(await repository.matchExclusionRules(matches)).toEqual({ matched: 1, unmatched: 1 });
       expect(await flags()).toEqual([
         ["Sony WH-1000XM5", false],
         ["Bose QC45", true],
@@ -202,14 +202,14 @@ describe("AmazonAdRepository (MySQL)", () => {
 
     it("rematches across several id batches", async () => {
       const batched = new AmazonAdRepository(prisma, 2);
-      await seedAd({ name: "Sony 1", matchesRules: false });
-      await seedAd({ name: "Bose 2", matchesRules: true });
-      await seedAd({ name: "Sony 3", matchesRules: null });
-      await seedAd({ name: "Bose 4", matchesRules: null });
-      await seedAd({ name: "Sony 5", matchesRules: true });
+      await seedAd({ name: "Sony 1", excluded: false });
+      await seedAd({ name: "Bose 2", excluded: true });
+      await seedAd({ name: "Sony 3", excluded: null });
+      await seedAd({ name: "Bose 4", excluded: null });
+      await seedAd({ name: "Sony 5", excluded: true });
       const matches = rules("sony");
 
-      expect(await batched.matchSearchRules(matches)).toEqual({ matched: 2, unmatched: 2 });
+      expect(await batched.matchExclusionRules(matches)).toEqual({ matched: 2, unmatched: 2 });
       expect(await flags()).toEqual([
         ["Sony 1", true],
         ["Bose 2", false],
@@ -220,13 +220,13 @@ describe("AmazonAdRepository (MySQL)", () => {
     });
 
     it("with onlyNew checks only ads that were never matched", async () => {
-      await seedAd({ name: "Sony stale true", matchesRules: true });
-      await seedAd({ name: "Bose stale false", matchesRules: false });
-      await seedAd({ name: "Bose new", matchesRules: null });
-      await seedAd({ name: "Sony new", matchesRules: null });
+      await seedAd({ name: "Sony stale true", excluded: true });
+      await seedAd({ name: "Bose stale false", excluded: false });
+      await seedAd({ name: "Bose new", excluded: null });
+      await seedAd({ name: "Sony new", excluded: null });
       const matches = rules("bose");
 
-      expect(await repository.matchSearchRules(matches, true)).toEqual({ matched: 1, unmatched: 1 });
+      expect(await repository.matchExclusionRules(matches, true)).toEqual({ matched: 1, unmatched: 1 });
       expect(await flags()).toEqual([
         ["Sony stale true", true],
         ["Bose stale false", false],
