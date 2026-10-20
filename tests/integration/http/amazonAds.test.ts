@@ -55,7 +55,7 @@ describe("PUT /amazon/ads/:id", () => {
   it("stores prices, logs ad_scraped and posts a pricing error embed to Discord", async () => {
     const ad = await seedAd();
     const country = await seedCountry({ active: true });
-    await seedPrice({ adId: ad.id, countryId: country.id, value: 100, createdAt: FIXED_DATE });
+    await seedPrice({ adId: ad.id, countryId: country.id, value: 100, createdAt: new Date(Date.now() - 3_600_000) });
 
     await request(app)
       .put(`/amazon/ads/${ad.id}`)

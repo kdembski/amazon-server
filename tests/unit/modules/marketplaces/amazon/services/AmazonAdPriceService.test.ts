@@ -5,7 +5,7 @@ import { AmazonAdPriceRepository } from "@/modules/marketplaces/amazon/repositor
 const setup = () => {
   const repository = {
     getById: vi.fn(),
-    getByAdAndCountry: vi.fn().mockResolvedValue([]),
+    getRecentByAd: vi.fn().mockResolvedValue([]),
     create: vi.fn().mockResolvedValue({}),
     update: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue({}),
@@ -17,10 +17,11 @@ const setup = () => {
 };
 
 describe("AmazonAdPriceService", () => {
-  it("delegates getByAdAndCountry", async () => {
+  it("delegates getRecentByAd", async () => {
     const { service, repository } = setup();
-    await service.getByAdAndCountry(1, [2, 3]);
-    expect(repository.getByAdAndCountry).toHaveBeenCalledWith(1, [2, 3]);
+    const since = new Date(1);
+    await service.getRecentByAd(1, since);
+    expect(repository.getRecentByAd).toHaveBeenCalledWith(1, since);
   });
 
   it("wires creatable, updatable and deletable to the repository", async () => {

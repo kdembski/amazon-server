@@ -100,7 +100,7 @@ describe("AmazonAdService (MySQL)", () => {
       const { service, pricing } = buildAdService();
       const ad = await seedAd();
       const country = await seedCountry({ active: true });
-      await seedPrice({ adId: ad.id, countryId: country.id, value: 100, createdAt: FIXED_DATE });
+      await seedPrice({ adId: ad.id, countryId: country.id, value: 100, createdAt: new Date(Date.now() - 3_600_000) });
 
       await service.updatePrices(ad.id, [
         { adId: ad.id, countryId: country.id, value: 40, dispatchFrom: "Amazon" },
@@ -167,13 +167,38 @@ describe("AmazonAdService (MySQL)", () => {
       expect(pricing.send).not.toHaveBeenCalled();
     });
 
+    it("compares with recent prices of countries missing from the scrape", async () => {
+      const { service, conversion } = buildAdService();
+      const ad = await seedAd();
+      const pl = await seedMarket({ countryCode: "pl", currencyCode: "PLN" });
+      const de = await seedMarket({ countryCode: "de", currencyCode: "EUR", rateToPln: 4.3 });
+      const fr = await seedMarket({ countryCode: "fr", currencyCode: "NOK", rateToPln: 0.4 });
+      const italy = await seedMarket({ countryCode: "it", currencyCode: "DKK", rateToPln: 0.6 });
+      const se = await seedMarket({ countryCode: "se", currencyCode: "SEK", rateToPln: 0.4 });
+      const ch = await seedMarket({ countryCode: "ch", currencyCode: "CHF", rateToPln: 4.3 });
+      for (const [country, value] of [[de, 10], [fr, 125], [italy, 100]] as const) {
+        await seedPrice({ adId: ad.id, countryId: country.country.id, value, createdAt: new Date() });
+      }
+
+      // 40 PLN (se) is over 90 % below the median of pl and ch (1145 PLN), but de, fr and it
+      // (43, 50 and 60 PLN) bring the median of the other prices down to 60 PLN.
+      await service.updatePrices(ad.id, [
+        { adId: ad.id, countryId: pl.country.id, value: 1000, dispatchFrom: "Amazon" },
+        { adId: ad.id, countryId: se.country.id, value: 100, dispatchFrom: "Amazon" },
+        { adId: ad.id, countryId: ch.country.id, value: 300, dispatchFrom: "Amazon" },
+      ]);
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect(conversion.send).not.toHaveBeenCalled();
+    });
+
     it("reports a pricing error in the market currency while the conversion check runs", async () => {
       const { service, pricing } = buildAdService();
       const ad = await seedAd();
       const pl = await seedMarket({ countryCode: "pl", currencyCode: "PLN" });
       const de = await seedMarket({ countryCode: "de", currencyCode: "EUR", rateToPln: 4.3 });
       const se = await seedMarket({ countryCode: "se", currencyCode: "SEK", rateToPln: 0.4 });
-      await seedPrice({ adId: ad.id, countryId: de.country.id, value: 100, createdAt: FIXED_DATE });
+      await seedPrice({ adId: ad.id, countryId: de.country.id, value: 100, createdAt: new Date(Date.now() - 3_600_000) });
 
       await service.updatePrices(ad.id, [
         { adId: ad.id, countryId: pl.country.id, value: 500, dispatchFrom: "Amazon" },

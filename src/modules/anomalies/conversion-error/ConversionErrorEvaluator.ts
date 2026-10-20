@@ -2,11 +2,11 @@ import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AnomalyEvaluator } from "@/modules/anomalies/AnomalyEvaluator";
 
 export class ConversionErrorEvaluator extends AnomalyEvaluator {
+  // Compares the first (cheapest) price with the median of the others.
   isOverPercentageDifference(prices: ListingPrice[], percentage: number) {
-    const firstPrice = prices[0].value;
-    const secondPrice = prices[1].value;
+    const [first, ...rest] = prices;
 
-    return firstPrice.lte(secondPrice.times(1 - percentage / 100));
+    return first.value.lte(this.getMedian(rest).times(1 - percentage / 100));
   }
 
   isInRange(prices: ListingPrice[], min?: number, max?: number) {

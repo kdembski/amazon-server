@@ -12,7 +12,8 @@ export class AmazonPricingErrorDiscordService {
   }
 
   async send(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][]) {
-    const fields = countryPrices.map((prices) => {
+    const fields = countryPrices.map((countryHistory) => {
+      const prices = this.getPriceChanges(countryHistory);
       const { name, code, currencyCode } = prices[0].country;
 
       return {
@@ -48,6 +49,13 @@ export class AmazonPricingErrorDiscordService {
     };
 
     this.service.send({ embeds: [embed] });
+  }
+
+  // Prices are newest first: keeps the newest one and the oldest price of every run of equal prices.
+  getPriceChanges(prices: ListingPrice[]) {
+    return prices.filter(
+      (price, i) => i === 0 || !prices[i + 1]?.value.equals(price.value)
+    );
   }
 
   getDifference(value: number, prices: ListingPrice[], i: number) {

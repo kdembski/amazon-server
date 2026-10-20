@@ -20,6 +20,20 @@ describe("isOverPercentageDifference", () => {
     expect(evaluator.isOverPercentageDifference(prices(11, 100), 90)).toBe(false);
     expect(evaluator.isOverPercentageDifference(prices(51, 100), 50)).toBe(false);
   });
+
+  it("compares with the median of the other prices, not only the second one", () => {
+    // Median of 36, 54, 55 is 54: 25 is 53.7% below it, though only 30.6% below 36.
+    expect(evaluator.isOverPercentageDifference(prices(25, 36, 54, 55), 50)).toBe(true);
+    // Median of 30, 200, 400 is 200, regardless of their order.
+    expect(evaluator.isOverPercentageDifference(prices(100, 400, 30, 200), 50)).toBe(true);
+    expect(evaluator.isOverPercentageDifference(prices(101, 400, 30, 200), 50)).toBe(false);
+  });
+
+  it("averages the two middle prices for an even number of other prices", () => {
+    // Median of 60 and 140 is 100.
+    expect(evaluator.isOverPercentageDifference(prices(50, 60, 140), 50)).toBe(true);
+    expect(evaluator.isOverPercentageDifference(prices(51, 60, 140), 50)).toBe(false);
+  });
 });
 
 describe("isInRange", () => {
