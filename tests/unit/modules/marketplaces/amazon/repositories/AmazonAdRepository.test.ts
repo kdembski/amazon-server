@@ -16,6 +16,7 @@ const setup = (matchBatchSize?: number) => {
     repository,
     exclusionRuleRepository,
     delegate: db.amazonAd,
+    categories: db.amazonAdCategory,
     $executeRaw: db.$executeRaw,
   };
 };
@@ -45,13 +46,18 @@ describe("AmazonAdRepository", () => {
     });
   });
 
-  it("getForScraping reads ads that are not excluded, oldest scrapedAt first", async () => {
-    const { repository, delegate } = setup();
+  it("getForScraping reads ads of active categories that are not excluded, oldest scrapedAt first", async () => {
+    const { repository, delegate, categories } = setup();
+    categories.findMany.mockResolvedValue([{ id: 1 }, { id: 3 }]);
 
     await repository.getForScraping(10);
 
+    expect(categories.findMany).toHaveBeenCalledWith({
+      where: { active: true },
+      select: { id: true },
+    });
     expect(delegate.findMany).toHaveBeenCalledWith({
-      where: { excluded: false },
+      where: { excluded: false, categoryId: { in: [1, 3] } },
       take: 10,
       orderBy: { scrapedAt: "asc" },
       select: { id: true, asin: true, name: true },

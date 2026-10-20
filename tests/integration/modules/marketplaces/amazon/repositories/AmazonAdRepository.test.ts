@@ -46,10 +46,9 @@ describe("AmazonAdRepository (MySQL)", () => {
   });
 
   describe("getForScraping", () => {
-    it("returns ads that are not excluded, of any category, never scraped first, then oldest scrapedAt", async () => {
-      const inactive = await seedCategory({ active: false });
+    it("returns ads that are not excluded, never scraped first, then oldest scrapedAt", async () => {
       const recent = await seedAd({ excluded: false, scrapedAt: day(2) });
-      const never = await seedAd({ categoryId: inactive.id, excluded: false, scrapedAt: null });
+      const never = await seedAd({ excluded: false, scrapedAt: null });
       const old = await seedAd({ excluded: false, scrapedAt: day(1) });
       await seedAd({ excluded: true, scrapedAt: null });
       await seedAd({ excluded: null, scrapedAt: null });
@@ -61,6 +60,21 @@ describe("AmazonAdRepository (MySQL)", () => {
         { id: old.id, asin: old.asin, name: old.name },
         { id: recent.id, asin: recent.asin, name: recent.name },
       ]);
+    });
+
+    it("returns only ads of active categories", async () => {
+      const inactive = await seedCategory({ active: false });
+      const active = await seedAd({ excluded: false });
+      await seedAd({ categoryId: inactive.id, excluded: false });
+
+      expect((await repository.getForScraping(10)).map((ad) => ad.id)).toEqual([active.id]);
+    });
+
+    it("returns [] when no category is active", async () => {
+      const inactive = await seedCategory({ active: false });
+      await seedAd({ categoryId: inactive.id, excluded: false });
+
+      expect(await repository.getForScraping(10)).toEqual([]);
     });
 
     it("limits the result to count", async () => {
@@ -76,7 +90,7 @@ describe("AmazonAdRepository (MySQL)", () => {
 
       // Prisma names the EXPLAIN columns f0..f11: f6 is `key`, f11 is `Extra`.
       const [plan] = await prisma.$queryRawUnsafe<{ f6: string; f11: string | null }[]>(
-        "EXPLAIN SELECT id, asin, name FROM AmazonAd WHERE excluded = false ORDER BY scrapedAt ASC LIMIT 50"
+        "EXPLAIN SELECT id, asin, name FROM AmazonAd WHERE excluded = false AND categoryId IN (1, 2) ORDER BY scrapedAt ASC LIMIT 50"
       );
 
       expect(plan.f6).toBe("amazon_ad_excluded_scraped_at_idx");

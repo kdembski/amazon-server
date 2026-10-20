@@ -46,9 +46,16 @@ export class AmazonAdRepository {
 
   // MySQL sorts NULL first in ascending order; an explicit `nulls` option
   // would turn the ORDER BY into an expression the index cannot serve.
-  getForScraping(count: number) {
+  async getForScraping(count: number) {
+    const categories = await this.prisma.amazonAdCategory.findMany({
+      where: { active: true },
+      select: { id: true },
+    });
     return this.delegate.findMany({
-      where: { excluded: false },
+      where: {
+        excluded: false,
+        categoryId: { in: categories.map((category) => category.id) },
+      },
       take: count,
       orderBy: { scrapedAt: "asc" },
       select: {

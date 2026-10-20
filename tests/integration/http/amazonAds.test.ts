@@ -44,6 +44,7 @@ describe("GET /amazon/ads/scrap", () => {
 
   it("is not shadowed by GET /:id and returns [] when every ad is excluded", async () => {
     await seedAd({ excluded: true });
+    await seedAd({ categoryId: (await seedCategory({ active: false })).id, excluded: false });
 
     const res = await request(app).get("/amazon/ads/scrap").expect(200);
 
