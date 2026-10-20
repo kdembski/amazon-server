@@ -80,6 +80,34 @@ describe("AmazonPricingErrorDiscordService", () => {
     expect(service.getDifference(100, prices, 1)).toBeUndefined();
   });
 
+  it("renders only price changes, dated when each price first appeared", async () => {
+    const discord = fakeDiscordService();
+    const service = new AmazonPricingErrorDiscordService(discord.service);
+    const country = { name: "Germany", code: "de", currencyCode: "EUR" };
+    const at = (hour: number) => new Date(2026, 0, 1, hour);
+    const history = [
+      [50, 14],
+      [100, 12],
+      [100, 10],
+      [80, 9],
+      [100, 8],
+    ].map(([value, hour]) =>
+      buildListingPrice({ value, country, createdAt: at(hour) })
+    );
+
+    await service.send(buildAd({ asin: "B0X" }), [history]);
+
+    const date = (hour: number) => format(at(hour), "d MMM HH:mm");
+    expect(discord.send.mock.calls[0][0].embeds[0].fields[0].value).toBe(
+      [
+        `${date(8)} – **100.00 EUR**`,
+        `${date(9)} – **80.00 EUR** *(-20%)*`,
+        `${date(10)} – **100.00 EUR** *(25%)*`,
+        `${date(14)} – [**50.00 EUR** *(-50%)*](https://www.amazon.de/dp/B0X)`,
+      ].join("\n")
+    );
+  });
+
   it("getFullText omits the difference when it is missing or zero", () => {
     const service = new AmazonPricingErrorDiscordService(
       fakeDiscordService().service
