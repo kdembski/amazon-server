@@ -43,4 +43,13 @@ describe("AmazonConversionErrorReporter", () => {
     expect(discord.setChannel).toHaveBeenCalledWith("3");
     expect(discord.send).toHaveBeenCalledWith(ad, prices);
   });
+
+  it("rejects when the embed cannot be sent", async () => {
+    const { reporter, discord } = setup();
+    discord.send.mockRejectedValue(new Error("no client"));
+
+    await expect(
+      reporter.report(buildAd(), [buildListingPrice()], "1")
+    ).rejects.toThrow("no client");
+  });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ExclusionRuleMatchService } from "@/modules/exclusion-rules/services/ExclusionRuleMatchService";
 import { ExclusionRuleTarget } from "@/modules/exclusion-rules/interfaces/ExclusionRuleTarget";
-import { deferred } from "../../../../support/fakes";
+import { deferred, fakeSystemLogService } from "../../../../support/fakes";
 
 type Rule = { value: string; scope: number | null };
 
@@ -17,12 +17,13 @@ const fakeTarget = (rules: Rule[] = []) => ({
 const setup = (rulesA: Rule[] = [], rulesB: Rule[] = []) => {
   const targetA = fakeTarget(rulesA);
   const targetB = fakeTarget(rulesB);
-  const service = new ExclusionRuleMatchService([
-    targetA,
-    targetB,
-  ] as ExclusionRuleTarget[]);
-  const info = vi.spyOn(console, "log").mockImplementation(() => {});
-  return { service, targetA, targetB, info };
+  const logger = fakeSystemLogService();
+  const service = new ExclusionRuleMatchService(
+    [targetA, targetB] as ExclusionRuleTarget[],
+    undefined,
+    logger.service
+  );
+  return { service, targetA, targetB, info: logger.info, warn: logger.warn };
 };
 
 const onlyNewFlags = (target: ReturnType<typeof fakeTarget>) =>
@@ -58,10 +59,17 @@ describe("ExclusionRuleMatchService.sync", () => {
     await service.sync();
 
     expect(info).toHaveBeenCalledTimes(2);
-    for (const [message] of info.mock.calls) {
-      expect(message).toMatch(
-        /^ExclusionRuleMatchService: 1 exclusion rules excluded 2 and included 1 ads in \d+ ms$/
-      );
+    for (const [source, message, context] of info.mock.calls) {
+      expect(source).toBe("ExclusionRuleMatchService");
+      expect(message).toBe("1 exclusion rules excluded 2 and included 1 ads");
+      expect(context).toEqual({
+        target: "Object",
+        rules: 1,
+        activeScopes: [1, 2],
+        excluded: 2,
+        included: 1,
+        durationMs: expect.any(Number),
+      });
     }
     info.mockRestore();
   });
@@ -85,32 +93,38 @@ describe("ExclusionRuleMatchService.sync", () => {
   });
 
   it("skips an unparsable rule and logs it", async () => {
-    const { service, targetA, info } = setup(global("drill", "a++b"));
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { service, targetA, info, warn } = setup(global("drill", "a++b"));
 
     await service.sync();
 
-    expect(error).toHaveBeenCalledWith(
-      'ExclusionRuleMatchService: skipped exclusion rule a++b: Error: Exclusion rule "a++b" contains an empty part'
+    expect(warn).toHaveBeenCalledWith(
+      "ExclusionRuleMatchService",
+      "Skipped exclusion rule a++b",
+      {
+        value: "a++b",
+        scope: null,
+        error: new Error('Exclusion rule "a++b" contains an empty part'),
+      }
     );
     expect(targetA.matchExclusionRules.mock.calls[0][0]("drill", null)).toBe(true);
-    error.mockRestore();
     info.mockRestore();
   });
 
   it("skips a rule made only of ! members and excludes by the others", async () => {
-    const { service, targetA, info } = setup(global("!a", "b"));
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { service, targetA, info, warn } = setup(global("!a", "b"));
 
     await service.sync();
 
-    expect(error).toHaveBeenCalledWith(
-      'ExclusionRuleMatchService: skipped exclusion rule !a: Error: Exclusion rule "!a" needs at least one phrase without !'
+    expect(warn).toHaveBeenCalledWith(
+      "ExclusionRuleMatchService",
+      "Skipped exclusion rule !a",
+      expect.objectContaining({
+        error: new Error('Exclusion rule "!a" needs at least one phrase without !'),
+      })
     );
     const [excludes] = targetA.matchExclusionRules.mock.calls[0];
     expect(excludes("b", null)).toBe(true);
     expect(excludes("a", null)).toBe(false);
-    error.mockRestore();
     info.mockRestore();
   });
 
@@ -193,12 +207,34 @@ describe("ExclusionRuleMatchService.sync", () => {
     );
     targetB.matchExclusionRules.mockRejectedValueOnce(new Error("db down"));
 
-    await expect(service.sync()).rejects.toThrow("db down");
+    await service.sync();
     await service.sync();
 
     expect(onlyNewFlags(targetA)).toEqual([false, true]);
     expect(onlyNewFlags(targetB)).toEqual([false, false]);
     info.mockRestore();
+  });
+
+  it("logs a failing target and still syncs the next one", async () => {
+    const logger = fakeSystemLogService();
+    const targetA = fakeTarget(global("drill"));
+    const targetB = fakeTarget(global("bose"));
+    const error = new Error("db down");
+    targetA.getExclusionRules.mockRejectedValueOnce(error);
+    const service = new ExclusionRuleMatchService(
+      [targetA, targetB] as ExclusionRuleTarget[],
+      undefined,
+      logger.service
+    );
+
+    await expect(service.sync()).resolves.toBeUndefined();
+
+    expect(targetB.matchExclusionRules).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      "ExclusionRuleMatchService",
+      "Exclusion rule matching of Object failed",
+      { error, target: "Object" }
+    );
   });
 
   it("skips a run while the previous one is still running", async () => {

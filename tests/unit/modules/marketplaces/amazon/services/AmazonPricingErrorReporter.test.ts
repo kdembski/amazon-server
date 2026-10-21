@@ -46,4 +46,13 @@ describe("AmazonPricingErrorReporter", () => {
     });
     expect(discord.send).toHaveBeenCalledWith(ad, countryPrices);
   });
+
+  it("rejects when the embed cannot be sent", async () => {
+    const { reporter, discord } = setup();
+    discord.send.mockRejectedValue(new Error("no prices"));
+
+    await expect(
+      reporter.report(buildAd(), [[buildListingPrice()]])
+    ).rejects.toThrow("no prices");
+  });
 });

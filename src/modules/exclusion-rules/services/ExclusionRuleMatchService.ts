@@ -2,16 +2,23 @@ import { ExclusionRuleTarget } from "@/modules/exclusion-rules/interfaces/Exclus
 import { ScopedExclusionRule } from "@/modules/exclusion-rules/interfaces/ScopedExclusionRule";
 import { ExclusionRuleParser } from "@/modules/exclusion-rules/services/ExclusionRuleParser";
 import { ScopedExclusionRuleMatcher } from "@/modules/exclusion-rules/services/ScopedExclusionRuleMatcher";
+import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
 export class ExclusionRuleMatchService {
   private targets;
   private parser;
+  private logger;
   private fingerprints = new Map<ExclusionRuleTarget, string>();
   private isRunning = false;
 
-  constructor(targets: ExclusionRuleTarget[], parser = new ExclusionRuleParser()) {
+  constructor(
+    targets: ExclusionRuleTarget[],
+    parser = new ExclusionRuleParser(),
+    logger = SystemLogService.getInstance()
+  ) {
     this.targets = targets;
     this.parser = parser;
+    this.logger = logger;
   }
 
   // Rematches every ad of a target when its rules or active scopes differ from
@@ -22,7 +29,13 @@ export class ExclusionRuleMatchService {
 
     try {
       for (const target of this.targets) {
-        await this.syncTarget(target);
+        await this.syncTarget(target).catch((error) =>
+          this.logger.error(
+            "ExclusionRuleMatchService",
+            `Exclusion rule matching of ${target.constructor.name} failed`,
+            { error, target: target.constructor.name }
+          )
+        );
       }
     } finally {
       this.isRunning = false;
@@ -51,8 +64,17 @@ export class ExclusionRuleMatchService {
     this.fingerprints.set(target, fingerprint);
 
     if (changed) {
-      console.log(
-        `ExclusionRuleMatchService: ${exclusionRules.length} exclusion rules excluded ${excluded} and included ${included} ads in ${Date.now() - startedAt} ms`
+      this.logger.info(
+        "ExclusionRuleMatchService",
+        `${exclusionRules.length} exclusion rules excluded ${excluded} and included ${included} ads`,
+        {
+          target: target.constructor.name,
+          rules: exclusionRules.length,
+          activeScopes: [...active],
+          excluded,
+          included,
+          durationMs: Date.now() - startedAt,
+        }
       );
     }
   }
@@ -64,8 +86,10 @@ export class ExclusionRuleMatchService {
       try {
         return [{ rule: this.parser.parse(value), scope }];
       } catch (e) {
-        console.error(
-          `ExclusionRuleMatchService: skipped exclusion rule ${value}: ${e}`
+        this.logger.warn(
+          "ExclusionRuleMatchService",
+          `Skipped exclusion rule ${value}`,
+          { value, scope, error: e }
         );
         return [];
       }

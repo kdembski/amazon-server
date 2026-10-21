@@ -2,25 +2,33 @@ import { ActivityEventService } from "@/modules/monitoring/services/ActivityEven
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
 import { ActivityEventType } from "@prisma/client";
+import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { CronJob } from "cron";
 
 export class HourlyStatsCronService {
   private discordService;
   private activityEventService;
   private metricService;
+  private logger;
 
   constructor(
     discordService = new DiscordLogService(),
     activityEventService = new ActivityEventService(),
-    metricService = new ScraperMetricService()
+    metricService = new ScraperMetricService(),
+    logger = SystemLogService.getInstance()
   ) {
     this.discordService = discordService;
     this.activityEventService = activityEventService;
     this.metricService = metricService;
+    this.logger = logger;
   }
 
   schedule() {
-    new CronJob("00 00 */1 * * *", () => this.run()).start();
+    new CronJob("00 00 */1 * * *", () =>
+      this.run().catch((error) =>
+        this.logger.error("HourlyStatsCronService", "Cron run failed", { error })
+      )
+    ).start();
   }
 
   async run() {
@@ -40,11 +48,19 @@ export class HourlyStatsCronService {
     const [resolvedCounts, summaries] = await Promise.all([
       Promise.all(counts),
       this.metricService.getSummaries(from, to).catch((error) => {
-        console.error(error);
+        this.logger.error(
+          "HourlyStatsCronService",
+          "Scraper metric summaries failed, sending the report without them",
+          { error, from, to }
+        );
         return [];
       }),
     ]);
     await this.discordService.sendHourly(resolvedCounts, summaries);
+    this.logger.info("HourlyStatsCronService", "Hourly report sent", {
+      counts: resolvedCounts,
+      scrapers: summaries.length,
+    });
   }
 
   getCount(type: ActivityEventType, channel?: string) {

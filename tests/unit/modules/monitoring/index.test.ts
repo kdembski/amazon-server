@@ -5,6 +5,7 @@ import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCro
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
 import { ActivityEventCleanupCronService } from "@/modules/monitoring/cron/ActivityEventCleanupCronService";
 import { ScraperMetricCleanupCronService } from "@/modules/monitoring/cron/ScraperMetricCleanupCronService";
+import { SystemLogCleanupCronService } from "@/modules/monitoring/cron/SystemLogCleanupCronService";
 import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 
@@ -27,6 +28,7 @@ describe("createMonitoringModule", () => {
       DailyStatsCronService,
       ActivityEventCleanupCronService,
       ScraperMetricCleanupCronService,
+      SystemLogCleanupCronService,
     ]);
   });
 

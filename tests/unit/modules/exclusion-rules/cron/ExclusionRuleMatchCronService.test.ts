@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { CronJob } from "cron";
 import { ExclusionRuleMatchCronService } from "@/modules/exclusion-rules/cron/ExclusionRuleMatchCronService";
 import { ExclusionRuleMatchService } from "@/modules/exclusion-rules/services/ExclusionRuleMatchService";
+import { unitLogger } from "../../../../support/fakes";
 
 vi.mock("cron", () => ({
   CronJob: vi.fn(function () {
@@ -18,6 +19,23 @@ const setup = () => {
 };
 
 describe("ExclusionRuleMatchCronService", () => {
+  it("logs a failed run", async () => {
+    const { service } = setup();
+    const error = new Error("boom");
+    vi.spyOn(service, "run").mockRejectedValue(error);
+
+    service.schedule();
+
+    const [, callback] = vi.mocked(CronJob).mock.calls[0] as unknown as [
+      string,
+      () => Promise<void>,
+    ];
+    await callback();
+    expect(unitLogger().error).toHaveBeenCalledWith("ExclusionRuleMatchCronService", "Cron run failed", {
+      error,
+    });
+  });
+
   it("schedules run() every minute", () => {
     const { service } = setup();
     const run = vi.spyOn(service, "run").mockResolvedValue();

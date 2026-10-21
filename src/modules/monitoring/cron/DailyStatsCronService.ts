@@ -1,25 +1,33 @@
 import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
+import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { CronJob } from "cron";
 
 export class DailyStatsCronService {
   private sections;
   private discordService;
   private activityEventService;
+  private logger;
 
   constructor(
     sections: DailyReportSection[],
     discordService = new DiscordLogService(),
-    activityEventService = new ActivityEventService()
+    activityEventService = new ActivityEventService(),
+    logger = SystemLogService.getInstance()
   ) {
     this.sections = sections;
     this.discordService = discordService;
     this.activityEventService = activityEventService;
+    this.logger = logger;
   }
 
   schedule() {
-    new CronJob("00 00 20 * * *", () => this.run()).start();
+    new CronJob("00 00 20 * * *", () =>
+      this.run().catch((error) =>
+        this.logger.error("DailyStatsCronService", "Cron run failed", { error })
+      )
+    ).start();
   }
 
   async run() {
@@ -34,6 +42,10 @@ export class DailyStatsCronService {
     );
 
     await this.discordService.sendDaily(fields, scraped);
+    this.logger.info("DailyStatsCronService", "Daily report sent", {
+      scraped,
+      sections: fields.map((field) => field.name),
+    });
   }
 
   private getTimeStamps() {

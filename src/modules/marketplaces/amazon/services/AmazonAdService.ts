@@ -15,6 +15,7 @@ import { AmazonPricingErrorReporter } from "@/modules/marketplaces/amazon/servic
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { UpdatableService } from "@/shared/crud/services/UpdatableService";
 import { AmazonAdPriceCreateDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
+import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
 export class AmazonAdService {
   private repository;
@@ -22,6 +23,7 @@ export class AmazonAdService {
   private activityEventService;
   private anomalyManager;
   private priceMapper;
+  private logger;
   private static isGetting = false;
   selectable;
   deletable;
@@ -40,8 +42,10 @@ export class AmazonAdService {
     deletable = new DeletableService(repository),
     creatable = new CreatableService(repository, new AmazonAdCreateMapper()),
     updatable = new UpdatableService(repository, new AmazonAdUpdateMapper()),
-    priceMapper = new AmazonAdListingPriceMapper()
+    priceMapper = new AmazonAdListingPriceMapper(),
+    logger = SystemLogService.getInstance()
   ) {
+    this.logger = logger;
     this.repository = repository;
     this.priceService = priceService;
     this.activityEventService = activityEventService;
@@ -65,7 +69,16 @@ export class AmazonAdService {
     const promises = prices.map((price) =>
       this.priceService.creatable.create(price)
     );
-    await Promise.allSettled(promises);
+    const results = await Promise.allSettled(promises);
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        this.logger.error("AmazonAdService", `Price of ad ${id} was not stored`, {
+          error: result.reason,
+          adId: id,
+          price: prices[index],
+        });
+      }
+    });
 
     const ad = await this.selectable.getById(id);
     await this.activityEventService.creatable.create({
@@ -82,6 +95,14 @@ export class AmazonAdService {
           ad,
           this.priceMapper.map(ad.asin, countryPrices, scrapedCountryIds)
         )
+      )
+      .catch((error) =>
+        this.logger.error("AmazonAdService", `Anomaly check of ad ${ad.id} failed`, {
+          error,
+          adId: ad.id,
+          asin: ad.asin,
+          scrapedCountryIds,
+        })
       );
   }
 

@@ -32,6 +32,6 @@ export class AmazonPricingErrorReporter
         })),
       },
     });
-    this.discordService.send(ad, countryPrices);
+    await this.discordService.send(ad, countryPrices);
   }
 }

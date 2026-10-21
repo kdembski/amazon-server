@@ -5,6 +5,7 @@ import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogServi
 import {
   fakeActivityEventService,
   fakeScraperMetricService,
+  unitLogger,
 } from "../../../../support/fakes";
 
 vi.mock("cron", () => ({
@@ -42,6 +43,23 @@ describe("HourlyStatsCronService", () => {
     vi.setSystemTime(new Date("2026-06-01T10:00:00Z"));
   });
   afterEach(() => vi.useRealTimers());
+
+  it("logs a failed run", async () => {
+    const { service } = setup();
+    const error = new Error("boom");
+    vi.spyOn(service, "run").mockRejectedValue(error);
+
+    service.schedule();
+
+    const [, callback] = vi.mocked(CronJob).mock.calls[0] as unknown as [
+      string,
+      () => Promise<void>,
+    ];
+    await callback();
+    expect(unitLogger().error).toHaveBeenCalledWith("HourlyStatsCronService", "Cron run failed", {
+      error,
+    });
+  });
 
   it("schedules run() every full hour", () => {
     const { service } = setup();
@@ -111,14 +129,23 @@ describe("HourlyStatsCronService", () => {
     log.getCount.mockResolvedValue(4);
     const error = new Error("db down");
     metrics.getSummaries.mockRejectedValue(error);
-    const consoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
 
     await service.run();
 
-    expect(consoleError).toHaveBeenCalledWith(error);
+    expect(unitLogger().error).toHaveBeenCalledWith(
+      "HourlyStatsCronService",
+      "Scraper metric summaries failed, sending the report without them",
+      {
+        error,
+        from: metrics.getSummaries.mock.calls[0][0],
+        to: metrics.getSummaries.mock.calls[0][1],
+      }
+    );
     expect(sendHourly).toHaveBeenCalledWith(Array(8).fill(4), []);
-    consoleError.mockRestore();
+    expect(unitLogger().info).toHaveBeenCalledWith(
+      "HourlyStatsCronService",
+      "Hourly report sent",
+      { counts: Array(8).fill(4), scrapers: 0 }
+    );
   });
 });

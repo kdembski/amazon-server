@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { WebhookClient } from "discord.js";
 import { DiscordService } from "@/shared/discord/DiscordService";
+import { fakeSystemLogService } from "../../../support/fakes";
 
 const { webhookSend } = vi.hoisted(() => ({ webhookSend: vi.fn() }));
 
@@ -47,7 +48,7 @@ describe("DiscordService", () => {
   it("retries a failed send after the configured delays until it succeeds", async () => {
     vi.stubEnv("DISCORD_LOGS_TOKEN", "123/abc");
     vi.useFakeTimers();
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const logger = fakeSystemLogService();
     webhookSend
       .mockRejectedValueOnce(new Error("network"))
       .mockImplementationOnce(() => {
@@ -55,9 +56,11 @@ describe("DiscordService", () => {
       })
       .mockResolvedValueOnce(undefined);
 
-    const sending = new DiscordService("DISCORD_LOGS_TOKEN", [100, 200]).send(
-      "x"
-    );
+    const sending = new DiscordService(
+      "DISCORD_LOGS_TOKEN",
+      [100, 200],
+      logger.service
+    ).send("x");
 
     await vi.advanceTimersByTimeAsync(99);
     expect(webhookSend).toHaveBeenCalledTimes(1);
@@ -67,23 +70,49 @@ describe("DiscordService", () => {
     await sending;
 
     expect(webhookSend).toHaveBeenCalledTimes(3);
-    expect(error).toHaveBeenCalledTimes(2);
+    expect(logger.warn).toHaveBeenCalledTimes(2);
+    expect(logger.warn).toHaveBeenNthCalledWith(
+      2,
+      "DiscordService",
+      "Discord send failed, retrying",
+      {
+        error: new Error("sync"),
+        webhook: "DISCORD_LOGS_TOKEN",
+        attempt: 2,
+        payload: { content: "x" },
+        retryInMs: 200,
+      }
+    );
+    expect(logger.error).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
 
   it("logs every failure and resolves once all retries are exhausted", async () => {
     vi.stubEnv("DISCORD_LOGS_TOKEN", "123/abc");
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const logger = fakeSystemLogService();
     webhookSend
       .mockRejectedValueOnce(new Error("network"))
       .mockRejectedValueOnce(new Error("network"))
       .mockRejectedValueOnce(new Error("network"));
 
     await expect(
-      new DiscordService("DISCORD_LOGS_TOKEN", [0, 0]).send("x")
+      new DiscordService("DISCORD_LOGS_TOKEN", [0, 0], logger.service).send({
+        content: "c",
+        embeds: [{ title: "Daily status" }],
+      })
     ).resolves.toBeUndefined();
 
     expect(webhookSend).toHaveBeenCalledTimes(3);
-    expect(error).toHaveBeenCalledTimes(3);
+    expect(logger.warn).toHaveBeenCalledTimes(2);
+    expect(logger.error).toHaveBeenCalledWith(
+      "DiscordService",
+      "Discord message was not sent after all retries",
+      {
+        error: new Error("network"),
+        webhook: "DISCORD_LOGS_TOKEN",
+        attempt: 3,
+        payload: { content: "c", embedTitles: ["Daily status"] },
+      }
+    );
   });
 });

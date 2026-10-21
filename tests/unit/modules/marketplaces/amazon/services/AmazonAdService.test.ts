@@ -12,7 +12,11 @@ import {
   buildListingPrice,
   buildPrice,
 } from "../../../../../support/factories";
-import { deferred, fakeActivityEventService } from "../../../../../support/fakes";
+import {
+  deferred,
+  fakeActivityEventService,
+  unitLogger,
+} from "../../../../../support/fakes";
 
 vi.mock("@/modules/anomalies/AnomalyManager");
 vi.mock("discord.js", async (importOriginal) => {
@@ -128,19 +132,47 @@ describe("AmazonAdService.updatePrices", () => {
     expect(anomalyManager.check).toHaveBeenCalledWith(ad, listingPrices);
   });
 
-  it("continues when a single price insert fails", async () => {
+  it("logs a failed price insert and continues", async () => {
     const { service, repository, priceService, log } = setup();
     repository.getById.mockResolvedValue(buildAd());
-    priceService.creatable.create.mockRejectedValueOnce(new Error("dup"));
-
-    await service.updatePrices(1, [
+    const error = new Error("dup");
+    priceService.creatable.create.mockRejectedValueOnce(error);
+    const prices = [
       { value: 1, adId: 1, countryId: 1, dispatchFrom: "Amazon" },
       { value: 2, adId: 1, countryId: 2, dispatchFrom: "Amazon" },
-    ]);
+    ];
+
+    await service.updatePrices(1, prices);
 
     expect(priceService.creatable.create).toHaveBeenCalledTimes(2);
+    expect(unitLogger().error).toHaveBeenCalledTimes(1);
+    expect(unitLogger().error).toHaveBeenCalledWith(
+      "AmazonAdService",
+      "Price of ad 1 was not stored",
+      { error, adId: 1, price: prices[0] }
+    );
     expect(log.create).toHaveBeenCalledWith(
       expect.objectContaining({ type: "ad_scraped" })
+    );
+  });
+
+  it("logs a failed anomaly check", async () => {
+    const { service, repository, priceService } = setup();
+    const ad = buildAd({ id: 9, asin: "B0FAIL" });
+    repository.getById.mockResolvedValue(ad);
+    const error = new Error("db down");
+    priceService.getRecentByAd.mockRejectedValue(error);
+
+    await service.updatePrices(9, [
+      { value: 1, adId: 9, countryId: 3, dispatchFrom: "Amazon" },
+    ]);
+
+    await vi.waitFor(() =>
+      expect(unitLogger().error).toHaveBeenCalledWith(
+        "AmazonAdService",
+        "Anomaly check of ad 9 failed",
+        { error, adId: 9, asin: "B0FAIL", scrapedCountryIds: [3] }
+      )
     );
   });
 

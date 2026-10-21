@@ -5,6 +5,8 @@ import {
 import { Marketplace } from "@prisma/client";
 
 export class InvalidScraperMetricsError extends Error {
+  status = 400;
+
   constructor(message: string) {
     super(message);
     this.name = "InvalidScraperMetricsError";

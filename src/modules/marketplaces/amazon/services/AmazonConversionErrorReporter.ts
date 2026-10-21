@@ -34,6 +34,6 @@ export class AmazonConversionErrorReporter
     });
 
     this.discordService.setChannel(channel);
-    this.discordService.send(ad, prices);
+    await this.discordService.send(ad, prices);
   }
 }

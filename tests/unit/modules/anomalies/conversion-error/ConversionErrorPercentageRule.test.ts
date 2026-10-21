@@ -14,9 +14,9 @@ describe("ConversionErrorPercentageRule", () => {
   it("matches when the price difference reaches its percentage", () => {
     const rule = new ConversionErrorPercentageRule("2", 70);
 
-    // Median of 100 and 120 is 110.
-    expect(rule.matches(prices(32, 100, 120))).toBe(true);
-    expect(rule.matches(prices(34, 100, 120))).toBe(false);
+    // Weights 2, 1 on 100 and 120 put the median at 100.
+    expect(rule.matches(prices(30, 100, 120))).toBe(true);
+    expect(rule.matches(prices(31, 100, 120))).toBe(false);
   });
 
   it("passes the prices and its percentage to the evaluator", () => {

@@ -19,6 +19,7 @@ import { CurrencyCreateMapper } from "@/modules/currency/mappers/CurrencyCreateM
 import { CurrencyUpdateMapper } from "@/modules/currency/mappers/CurrencyUpdateMapper";
 import { CurrencyExchangeRateCreateMapper } from "@/modules/currency/mappers/CurrencyExchangeRateCreateMapper";
 import { CurrencyExchangeRateUpdateMapper } from "@/modules/currency/mappers/CurrencyExchangeRateUpdateMapper";
+import { SystemLogCreateMapper } from "@/shared/logging/mappers/SystemLogCreateMapper";
 import {
   buildAd,
   buildCurrency,
@@ -142,6 +143,35 @@ describe("create mappers", () => {
         target: { connect: { id: 2 } },
         createdAt: NOW,
         updatedAt: NOW,
+      },
+    },
+    {
+      name: "SystemLogCreateMapper",
+      map: (dto: any) => new SystemLogCreateMapper().toCreateInput(dto),
+      dto: {
+        level: "error",
+        source: "x".repeat(70),
+        message: "boom",
+        context: { asin: "B0X" },
+      },
+      expected: {
+        level: "error",
+        source: "x".repeat(63),
+        message: "boom",
+        context: { asin: "B0X" },
+        createdAt: NOW,
+      },
+    },
+    {
+      name: "SystemLogCreateMapper without context",
+      map: (dto: any) => new SystemLogCreateMapper().toCreateInput(dto),
+      dto: { level: "info", source: "http", message: "POST /x" },
+      expected: {
+        level: "info",
+        source: "http",
+        message: "POST /x",
+        context: undefined,
+        createdAt: NOW,
       },
     },
   ])("$name maps dto to create input", ({ map, dto, expected }) => {

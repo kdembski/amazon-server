@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
 import { buildListingPrice } from "../../../support/factories";
+import { fakeSystemLogService } from "../../../support/fakes";
 
 const fakeManager = () => ({ check: vi.fn().mockResolvedValue(undefined) });
 
@@ -25,25 +26,31 @@ describe("AnomalyManager", () => {
   });
 
   it("does nothing with an empty manager list", async () => {
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const logger = fakeSystemLogService();
 
     await expect(
-      new AnomalyManager([]).check({ id: 1 }, [[buildListingPrice()]])
+      new AnomalyManager([], logger.service).check({ id: 1 }, [[buildListingPrice()]])
     ).resolves.toBeUndefined();
-    expect(error).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   it("logs a failing manager and still runs the others", async () => {
-    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const logger = fakeSystemLogService();
     const failing = fakeManager();
     const other = fakeManager();
-    failing.check.mockRejectedValue(new Error("db down"));
+    const reason = new Error("db down");
+    failing.check.mockRejectedValue(reason);
 
-    await new AnomalyManager([failing, other]).check({ id: 1 }, [
+    await new AnomalyManager([failing, other], logger.service).check({ id: 1 }, [
       [buildListingPrice()],
     ]);
 
     expect(other.check).toHaveBeenCalled();
-    expect(error).toHaveBeenCalledWith("AnomalyManager: Error: db down");
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      "AnomalyManager",
+      "Object failed: Error: db down",
+      { error: reason, manager: "Object", listing: { id: 1 } }
+    );
   });
 });

@@ -28,10 +28,6 @@ export class ScraperMetricController {
       const stored = await this.service.add(name, dto);
       response.json({ stored });
     } catch (error: any) {
-      if (error instanceof InvalidScraperMetricsError) {
-        response.status(400).send(error.message);
-        return;
-      }
       new ResponseErrorService(response).send(error);
     }
   }

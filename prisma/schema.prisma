@@ -120,6 +120,25 @@ model ActivityEvent {
   @@index([type, createdAt])
 }
 
+enum SystemLogLevel {
+  error
+  warn
+  info
+}
+
+model SystemLog {
+  id        Int            @id @default(autoincrement())
+  level     SystemLogLevel
+  source    String         @db.VarChar(63)
+  message   String         @db.Text
+  context   Json?
+  createdAt DateTime       @db.Timestamp(2)
+
+  @@index([createdAt])
+  @@index([level, createdAt])
+  @@index([source, createdAt])
+}
+
 model AmazonExclusionRule {
   id         Int               @id @default(autoincrement())
   value      String            @db.VarChar(63)

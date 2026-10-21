@@ -23,8 +23,9 @@ The same listing costs much less in one country than in the others once all pric
    up or down); otherwise it stops.
 5. `ConversionErrorStrategy.getMatchingRules` returns nothing unless the cheapest price is reportable (country
    `active` and `reportable`).
-6. `ConversionErrorEvaluator.isOverPercentageDifference` compares the cheapest price with the median of all other PLN
-   prices (mean of the two middle ones for an even count). Each rule group reports its first matching rule:
+6. `ConversionErrorEvaluator.isOverPercentageDifference` compares the cheapest price with the weighted median of all
+   other PLN prices: sorted ascending with weights `n`..`1` from the cheapest, it is the first price whose cumulative
+   weight passes half (mean with the next one when it is exactly half). Each rule group reports its first matching rule:
 
    | Group | Rule | Channel |
    |---|---|---|
