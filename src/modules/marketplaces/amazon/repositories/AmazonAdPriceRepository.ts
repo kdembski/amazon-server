@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 
 export class AmazonAdPriceRepository {
   private delegate;
+  private prisma;
   private structure = {
     id: true,
     adId: true,
@@ -30,6 +31,7 @@ export class AmazonAdPriceRepository {
 
   constructor(prisma = PrismaClient.getInstance()) {
     this.delegate = prisma.amazonAdPrice;
+    this.prisma = prisma;
   }
 
   getById(id: number) {
@@ -40,9 +42,18 @@ export class AmazonAdPriceRepository {
   }
 
   // Groups keep the order of each country's newest price; prices inside a group are newest first.
-  async getRecentByAd(adId: number, since: Date) {
+  // LATERAL reads at most count rows per country from the (adId, countryId, createdAt) index.
+  async getRecentByAd(adId: number, count = 5) {
+    const rows = await this.prisma.$queryRaw<{ id: number }[]>`
+      SELECT p.id FROM AmazonCountry c, LATERAL (
+        SELECT id FROM AmazonAdPrice FORCE INDEX (amazon_ad_price_ad_id_country_id_created_at_idx)
+        WHERE adId = ${adId} AND countryId = c.countryId
+        ORDER BY createdAt DESC LIMIT ${count}
+      ) p`;
+    if (!rows.length) return [];
+
     const prices = await this.delegate.findMany({
-      where: { adId, createdAt: { gte: since } },
+      where: { id: { in: rows.map((row) => row.id) } },
       orderBy: { createdAt: "desc" },
       select: this.structure,
     });

@@ -20,8 +20,9 @@ export class ConversionErrorManager<T> implements AnomalyManagerI<T> {
     this.strategy = strategy;
   }
 
-  async check(listing: T, countryPrices: ListingPrice[][]) {
-    if (countryPrices.length < 3) return;
+  async check(listing: T, allCountryPrices: ListingPrice[][]) {
+    const countryPrices = allCountryPrices.filter(([price]) => price.scraped);
+    if (countryPrices.length < 4) return;
 
     const newestPrices = countryPrices.map((prices) => prices[0]);
     const prices = await this.toPln(newestPrices);

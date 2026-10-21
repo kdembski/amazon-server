@@ -132,14 +132,16 @@ describe("AmazonAdService (MySQL)", () => {
       const pl = await seedMarket({ countryCode: "pl", currencyCode: "PLN" });
       const de = await seedMarket({ countryCode: "de", currencyCode: "EUR", rateToPln: 4.3 });
       const se = await seedMarket({ countryCode: "se", currencyCode: "SEK", rateToPln: 0.4 });
+      const gb = await seedMarket({ countryCode: "gb", currencyCode: "GBP", rateToPln: 5 });
 
       await service.updatePrices(ad.id, [
         { adId: ad.id, countryId: pl.country.id, value: 1000, dispatchFrom: "Amazon" },
         { adId: ad.id, countryId: de.country.id, value: 300, dispatchFrom: "Amazon" },
         { adId: ad.id, countryId: se.country.id, value: 100, dispatchFrom: "Amazon" },
+        { adId: ad.id, countryId: gb.country.id, value: 400, dispatchFrom: "Amazon" },
       ]);
 
-      // 40 PLN (se) vs 1000 PLN (pl): channel 3 (90 %) and channel 4 (0-50 PLN).
+      // 40 PLN (se) vs the median 1290 PLN (de): channel 3 (90 %) and channel 4 (0-50 PLN).
       await vi.waitFor(() => expect(conversion.send).toHaveBeenCalledTimes(2));
       expect(conversion.setChannel.mock.calls.map((c) => c[0]).sort()).toEqual(["3", "4"]);
       const events = await prisma.activityEvent.findMany({
@@ -153,6 +155,7 @@ describe("AmazonAdService (MySQL)", () => {
           { country: "se", value: "40" },
           { country: "pl", value: "1000" },
           { country: "de", value: "1290" },
+          { country: "gb", value: "2000" },
         ],
       });
       const [, sentPrices] = conversion.send.mock.calls[0] as [
@@ -163,6 +166,7 @@ describe("AmazonAdService (MySQL)", () => {
         ["se", 40],
         ["pl", 1000],
         ["de", 1290],
+        ["gb", 2000],
       ]);
       expect(pricing.send).not.toHaveBeenCalled();
     });

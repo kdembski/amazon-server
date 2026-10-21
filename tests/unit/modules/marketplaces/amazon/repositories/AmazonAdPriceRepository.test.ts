@@ -9,6 +9,7 @@ const setup = () => {
   return {
     repository: new AmazonAdPriceRepository(db.prisma),
     delegate: db.amazonAdPrice,
+    $queryRaw: db.$queryRaw,
   };
 };
 
@@ -50,24 +51,33 @@ describe("AmazonAdPriceRepository", () => {
     });
   });
 
-  it("getRecentByAd takes the prices since the given date and groups them per country preserving order", async () => {
-    const { repository, delegate } = setup();
+  it("getRecentByAd loads the prices of the newest ids per country and groups them preserving order", async () => {
+    const { repository, delegate, $queryRaw } = setup();
     const pl = buildPriceCountry({ id: 1 });
     const de = buildPriceCountry({ id: 2 });
     const pl1 = buildPrice({ country: pl });
     const de1 = buildPrice({ country: de });
     const pl2 = buildPrice({ country: pl });
+    $queryRaw.mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }]);
     delegate.findMany.mockResolvedValue([pl1, de1, pl2]);
-    const since = new Date(1);
 
-    const result = await repository.getRecentByAd(9, since);
+    const result = await repository.getRecentByAd(9, 3);
 
+    const [, adId, count] = $queryRaw.mock.calls[0];
+    expect([adId, count]).toEqual([9, 3]);
     expect(delegate.findMany).toHaveBeenCalledWith({
-      where: { adId: 9, createdAt: { gte: since } },
+      where: { id: { in: [1, 2, 3] } },
       orderBy: { createdAt: "desc" },
       select: structure,
     });
     expect(result).toEqual([[pl1, pl2], [de1]]);
+  });
+
+  it("getRecentByAd returns no groups without prices", async () => {
+    const { repository, delegate } = setup();
+
+    expect(await repository.getRecentByAd(9)).toEqual([]);
+    expect(delegate.findMany).not.toHaveBeenCalled();
   });
 
   it("create, update and delete delegate to prisma", async () => {

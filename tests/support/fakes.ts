@@ -151,9 +151,10 @@ export function fakePrisma() {
     },
   };
   const $executeRaw = vi.fn().mockResolvedValue(1);
+  const $queryRaw = vi.fn().mockResolvedValue([]);
   const $transaction = vi.fn((operations: unknown[]) => Promise.all(operations));
-  const prisma = { ...delegates, $executeRaw, $transaction } as unknown as PrismaClient;
-  return { prisma, $executeRaw, $transaction, ...delegates };
+  const prisma = { ...delegates, $executeRaw, $queryRaw, $transaction } as unknown as PrismaClient;
+  return { prisma, $executeRaw, $queryRaw, $transaction, ...delegates };
 }
 
 export function deferred<T>() {

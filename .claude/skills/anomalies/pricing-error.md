@@ -4,17 +4,17 @@ A country's price dropped sharply against its own recent prices, in that country
 
 ## Input (marketplace)
 
-The same as for conversion errors (see [conversion-error.md](conversion-error.md#input-marketplace)): prices of the last
-24 hours per country, newest first, `reportable` only for countries in this scrape that the marketplace considers
+The same as for conversion errors (see [conversion-error.md](conversion-error.md#input-marketplace)): the 5 newest
+prices per country, newest first, `reportable` only for countries in this scrape that the marketplace considers
 reportable.
 
 ## Steps (`src/modules/anomalies/pricing-error/`)
 
 1. `PricingErrorManager.check` evaluates every country on its own; other countries do not affect the result.
 2. A country matches when all of these hold (`PricingErrorEvaluator.isOverPercentageDifference`, `isReportable`):
-   - it has at least 2 prices in the window;
+   - it has at least 2 prices;
    - the newest price is at most 50% of the previous one;
-   - the newest price is at most 50% of the median of the older prices in the window (mean of the two middle ones
+   - the newest price is at most 50% of the median of the older prices (mean of the two middle ones
      for an even count), so a single lower older price does not block the report;
    - the newest price is reportable (country `active` and `reportable`).
 3. Without a matching country nothing happens. Otherwise the marketplace's `PricingErrorReporter.report` gets the

@@ -120,6 +120,7 @@ export const buildListingPrice = (
   return {
     value: new Decimal(value ?? 100),
     createdAt: FIXED_DATE,
+    scraped: true,
     reportable: true,
     url: "https://www.amazon.pl/dp/B0TESTASIN",
     country: {

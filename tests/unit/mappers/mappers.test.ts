@@ -239,6 +239,9 @@ describe("AmazonAdListingPriceMapper", () => {
     expect(
       countryPrices.map((prices) => prices.map((price) => price.reportable))
     ).toEqual([[true, false], [false], [false]]);
+    expect(
+      countryPrices.map((prices) => prices.map((price) => price.scraped))
+    ).toEqual([[true, true], [true], [false]]);
   });
 
   it("copies value, createdAt, country fields and currency code and builds the url from the tld", () => {
@@ -263,6 +266,7 @@ describe("AmazonAdListingPriceMapper", () => {
         {
           value: price.value,
           createdAt: new Date("2026-02-03T04:05:06.000Z"),
+          scraped: true,
           reportable: true,
           url: "https://www.amazon.de/dp/B0X",
           country: {
