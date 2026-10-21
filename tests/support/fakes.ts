@@ -4,6 +4,7 @@ import type { PrismaClient } from "@prisma/client";
 import type { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 import type { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
 import type { DiscordService } from "@/shared/discord/DiscordService";
+import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import type { AmazonConversionErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorDiscordService";
 import type { AmazonPricingErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorDiscordService";
 
@@ -17,6 +18,25 @@ export function fakeActivityEventService() {
     deleteOlderThan,
   } as unknown as ActivityEventService;
   return { service, create, getCount, deleteOlderThan };
+}
+
+export function fakeSystemLogService() {
+  const error = vi.fn();
+  const warn = vi.fn();
+  const info = vi.fn();
+  const deleteOlderThan = vi.fn().mockResolvedValue(0);
+  const service = {
+    error,
+    warn,
+    info,
+    deleteOlderThan,
+  } as unknown as SystemLogService;
+  return { service, error, warn, info, deleteOlderThan };
+}
+
+// The fake that tests/unit/setup.ts installs as the SystemLogService singleton.
+export function unitLogger() {
+  return vi.mocked(SystemLogService.getInstance());
 }
 
 export function fakeScraperMetricService() {
@@ -143,6 +163,7 @@ export function fakePrisma() {
     currency: fakeDelegate(),
     currencyExchangeRate: fakeDelegate(),
     activityEvent: fakeDelegate(),
+    systemLog: fakeDelegate(),
     amazonExclusionRule: fakeDelegate(),
     scraperMetric: {
       ...fakeDelegate(),

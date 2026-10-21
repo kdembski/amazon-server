@@ -47,7 +47,7 @@ npm run test:integration  # tests/integration, needs a running Docker
 
 ## Architecture
 
-- Layout: `src/shared/` (`crud`, `http`, `discord`, `system`, `utils`, `interfaces`) and `src/modules/`
+- Layout: `src/shared/` (`crud`, `http`, `discord`, `logging`, `system`, `utils`, `interfaces`) and `src/modules/`
   (`currency`, `monitoring`, `exclusion-rules`, `anomalies`, `marketplaces/<name>`). Put no code in other
   top-level `src/` folders.
 - Inside a module keep the layers `routes/` → `controllers/` → `services/` → `repositories/` (Prisma);
@@ -99,5 +99,9 @@ npm run test:integration  # tests/integration, needs a running Docker
 - Scraper metrics: scrapers send `POST /scrapers/:name/metrics` every minute; rows go to the `ScraperMetric`
   table (retention 30 days). Build the "Scrapers" field of the hourly Discord report from these metrics via
   `ScraperMetricService.getSummaries`.
+- System log: log every error and significant action through `SystemLogService.getInstance()`
+  (`error|warn|info(source, message, context?)`, `source` = class name) into the `SystemLog` table; never use
+  `console.*` directly. Pass errors as `{ error }` in `context` plus the ids needed to debug. Keep
+  `ActivityEvent` for `ad_scraped`/`*_sent` only.
 - `src/app.ts` builds the express app and mounts the routers of all modules; `src/index.ts` adds `listen`
   and calls `schedule()` on the crons of all modules.

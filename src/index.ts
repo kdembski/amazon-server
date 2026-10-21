@@ -1,19 +1,26 @@
 import { createApp } from "@/app";
 import { createModules } from "@/modules";
+import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
+const logger = SystemLogService.getInstance();
 const modules = createModules();
 const app = createApp(modules);
+const port = process.env.PORT || 5001;
 
-app.listen(process.env.PORT || 5001, () =>
-  console.log("Amazon Server is running...")
+app.listen(port, () =>
+  logger.info("Server", "Amazon Server is running", {
+    port,
+    pid: process.pid,
+    nodeVersion: process.version,
+  })
 );
 
 modules.forEach((module) => module.crons?.forEach((cron) => cron.schedule()));
 
-process.on("uncaughtException", (err) => {
-  console.error(err);
+process.on("uncaughtException", (error) => {
+  logger.error("Process", `Uncaught exception: ${error}`, { error });
 });
 
 process.on("unhandledRejection", (reason) => {
-  console.error(reason);
+  logger.error("Process", `Unhandled rejection: ${reason}`, { error: reason });
 });

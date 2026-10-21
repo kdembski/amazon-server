@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
-import { fakeResponse } from "../../../support/fakes";
+import { fakeResponse, fakeSystemLogService } from "../../../support/fakes";
 
 describe("ResponseErrorService", () => {
   it("maps P2002 to 422 with the constraint target", () => {
@@ -65,6 +65,53 @@ describe("ResponseErrorService", () => {
     expect(send).toHaveBeenCalledWith(
       "P2025::\n\n" + JSON.stringify({ cause: "x" }, null, 2)
     );
+  });
+
+  it("logs a 5xx as error with the request", () => {
+    const { response } = fakeResponse();
+    const logger = fakeSystemLogService();
+    const req = {
+      method: "PUT",
+      originalUrl: "/amazon/ads/5?x=1",
+      params: { id: "5" },
+      query: { x: "1" },
+      body: { prices: [] },
+    };
+    Object.assign(response, { req });
+    const error = new Error("db down");
+
+    new ResponseErrorService(response, logger.service).send(error);
+
+    expect(logger.error).toHaveBeenCalledWith(
+      "ResponseErrorService",
+      "PUT /amazon/ads/5?x=1 failed with 500: db down",
+      {
+        error,
+        request: {
+          method: "PUT",
+          path: "/amazon/ads/5?x=1",
+          params: { id: "5" },
+          query: { x: "1" },
+          body: { prices: [] },
+          status: 500,
+        },
+      }
+    );
+  });
+
+  it("logs a 4xx as warn", () => {
+    const { response } = fakeResponse();
+    const logger = fakeSystemLogService();
+    const error = Object.assign(new Error("invalid"), { status: 400 });
+
+    new ResponseErrorService(response, logger.service).send(error);
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      "ResponseErrorService",
+      "Request failed with 400: invalid",
+      { error, request: undefined }
+    );
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   it("does not throw for errors without a message", () => {

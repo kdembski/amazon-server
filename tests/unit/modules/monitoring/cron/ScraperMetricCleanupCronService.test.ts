@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CronJob } from "cron";
 import { ScraperMetricCleanupCronService } from "@/modules/monitoring/cron/ScraperMetricCleanupCronService";
-import { fakeScraperMetricService } from "../../../../support/fakes";
+import { fakeScraperMetricService, unitLogger } from "../../../../support/fakes";
 
 vi.mock("cron", () => ({
   CronJob: vi.fn(function () {
@@ -22,6 +22,23 @@ describe("ScraperMetricCleanupCronService", () => {
   });
   afterEach(() => vi.useRealTimers());
 
+  it("logs a failed run", async () => {
+    const { service } = setup();
+    const error = new Error("boom");
+    vi.spyOn(service, "run").mockRejectedValue(error);
+
+    service.schedule();
+
+    const [, callback] = vi.mocked(CronJob).mock.calls[0] as unknown as [
+      string,
+      () => Promise<void>,
+    ];
+    await callback();
+    expect(unitLogger().error).toHaveBeenCalledWith("ScraperMetricCleanupCronService", "Cron run failed", {
+      error,
+    });
+  });
+
   it("schedules run() daily at 03:45", () => {
     const { service } = setup();
     const run = vi.spyOn(service, "run").mockResolvedValue();
@@ -38,15 +55,16 @@ describe("ScraperMetricCleanupCronService", () => {
 
   it("deletes scraper metrics older than 30 days and reports the count", async () => {
     const { service, metrics } = setup();
-    const info = vi.spyOn(console, "log").mockImplementation(() => {});
     metrics.deleteOlderThan.mockResolvedValue(42);
 
     await service.run();
 
     const before = new Date("2026-05-02T03:45:00Z");
     expect(metrics.deleteOlderThan).toHaveBeenCalledWith(before);
-    expect(info).toHaveBeenCalledWith(
-      `Deleted 42 scraper metrics older than ${before.toISOString()}`
+    expect(unitLogger().info).toHaveBeenCalledWith(
+      "ScraperMetricCleanupCronService",
+      `Deleted 42 scraper metrics older than ${before.toISOString()}`,
+      { deleted: 42, before }
     );
   });
 });

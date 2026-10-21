@@ -4,6 +4,7 @@ import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCro
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
 import { ActivityEventCleanupCronService } from "@/modules/monitoring/cron/ActivityEventCleanupCronService";
 import { ScraperMetricCleanupCronService } from "@/modules/monitoring/cron/ScraperMetricCleanupCronService";
+import { SystemLogCleanupCronService } from "@/modules/monitoring/cron/SystemLogCleanupCronService";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
 
 export function createMonitoringModule(
@@ -16,6 +17,7 @@ export function createMonitoringModule(
       new DailyStatsCronService(sections),
       new ActivityEventCleanupCronService(),
       new ScraperMetricCleanupCronService(),
+      new SystemLogCleanupCronService(),
     ],
   };
 }

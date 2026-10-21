@@ -5,7 +5,7 @@ import { CurrencyExchangeRateService } from "@/modules/currency/services/Currenc
 import { CurrencyService } from "@/modules/currency/services/CurrencyService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { buildCurrency } from "../../../../support/factories";
-import { deferred } from "../../../../support/fakes";
+import { deferred, unitLogger } from "../../../../support/fakes";
 
 vi.mock("cron", () => ({
   CronJob: vi.fn(function () {
@@ -54,6 +54,23 @@ const setup = () => {
 };
 
 describe("CurrencyExchangeRateCronService", () => {
+  it("logs a failed run", async () => {
+    const { service } = setup();
+    const error = new Error("boom");
+    vi.spyOn(service, "run").mockRejectedValue(error);
+
+    service.schedule();
+
+    const [, callback] = vi.mocked(CronJob).mock.calls[0] as unknown as [
+      string,
+      () => Promise<void>,
+    ];
+    await callback();
+    expect(unitLogger().error).toHaveBeenCalledWith("CurrencyExchangeRateCronService", "Cron run failed", {
+      error,
+    });
+  });
+
   it("schedules run() daily at 20:00", () => {
     const { service } = setup();
     const run = vi.spyOn(service, "run").mockResolvedValue();
@@ -97,6 +114,11 @@ describe("CurrencyExchangeRateCronService", () => {
       { value: 0.4 }
     );
     expect(refreshPlnRates).toHaveBeenCalledTimes(1);
+    expect(unitLogger().info).toHaveBeenCalledWith(
+      "CurrencyExchangeRateCronService",
+      "Currency exchange rates updated",
+      { target: "PLN", rates: { EUR: 0.25, SEK: 2.5 } }
+    );
   });
 
   it("skips everything when the PLN currency is missing", async () => {
@@ -106,6 +128,11 @@ describe("CurrencyExchangeRateCronService", () => {
     await service.run();
 
     expect(updateBySourceAndTarget).not.toHaveBeenCalled();
+    expect(unitLogger().warn).toHaveBeenCalledWith(
+      "CurrencyExchangeRateCronService",
+      "Currency PLN is missing, its exchange rate was not updated",
+      { code: "PLN" }
+    );
   });
 
   it("skips source currencies that are missing", async () => {
@@ -114,6 +141,12 @@ describe("CurrencyExchangeRateCronService", () => {
 
     await service.run();
 
+    expect(unitLogger().warn).toHaveBeenCalledTimes(1);
+    expect(unitLogger().warn).toHaveBeenCalledWith(
+      "CurrencyExchangeRateCronService",
+      "Currency SEK is missing, its exchange rate was not updated",
+      { code: "SEK" }
+    );
     expect(updateBySourceAndTarget).toHaveBeenCalledTimes(1);
     expect(updateBySourceAndTarget).toHaveBeenCalledWith(
       { sourceId: eur.id, targetId: pln.id },
@@ -123,10 +156,16 @@ describe("CurrencyExchangeRateCronService", () => {
 
   it("reports API failures to the Discord log channel", async () => {
     const { service, latest, send, updateBySourceAndTarget } = setup();
-    latest.mockRejectedValue(new Error("quota"));
+    const error = new Error("quota");
+    latest.mockRejectedValue(error);
 
     await service.run();
 
+    expect(unitLogger().error).toHaveBeenCalledWith(
+      "CurrencyExchangeRateCronService",
+      "Currency exchange rates update failed",
+      { error, target: "PLN", sources: ["EUR", "SEK"] }
+    );
     expect(send).toHaveBeenCalledWith("Currency exchange rates error: quota");
     expect(updateBySourceAndTarget).not.toHaveBeenCalled();
   });

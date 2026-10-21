@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CronJob } from "cron";
 import { ActivityEventCleanupCronService } from "@/modules/monitoring/cron/ActivityEventCleanupCronService";
-import { fakeActivityEventService } from "../../../../support/fakes";
+import { fakeActivityEventService, unitLogger } from "../../../../support/fakes";
 
 vi.mock("cron", () => ({
   CronJob: vi.fn(function () {
@@ -22,6 +22,23 @@ describe("ActivityEventCleanupCronService", () => {
   });
   afterEach(() => vi.useRealTimers());
 
+  it("logs a failed run", async () => {
+    const { service } = setup();
+    const error = new Error("boom");
+    vi.spyOn(service, "run").mockRejectedValue(error);
+
+    service.schedule();
+
+    const [, callback] = vi.mocked(CronJob).mock.calls[0] as unknown as [
+      string,
+      () => Promise<void>,
+    ];
+    await callback();
+    expect(unitLogger().error).toHaveBeenCalledWith("ActivityEventCleanupCronService", "Cron run failed", {
+      error,
+    });
+  });
+
   it("schedules run() daily at 03:30", () => {
     const { service } = setup();
     const run = vi.spyOn(service, "run").mockResolvedValue();
@@ -38,15 +55,16 @@ describe("ActivityEventCleanupCronService", () => {
 
   it("deletes logs older than 30 days and reports the count", async () => {
     const { service, log } = setup();
-    const info = vi.spyOn(console, "log").mockImplementation(() => {});
     log.deleteOlderThan.mockResolvedValue(42);
 
     await service.run();
 
     const before = new Date("2026-05-02T03:30:00Z");
     expect(log.deleteOlderThan).toHaveBeenCalledWith(before);
-    expect(info).toHaveBeenCalledWith(
-      `Deleted 42 logs older than ${before.toISOString()}`
+    expect(unitLogger().info).toHaveBeenCalledWith(
+      "ActivityEventCleanupCronService",
+      `Deleted 42 activity events older than ${before.toISOString()}`,
+      { deleted: 42, before }
     );
   });
 });

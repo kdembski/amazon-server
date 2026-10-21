@@ -3,7 +3,7 @@ import { CronJob } from "cron";
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
-import { fakeActivityEventService } from "../../../../support/fakes";
+import { fakeActivityEventService, unitLogger } from "../../../../support/fakes";
 
 vi.mock("cron", () => ({
   CronJob: vi.fn(function () {
@@ -32,6 +32,23 @@ describe("DailyStatsCronService", () => {
     vi.setSystemTime(new Date("2026-06-02T20:00:00Z"));
   });
   afterEach(() => vi.useRealTimers());
+
+  it("logs a failed run", async () => {
+    const { service } = setup();
+    const error = new Error("boom");
+    vi.spyOn(service, "run").mockRejectedValue(error);
+
+    service.schedule();
+
+    const [, callback] = vi.mocked(CronJob).mock.calls[0] as unknown as [
+      string,
+      () => Promise<void>,
+    ];
+    await callback();
+    expect(unitLogger().error).toHaveBeenCalledWith("DailyStatsCronService", "Cron run failed", {
+      error,
+    });
+  });
 
   it("schedules run() daily at 20:00", () => {
     const { service } = setup();
@@ -64,5 +81,10 @@ describe("DailyStatsCronService", () => {
       now
     );
     expect(sendDaily).toHaveBeenCalledWith([field1, field2], 777);
+    expect(unitLogger().info).toHaveBeenCalledWith(
+      "DailyStatsCronService",
+      "Daily report sent",
+      { scraped: 777, sections: ["First", "Second"] }
+    );
   });
 });

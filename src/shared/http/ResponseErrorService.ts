@@ -1,14 +1,41 @@
 import { Response } from "express";
+import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
 export class ResponseErrorService {
   private response: Response;
+  private logger;
 
-  constructor(response: Response) {
+  constructor(response: Response, logger = SystemLogService.getInstance()) {
     this.response = response;
+    this.logger = logger;
   }
 
   send(error: any) {
-    this.response.status(this.getStatus(error)).send(this.getMessage(error));
+    const status = this.getStatus(error);
+    const message = this.getMessage(error);
+
+    this.log(status, message, error);
+    this.response.status(status).send(message);
+  }
+
+  private log(status: number, message: string | undefined, error: unknown) {
+    const request = this.response.req;
+    const target = request ? `${request.method} ${request.originalUrl}` : "Request";
+    const context = {
+      error,
+      request: request && {
+        method: request.method,
+        path: request.originalUrl,
+        params: request.params,
+        query: request.query,
+        body: request.body,
+        status,
+      },
+    };
+    const text = `${target} failed with ${status}: ${message}`;
+
+    if (status >= 500) this.logger.error("ResponseErrorService", text, context);
+    else this.logger.warn("ResponseErrorService", text, context);
   }
 
   private getMessage(error: any) {
@@ -27,7 +54,7 @@ export class ResponseErrorService {
     }
   }
 
-  private getStatus(error: any) {
+  private getStatus(error: any): number {
     if (typeof error?.status === "number") return error.status;
 
     switch (error?.code) {

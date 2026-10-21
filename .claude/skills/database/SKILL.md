@@ -1,6 +1,6 @@
 ---
 name: database
-description: Use when a question needs live production data - ads, prices, categories, exclusion rules, activity events, scraper metrics, currency rates - or when another task (e.g. exclusion-rules) needs the current rows from the production MySQL database.
+description: Use when a question needs live production data - ads, prices, categories, exclusion rules, activity events, scraper metrics, currency rates, system logs and server errors - or when another task (e.g. exclusion-rules) needs the current rows from the production MySQL database.
 ---
 
 # Database
@@ -27,6 +27,18 @@ bash .claude/skills/database/scripts/query.sh --raw "SELECT ..." > out.txt   # b
 - Read `prisma/schema.prisma` before writing queries. Table names equal Prisma model names and are
   case-sensitive (`AmazonAd`, not `amazonad`); column names equal field names.
 - `DESCRIBE <Table>;` or `SHOW INDEX FROM <Table>;` for the live structure.
+
+## System log
+
+For errors and server actions query `SystemLog` (`level` error/warn/info, `source` = class name, `context`
+JSON with `error.stack`, `request`, ids; kept 30 days):
+
+```sql
+SELECT createdAt, level, source, message FROM SystemLog
+WHERE level = 'error' AND createdAt > NOW() - INTERVAL 1 DAY ORDER BY createdAt DESC LIMIT 50;
+SELECT source, level, COUNT(*) FROM SystemLog WHERE createdAt > NOW() - INTERVAL 1 DAY GROUP BY source, level;
+SELECT context->>'$.error.stack' FROM SystemLog WHERE id = ?;
+```
 
 ## Answer
 
