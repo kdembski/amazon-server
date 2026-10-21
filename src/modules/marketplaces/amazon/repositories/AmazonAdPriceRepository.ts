@@ -46,7 +46,7 @@ export class AmazonAdPriceRepository {
   async getRecentByAd(adId: number, count = 5) {
     const rows = await this.prisma.$queryRaw<{ id: number }[]>`
       SELECT p.id FROM AmazonCountry c, LATERAL (
-        SELECT id FROM AmazonAdPrice FORCE INDEX (amazon_ad_price_ad_id_country_id_created_at_idx)
+        SELECT id FROM AmazonAdPrice
         WHERE adId = ${adId} AND countryId = c.countryId
         ORDER BY createdAt DESC LIMIT ${count}
       ) p`;
