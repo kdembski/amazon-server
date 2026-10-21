@@ -6,20 +6,20 @@ The same listing costs much less in one country than in the others once all pric
 
 1. The marketplace's price update stores the scraped prices and an `ad_scraped` event, then runs the detectors
    asynchronously.
-2. It loads the listing's prices of the last 24 hours, grouped per country, newest first. Countries missing from this
-   scrape take part with their recent prices; countries without a price in the window do not.
-3. Its `ListingPrice` mapper sets `reportable` only for prices of countries in this scrape that the marketplace
-   considers reportable (Amazon: `dispatchFrom === "Amazon"`). Other prices are only compared with.
+2. It loads the 5 newest prices of each country of the listing, grouped per country, newest first.
+3. Its `ListingPrice` mapper sets `scraped` for prices of countries in this scrape and `reportable` only for those the
+   marketplace considers reportable (Amazon: `dispatchFrom === "Amazon"`).
 4. It calls `AnomalyManager` with its `ConversionErrorManager` and `PricingErrorManager`; both get the same prices.
 
 ## Steps (`src/modules/anomalies/conversion-error/`)
 
-1. `ConversionErrorManager.check` stops with fewer than 4 countries.
+1. `ConversionErrorManager.check` drops countries missing from this scrape (`scraped = false`) and stops with fewer
+   than 4 countries left.
 2. Takes the newest price of each country and converts it to PLN (`CurrencyExchangeRateService.getPlnRates`); the
    copies keep the original `country` object.
 3. Sorts the PLN prices ascending; the first one is the cheapest.
 4. Duplicate check (`hasChanged`) on the cheapest country, in its own currency: it goes on when that country has no
-   previous price in the window or its newest price differs from the previous one by at least 5% (`minPriceChange`,
+   previous price or its newest price differs from the previous one by at least 5% (`minPriceChange`,
    up or down); otherwise it stops.
 5. `ConversionErrorStrategy.getMatchingRules` returns nothing unless the cheapest price is reportable (country
    `active` and `reportable`).
@@ -44,5 +44,4 @@ The same listing costs much less in one country than in the others once all pric
 - When the cheapest price stays within 5% and the rule starts to match for another reason (exchange rate, another
   country's price, a country appearing or disappearing, a rule change), the listing is not reported until the cheapest
   price moves by 5%.
-- A country the scraper stops returning (listing unavailable there) still counts with its last price for up to 24 hours.
 - PLN prices in the event drift with exchange rates; the duplicate check uses the original currency.

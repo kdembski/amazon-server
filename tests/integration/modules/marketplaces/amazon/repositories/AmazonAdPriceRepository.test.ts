@@ -8,7 +8,7 @@ const repository = new AmazonAdPriceRepository(prisma);
 const minute = (n: number) => new Date(FIXED_DATE.getTime() + n * 60_000);
 
 describe("AmazonAdPriceRepository (MySQL)", () => {
-  it("getRecentByAd groups the prices since the given date per country, newest first", async () => {
+  it("getRecentByAd groups the newest prices per country, newest first", async () => {
     const ad = await seedAd();
     const pl = await seedCountry({ code: "pl" });
     const de = await seedCountry({ code: "de" });
@@ -29,11 +29,12 @@ describe("AmazonAdPriceRepository (MySQL)", () => {
       await seedPrice({ adId: ad.id, countryId, value, createdAt: minute(at) });
     }
 
-    const groups = await repository.getRecentByAd(ad.id, minute(2));
+    const groups = await repository.getRecentByAd(ad.id, 3);
 
     expect(groups.map((group) => group.map((p) => p.value.toNumber()))).toEqual([
       [13, 12, 11],
       [21, 20],
+      [30],
     ]);
     expect(groups[0][0].country).toMatchObject({
       tld: "pl",
@@ -54,7 +55,7 @@ describe("AmazonAdPriceRepository (MySQL)", () => {
     await seedPrice({ adId: ad.id, countryId, value: 1, createdAt: minute(1) });
     await seedPrice({ adId: otherAd.id, countryId, value: 3, createdAt: minute(1) });
 
-    const groups = await repository.getRecentByAd(ad.id, minute(0));
+    const groups = await repository.getRecentByAd(ad.id);
 
     expect(groups.map((group) => group.map((p) => p.value.toNumber()))).toEqual([[1]]);
   });

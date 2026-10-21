@@ -19,9 +19,8 @@ const setup = () => {
 describe("AmazonAdPriceService", () => {
   it("delegates getRecentByAd", async () => {
     const { service, repository } = setup();
-    const since = new Date(1);
-    await service.getRecentByAd(1, since);
-    expect(repository.getRecentByAd).toHaveBeenCalledWith(1, since);
+    await service.getRecentByAd(1);
+    expect(repository.getRecentByAd).toHaveBeenCalledWith(1);
   });
 
   it("wires creatable, updatable and deletable to the repository", async () => {

@@ -30,6 +30,7 @@ export class AmazonAdListingPriceMapper {
     return {
       value: price.value,
       createdAt: price.createdAt,
+      scraped,
       reportable: scraped && price.dispatchFrom === "Amazon",
       url: `https://www.amazon.${tld}/dp/${asin}`,
       country: { name, code, active, currencyId, currencyCode: currency.code },

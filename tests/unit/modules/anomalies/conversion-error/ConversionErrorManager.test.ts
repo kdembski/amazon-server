@@ -50,6 +50,17 @@ describe("ConversionErrorManager", () => {
     expect(getMatchingRules).not.toHaveBeenCalled();
   });
 
+  it("ignores countries missing from the scrape", async () => {
+    const { manager, getMatchingRules, listing } = setup();
+
+    await manager.check(listing, [
+      ...fourCountries().slice(1),
+      [buildListingPrice({ scraped: false })],
+    ]);
+
+    expect(getMatchingRules).not.toHaveBeenCalled();
+  });
+
   it("matches rules on the newest prices converted to PLN and sorted ascending", async () => {
     const { manager, getPlnRates, getMatchingRules, listing } = setup();
     const eur = buildCurrency({ code: "EUR" });

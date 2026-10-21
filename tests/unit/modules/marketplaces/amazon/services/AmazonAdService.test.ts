@@ -104,7 +104,7 @@ describe("AmazonAdService.updatePrices", () => {
     await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalled());
   });
 
-  it("checks anomalies with the prices of the last 24 hours, marking the scraped countries", async () => {
+  it("checks anomalies with the recent prices, marking the scraped countries", async () => {
     const {
       service,
       repository,
@@ -117,17 +117,13 @@ describe("AmazonAdService.updatePrices", () => {
     repository.getById.mockResolvedValue(ad);
     const countryPrices = [[buildPrice(), buildPrice()], [buildPrice()]];
     priceService.getRecentByAd.mockResolvedValue(countryPrices);
-    const before = Date.now();
 
     await service.updatePrices(9, [
       { value: 1, adId: 9, countryId: 1, dispatchFrom: "Amazon" },
     ]);
 
     await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalled());
-    const [adId, since] = priceService.getRecentByAd.mock.calls[0] as [number, Date];
-    expect(adId).toBe(9);
-    expect(since.getTime()).toBeGreaterThanOrEqual(before - 24 * 3_600_000);
-    expect(since.getTime()).toBeLessThanOrEqual(Date.now() - 24 * 3_600_000);
+    expect(priceService.getRecentByAd).toHaveBeenCalledWith(9);
     expect(priceMapper.map).toHaveBeenCalledWith(ad.asin, countryPrices, [1]);
     expect(anomalyManager.check).toHaveBeenCalledWith(ad, listingPrices);
   });
