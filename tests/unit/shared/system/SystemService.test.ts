@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SystemService } from "@/shared/system/SystemService";
-import { resetSingleton } from "../../../support/fakes";
+import { resetSingleton, unitLogger } from "../../../support/fakes";
 
 const { cpuUsage, memUsed, driveInfo } = vi.hoisted(() => ({
   cpuUsage: vi.fn(),
@@ -45,6 +45,27 @@ describe("SystemService", () => {
     await service.updateCpuUsage();
 
     expect(service.getCpuUsage()).toBe(20);
+  });
+
+  it("logs only the first of consecutive cpu read failures", async () => {
+    const service = SystemService.getInstance();
+    const error = new Error("no /proc");
+    cpuUsage.mockRejectedValue(error);
+
+    await service.updateCpuUsage();
+    await service.updateCpuUsage();
+    cpuUsage.mockResolvedValue(10);
+    await service.updateCpuUsage();
+    cpuUsage.mockRejectedValue(error);
+    await service.updateCpuUsage();
+
+    expect(unitLogger().error).toHaveBeenCalledTimes(2);
+    expect(unitLogger().error).toHaveBeenCalledWith(
+      "SystemService",
+      "CPU usage could not be read",
+      { error }
+    );
+    expect(service.getCpuUsage()).toBe(10);
   });
 
   it("samples cpu every second", async () => {

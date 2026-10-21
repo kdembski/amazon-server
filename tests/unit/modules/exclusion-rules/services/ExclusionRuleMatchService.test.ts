@@ -207,12 +207,34 @@ describe("ExclusionRuleMatchService.sync", () => {
     );
     targetB.matchExclusionRules.mockRejectedValueOnce(new Error("db down"));
 
-    await expect(service.sync()).rejects.toThrow("db down");
+    await service.sync();
     await service.sync();
 
     expect(onlyNewFlags(targetA)).toEqual([false, true]);
     expect(onlyNewFlags(targetB)).toEqual([false, false]);
     info.mockRestore();
+  });
+
+  it("logs a failing target and still syncs the next one", async () => {
+    const logger = fakeSystemLogService();
+    const targetA = fakeTarget(global("drill"));
+    const targetB = fakeTarget(global("bose"));
+    const error = new Error("db down");
+    targetA.getExclusionRules.mockRejectedValueOnce(error);
+    const service = new ExclusionRuleMatchService(
+      [targetA, targetB] as ExclusionRuleTarget[],
+      undefined,
+      logger.service
+    );
+
+    await expect(service.sync()).resolves.toBeUndefined();
+
+    expect(targetB.matchExclusionRules).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      "ExclusionRuleMatchService",
+      "Exclusion rule matching of Object failed",
+      { error, target: "Object" }
+    );
   });
 
   it("skips a run while the previous one is still running", async () => {

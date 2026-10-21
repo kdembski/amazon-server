@@ -29,7 +29,13 @@ export class ExclusionRuleMatchService {
 
     try {
       for (const target of this.targets) {
-        await this.syncTarget(target);
+        await this.syncTarget(target).catch((error) =>
+          this.logger.error(
+            "ExclusionRuleMatchService",
+            `Exclusion rule matching of ${target.constructor.name} failed`,
+            { error, target: target.constructor.name }
+          )
+        );
       }
     } finally {
       this.isRunning = false;

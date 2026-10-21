@@ -1,11 +1,16 @@
 import { calculateAvg } from "@/shared/utils/number";
 import osu from "node-os-utils";
+import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
 export class SystemService {
   private static instance: SystemService;
   private cpuUsageHistory: number[] = [];
+  private cpuUsageFailing = false;
 
-  private constructor() {
+  private logger;
+
+  private constructor(logger = SystemLogService.getInstance()) {
+    this.logger = logger;
     setInterval(() => this.updateCpuUsage(), 1000);
   }
 
@@ -21,10 +26,19 @@ export class SystemService {
     return calculateAvg(this.cpuUsageHistory);
   }
 
+  // Runs every second: logs only the first failure of a series.
   async updateCpuUsage() {
-    const usage = await osu.cpu.usage();
-    const length = this.cpuUsageHistory.unshift(usage);
-    this.cpuUsageHistory.length = Math.min(length, 60 * 60);
+    try {
+      const usage = await osu.cpu.usage();
+      const length = this.cpuUsageHistory.unshift(usage);
+      this.cpuUsageHistory.length = Math.min(length, 60 * 60);
+      this.cpuUsageFailing = false;
+    } catch (error) {
+      if (!this.cpuUsageFailing) {
+        this.logger.error("SystemService", "CPU usage could not be read", { error });
+      }
+      this.cpuUsageFailing = true;
+    }
   }
 
   async getMemoryUsage() {
