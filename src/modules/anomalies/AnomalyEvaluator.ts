@@ -6,13 +6,24 @@ export class AnomalyEvaluator {
   }
 
   protected getMedian(prices: ListingPrice[]) {
+    return this.getWeightedMedian(prices, () => 1);
+  }
+
+  // `weight` gets the rank in ascending order; a cumulative weight of exactly half averages the price with the next one.
+  protected getWeightedMedian(
+    prices: ListingPrice[],
+    weight: (rank: number, count: number) => number
+  ) {
     const values = prices
       .map((price) => price.value)
       .sort((a, b) => a.comparedTo(b));
-    const middle = Math.floor(values.length / 2);
+    const weights = values.map((_, rank) => weight(rank, values.length));
+    const half = weights.reduce((sum, value) => sum + value, 0) / 2;
+    let cumulative = 0;
 
-    return values.length % 2
-      ? values[middle]
-      : values[middle - 1].plus(values[middle]).div(2);
+    const index = weights.findIndex((value) => (cumulative += value) >= half);
+    return cumulative === half
+      ? values[index].plus(values[index + 1]).div(2)
+      : values[index];
   }
 }

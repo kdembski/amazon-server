@@ -21,18 +21,19 @@ describe("isOverPercentageDifference", () => {
     expect(evaluator.isOverPercentageDifference(prices(51, 100), 50)).toBe(false);
   });
 
-  it("compares with the median of the other prices, not only the second one", () => {
-    // Median of 36, 54, 55 is 54: 25 is 53.7% below it, though only 30.6% below 36.
-    expect(evaluator.isOverPercentageDifference(prices(25, 36, 54, 55), 50)).toBe(true);
-    // Median of 30, 200, 400 is 200, regardless of their order.
-    expect(evaluator.isOverPercentageDifference(prices(100, 400, 30, 200), 50)).toBe(true);
-    expect(evaluator.isOverPercentageDifference(prices(101, 400, 30, 200), 50)).toBe(false);
+  it("compares with the median of the other prices weighted towards the cheaper ones", () => {
+    // Weights 4, 3, 2, 1 on 60, 100, 300, 900 put the median at 100, not 200.
+    expect(evaluator.isOverPercentageDifference(prices(50, 60, 100, 300, 900), 50)).toBe(true);
+    expect(evaluator.isOverPercentageDifference(prices(51, 60, 100, 300, 900), 50)).toBe(false);
+    // Weights 2, 1 on 60 and 140 put the median at 60.
+    expect(evaluator.isOverPercentageDifference(prices(30, 60, 140), 50)).toBe(true);
+    expect(evaluator.isOverPercentageDifference(prices(31, 60, 140), 50)).toBe(false);
   });
 
-  it("averages the two middle prices for an even number of other prices", () => {
-    // Median of 60 and 140 is 100.
-    expect(evaluator.isOverPercentageDifference(prices(50, 60, 140), 50)).toBe(true);
-    expect(evaluator.isOverPercentageDifference(prices(51, 60, 140), 50)).toBe(false);
+  it("averages with the next price when the cumulative weight is exactly half", () => {
+    // Weights 3, 2, 1 on 30, 200, 400: 30 holds exactly half, so the median is 115, regardless of order.
+    expect(evaluator.isOverPercentageDifference(prices(57, 400, 30, 200), 50)).toBe(true);
+    expect(evaluator.isOverPercentageDifference(prices(58, 400, 30, 200), 50)).toBe(false);
   });
 });
 
