@@ -8,6 +8,7 @@ import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
 const SCRAPER_ROUTES = [
   { method: "POST", path: /^\/amazon\/ads\/?$/ },
   { method: "PUT", path: /^\/amazon\/ads\/\d+\/?$/ },
+  { method: "DELETE", path: /^\/amazon\/ads\/\d+\/?$/ },
   { method: "POST", path: /^\/scrapers\/[^/]+\/metrics\/?$/ },
 ];
 
