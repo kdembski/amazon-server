@@ -68,6 +68,7 @@ model AmazonCountry {
   tld           String          @db.VarChar(15)
   scraped       Boolean
   active        Boolean
+  proxyType     String          @db.VarChar(15)
   createdAt     DateTime        @db.Timestamp(2)
   updatedAt     DateTime        @db.Timestamp(2)
   country       Country         @relation(fields: [countryId], references: [id], onDelete: Cascade, map: "amazon_country_country_id_fk")

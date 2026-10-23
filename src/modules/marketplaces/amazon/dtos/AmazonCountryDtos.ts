@@ -5,12 +5,14 @@ export interface AmazonCountryCreateDto {
   tld: string;
   scraped: boolean;
   active: boolean;
+  proxyType: string;
 }
 
 export interface AmazonCountryUpdateDto {
   tld: string;
   scraped: boolean;
   active: boolean;
+  proxyType: string;
 }
 
 export type AmazonCountrySelectDto = NonNullable<

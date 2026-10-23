@@ -16,13 +16,14 @@ describe("/amazon/countries", () => {
 
     const created = await request(app)
       .post("/amazon/countries")
-      .send({ countryId: country.id, tld: "com.be", scraped: false, active: false })
+      .send({ countryId: country.id, tld: "com.be", scraped: false, active: false, proxyType: "datacenter" })
       .expect(200);
     expect(created.body).toMatchObject({
       countryId: country.id,
       tld: "com.be",
       scraped: false,
       active: false,
+      proxyType: "datacenter",
     });
 
     const list = await request(app).get("/amazon/countries").expect(200);
@@ -30,19 +31,19 @@ describe("/amazon/countries", () => {
 
     await request(app)
       .put(`/amazon/countries/${country.id}`)
-      .send({ tld: "com.be", scraped: true, active: true })
+      .send({ tld: "com.be", scraped: true, active: true, proxyType: "isp" })
       .expect(200);
     const updated = await prisma.amazonCountry.findUniqueOrThrow({ where: { countryId: country.id } });
-    expect([updated.scraped, updated.active]).toEqual([true, true]);
+    expect([updated.scraped, updated.active, updated.proxyType]).toEqual([true, true, "isp"]);
   });
 
-  it("GET /scrap hands out only scraped countries with their tld", async () => {
-    const scraped = await seedAmazonCountry({ tld: "de", scraped: true });
+  it("GET /scrap hands out only scraped countries with their tld and proxy type", async () => {
+    const scraped = await seedAmazonCountry({ tld: "de", scraped: true, proxyType: "isp" });
     await seedAmazonCountry({ tld: "ie", scraped: false });
 
     const res = await request(app).get("/amazon/countries/scrap").expect(200);
 
-    expect(res.body).toEqual([{ countryId: scraped.countryId, tld: "de" }]);
+    expect(res.body).toEqual([{ countryId: scraped.countryId, tld: "de", proxyType: "isp" }]);
   });
 
   it("does not expose DELETE /:id", async () => {
@@ -57,7 +58,7 @@ describe("/amazon/countries", () => {
 
     await request(app)
       .post("/amazon/countries")
-      .send({ countryId, tld: "pl", scraped: true, active: true })
+      .send({ countryId, tld: "pl", scraped: true, active: true, proxyType: "datacenter" })
       .expect(422);
   });
 });

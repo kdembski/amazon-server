@@ -111,12 +111,13 @@ describe("create mappers", () => {
     {
       name: "AmazonCountryCreateMapper",
       map: (dto: any) => new AmazonCountryCreateMapper().toCreateInput(dto),
-      dto: { countryId: 2, tld: "com.be", scraped: true, active: true },
+      dto: { countryId: 2, tld: "com.be", scraped: true, active: true, proxyType: "isp" },
       expected: {
         countryId: 2,
         tld: "com.be",
         scraped: true,
         active: true,
+        proxyType: "isp",
         createdAt: NOW,
         updatedAt: NOW,
       },
@@ -227,8 +228,8 @@ describe("update mappers", () => {
     {
       name: "AmazonCountryUpdateMapper",
       map: (dto: any) => new AmazonCountryUpdateMapper().toUpdateInput(dto),
-      dto: { tld: "com.be", scraped: false, active: false },
-      expected: { tld: "com.be", scraped: false, active: false, updatedAt: NOW },
+      dto: { tld: "com.be", scraped: false, active: false, proxyType: "isp" },
+      expected: { tld: "com.be", scraped: false, active: false, proxyType: "isp", updatedAt: NOW },
     },
     {
       name: "CountryUpdateMapper",

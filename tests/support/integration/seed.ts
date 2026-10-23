@@ -46,6 +46,7 @@ export async function seedAmazonCountry(
       tld: "pl",
       scraped: true,
       active: true,
+      proxyType: "datacenter",
       ...stamps(),
       ...overrides,
       countryId,

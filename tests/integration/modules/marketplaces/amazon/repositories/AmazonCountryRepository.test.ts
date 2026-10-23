@@ -23,12 +23,12 @@ describe("AmazonCountryRepository (MySQL)", () => {
     expect(await repository.getAll()).toHaveLength(1);
   });
 
-  it("getForScraping returns the countryId and tld of scraped countries only", async () => {
+  it("getForScraping returns the countryId, tld and proxyType of scraped countries only", async () => {
     const scraped = await seedAmazonCountry({ tld: "de", scraped: true });
     await seedAmazonCountry({ tld: "ie", scraped: false });
 
     expect(await repository.getForScraping()).toEqual([
-      { countryId: scraped.countryId, tld: "de" },
+      { countryId: scraped.countryId, tld: "de", proxyType: "datacenter" },
     ]);
   });
 
