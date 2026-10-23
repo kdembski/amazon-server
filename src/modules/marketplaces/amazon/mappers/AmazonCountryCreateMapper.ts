@@ -15,6 +15,7 @@ export class AmazonCountryCreateMapper
       tld: dto.tld,
       scraped: dto.scraped,
       active: dto.active,
+      proxyType: dto.proxyType,
       createdAt: new Date(Date.now()),
       updatedAt: new Date(Date.now()),
     };

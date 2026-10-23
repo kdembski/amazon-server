@@ -19,7 +19,7 @@ export class AmazonCountryRepository {
   getForScraping() {
     return this.delegate.findMany({
       where: { scraped: true },
-      select: { countryId: true, tld: true },
+      select: { countryId: true, tld: true, proxyType: true },
     });
   }
 
