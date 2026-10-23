@@ -1,6 +1,7 @@
 services:
   db:
     image: mysql:8
+    command: --innodb-buffer-pool-size=4G --slow-query-log=ON --long-query-time=2
     restart: unless-stopped
     env_file: .env.production
     ports:
