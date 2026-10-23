@@ -38,6 +38,7 @@ describe("system log of http requests", () => {
 
     await request(app).put(`/amazon/ads/${ad.id}`).send({ prices: [] }).expect(200);
     await request(app).get("/amazon/ads/scrap").expect(200);
+    await request(app).delete(`/amazon/ads/${ad.id}`).expect(200);
 
     await new Promise((resolve) => setTimeout(resolve, 200));
     expect(await logsOf("RequestLogMiddleware")).toEqual([]);
