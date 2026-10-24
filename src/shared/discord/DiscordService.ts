@@ -15,7 +15,7 @@ export class DiscordService {
 
   constructor(
     envVarName?: string,
-    retryDelays = [5_000, 15_000, 45_000],
+    retryDelays = [5_000, 15_000, 45_000, 120_000, 300_000, 900_000],
     logger = SystemLogService.getInstance()
   ) {
     this.retryDelays = retryDelays;
@@ -35,9 +35,11 @@ export class DiscordService {
     if (!token) throw Error(`${envVarName} env variable is missing`);
 
     this.envVarName = envVarName;
-    this._client = new WebhookClient({
-      url: this.baseUrl + token,
-    });
+    // discord.js would silently resend after a timeout, ECONNRESET or 5xx, duplicating messages Discord already published.
+    this._client = new WebhookClient(
+      { url: this.baseUrl + token },
+      { rest: { retries: 0, timeout: 60_000 } }
+    );
   }
 
   private async sendWithRetry(

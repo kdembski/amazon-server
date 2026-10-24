@@ -38,9 +38,10 @@ describe("DiscordService", () => {
 
     await new DiscordService("DISCORD_LOGS_TOKEN").send("hello");
 
-    expect(WebhookClient).toHaveBeenCalledWith({
-      url: "https://discord.com/api/webhooks/123/abc",
-    });
+    expect(WebhookClient).toHaveBeenCalledWith(
+      { url: "https://discord.com/api/webhooks/123/abc" },
+      { rest: { retries: 0, timeout: 60_000 } }
+    );
     expect(webhookSend).toHaveBeenCalledTimes(1);
     expect(webhookSend).toHaveBeenCalledWith("hello");
   });

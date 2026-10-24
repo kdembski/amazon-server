@@ -106,22 +106,22 @@ export class AmazonAdService {
       );
   }
 
-  async getForScraping(count: number): Promise<{ id: number; asin: string }[]> {
+  async getForScraping(batchSize: number): Promise<{ id: number; asin: string }[]> {
     if (AmazonAdService.isGetting) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      return this.getForScraping(count);
+      return this.getForScraping(batchSize);
     }
 
     AmazonAdService.isGetting = true;
     try {
-      return await this._getForScraping(count);
+      return await this._getForScraping(batchSize);
     } finally {
       AmazonAdService.isGetting = false;
     }
   }
 
-  private async _getForScraping(count: number) {
-    const ads = await this.repository.getForScraping(count);
+  private async _getForScraping(batchSize: number) {
+    const ads = await this.repository.getForScraping(batchSize);
 
     const ids = ads.map((ad) => ad.id);
     await this.repository.updateScrapedAt(ids);
