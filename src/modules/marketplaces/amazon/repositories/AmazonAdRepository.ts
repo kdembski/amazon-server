@@ -46,10 +46,10 @@ export class AmazonAdRepository {
 
   // MySQL sorts NULL first in ascending order; an explicit `nulls` option
   // would turn the ORDER BY into an expression the index cannot serve.
-  getForScraping(count: number) {
+  getForScraping(batchSize: number) {
     return this.delegate.findMany({
       where: { excluded: false },
-      take: count,
+      take: batchSize,
       orderBy: { scrapedAt: "asc" },
       select: {
         id: true,

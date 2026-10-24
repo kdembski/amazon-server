@@ -34,12 +34,12 @@ export class AmazonAdController {
   }
 
   async getForScraping(
-    request: Request<{}, {}, {}, { count: string }>,
+    request: Request<{}, {}, {}, { batchSize: string }>,
     response: Response
   ) {
     try {
-      const count = parseInt(request.query.count) || 50;
-      const results = await this.service.getForScraping(count);
+      const batchSize = parseInt(request.query.batchSize) || 50;
+      const results = await this.service.getForScraping(batchSize);
       response.json(results);
     } catch (error: any) {
       new ResponseErrorService(response).send(error);

@@ -26,7 +26,7 @@ describe("GET /amazon/ads/scrap", () => {
     const newer = await seedAd({ excluded: false, scrapedAt: day(2) });
     const excluded = await seedAd({ excluded: true, scrapedAt: null });
 
-    const res = await request(app).get("/amazon/ads/scrap?count=2").expect(200);
+    const res = await request(app).get("/amazon/ads/scrap?batchSize=2").expect(200);
 
     expect(res.body).toEqual([
       { id: never.id, asin: never.asin, name: never.name },

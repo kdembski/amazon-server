@@ -38,18 +38,19 @@ describe("AmazonAdController", () => {
     expect(json).toHaveBeenCalledWith([{ id: 1 }]);
   });
 
-  it("getForScraping parses count and defaults to 50", async () => {
+  it("getForScraping parses batchSize and defaults to 50", async () => {
     const { service, controller } = setup();
     const { response, json } = fakeResponse();
 
-    await controller.getForScraping(fakeRequest({ query: { count: "7" } }), response);
+    await controller.getForScraping(fakeRequest({ query: { batchSize: "7" } }), response);
     await controller.getForScraping(fakeRequest({ query: {} }), response);
-    await controller.getForScraping(fakeRequest({ query: { count: "abc" } }), response);
-    await controller.getForScraping(fakeRequest({ query: { count: "7abc" } }), response);
+    await controller.getForScraping(fakeRequest({ query: { batchSize: "abc" } }), response);
+    await controller.getForScraping(fakeRequest({ query: { batchSize: "7abc" } }), response);
     // parseInt("0") || 50: zero is falsy, so a request for zero gets the default
-    await controller.getForScraping(fakeRequest({ query: { count: "0" } }), response);
+    await controller.getForScraping(fakeRequest({ query: { batchSize: "0" } }), response);
+    await controller.getForScraping(fakeRequest({ query: { count: "7" } }), response);
 
-    expect(service.getForScraping.mock.calls.map(([c]) => c)).toEqual([7, 50, 50, 7, 50]);
+    expect(service.getForScraping.mock.calls.map(([c]) => c)).toEqual([7, 50, 50, 7, 50, 50]);
     expect(json).toHaveBeenCalledWith([{ id: 1, asin: "A" }]);
   });
 
