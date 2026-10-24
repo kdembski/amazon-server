@@ -63,6 +63,23 @@ describe("/scrapers", () => {
     expect(await prisma.scraperMetric.count()).toBe(0);
   });
 
+  it("GET /:name/config returns the stored config of the scraper", async () => {
+    await prisma.scraperConfig.create({
+      data: { scraper: "amazon-pdp-1", concurrency: 150, rps: 150, batchSize: 5000 },
+    });
+
+    const response = await request(app).get("/scrapers/amazon-pdp-1/config").expect(200);
+
+    expect(response.body).toEqual({ concurrency: 150, rps: 150, batchSize: 5000 });
+  });
+
+  it("GET /:name/config creates a row with defaults for an unknown scraper", async () => {
+    const response = await request(app).get("/scrapers/amazon-new/config").expect(200);
+
+    expect(response.body).toEqual({ concurrency: 10, rps: 0, batchSize: 50 });
+    expect(await prisma.scraperConfig.count()).toBe(1);
+  });
+
   it("POST /:name/status no longer exists", async () => {
     await request(app)
       .post("/scrapers/amazon-pdp/status")

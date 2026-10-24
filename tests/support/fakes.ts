@@ -3,6 +3,7 @@ import type { Request, Response, Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import type { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 import type { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
+import type { ScraperConfigService } from "@/modules/monitoring/services/ScraperConfigService";
 import type { DiscordService } from "@/shared/discord/DiscordService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import type { AmazonConversionErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorDiscordService";
@@ -49,6 +50,12 @@ export function fakeScraperMetricService() {
     getSummaries,
   } as unknown as ScraperMetricService;
   return { service, add, deleteOlderThan, getSummaries };
+}
+
+export function fakeScraperConfigService() {
+  const get = vi.fn();
+  const service = { get } as unknown as ScraperConfigService;
+  return { service, get };
 }
 
 export function fakeAmazonConversionErrorDiscordService() {
@@ -170,6 +177,7 @@ export function fakePrisma() {
       createMany: vi.fn(),
       groupBy: vi.fn(),
     },
+    scraperConfig: { upsert: vi.fn() },
   };
   const $executeRaw = vi.fn().mockResolvedValue(1);
   const $queryRaw = vi.fn().mockResolvedValue([]);

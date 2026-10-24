@@ -99,6 +99,9 @@ npm run test:integration  # tests/integration, needs a running Docker
 - Scraper metrics: scrapers send `POST /scrapers/:name/metrics` every minute; rows go to the `ScraperMetric`
   table (retention 30 days). Build the "Scrapers" field of the hourly Discord report from these metrics via
   `ScraperMetricService.getSummaries`.
+- Scraper config: `ScraperConfig` (`scraper` = container `name`, `concurrency`, `rps`, `batchSize`) is the only source
+  of these parameters, edited by hand in SQL. Scrapers poll `GET /scrapers/:name/config` every minute; an unknown
+  name gets a row with the defaults (10 / 0 / 50).
 - System log: log every error and significant action through `SystemLogService.getInstance()`
   (`error|warn|info(source, message, context?)`, `source` = class name) into the `SystemLog` table; never use
   `console.*` directly. Pass errors as `{ error }` in `context` plus the ids needed to debug. Keep

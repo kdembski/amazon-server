@@ -1,7 +1,5 @@
-import {
-  InvalidScraperMetricsError,
-  parseScraperMetrics,
-} from "@/modules/monitoring/helpers/parseScraperMetrics";
+import { assertScraperName } from "@/modules/monitoring/helpers/assertScraperName";
+import { parseScraperMetrics } from "@/modules/monitoring/helpers/parseScraperMetrics";
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
 import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
 import { Request, Response } from "express";
@@ -19,11 +17,7 @@ export class ScraperMetricController {
   ) {
     try {
       const { name } = request.params;
-      if (name.length < 1 || name.length > 63) {
-        throw new InvalidScraperMetricsError(
-          "scraper name must be a string of 1-63 characters"
-        );
-      }
+      assertScraperName(name);
       const dto = parseScraperMetrics(request.body);
       const stored = await this.service.add(name, dto);
       response.json({ stored });

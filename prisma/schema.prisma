@@ -164,3 +164,11 @@ model ScraperMetric {
 
   @@index([periodStart, metric])
 }
+
+model ScraperConfig {
+  scraper     String   @id @db.VarChar(63)
+  concurrency Int      @default(10)
+  rps         Int      @default(0)
+  batchSize   Int      @default(50)
+  updatedAt   DateTime @updatedAt @db.Timestamp(2)
+}

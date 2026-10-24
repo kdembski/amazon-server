@@ -14,6 +14,7 @@ export const TABLES = [
   "CurrencyExchangeRate",
   "ActivityEvent",
   "ScraperMetric",
+  "ScraperConfig",
   "SystemLog",
 ] as const;
 
