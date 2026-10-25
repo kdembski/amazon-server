@@ -3,10 +3,11 @@ import { createMonitoringModule } from "@/modules/monitoring";
 import { ScraperRouter } from "@/modules/monitoring/routes/ScraperRouter";
 import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCronService";
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
+import { ActivityCountFlushCronService } from "@/modules/monitoring/cron/ActivityCountFlushCronService";
 import { ActivityEventCleanupCronService } from "@/modules/monitoring/cron/ActivityEventCleanupCronService";
 import { ScraperMetricCleanupCronService } from "@/modules/monitoring/cron/ScraperMetricCleanupCronService";
 import { SystemLogCleanupCronService } from "@/modules/monitoring/cron/SystemLogCleanupCronService";
-import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
+import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 
 vi.mock("discord.js", async (importOriginal) => {
@@ -15,7 +16,7 @@ vi.mock("discord.js", async (importOriginal) => {
 });
 
 describe("createMonitoringModule", () => {
-  it("exposes the scraper router and the stats and cleanup crons", () => {
+  it("exposes the scraper router and the stats, flush and cleanup crons", () => {
     vi.stubEnv("DISCORD_LOGS_TOKEN", "t");
 
     const module = createMonitoringModule([]);
@@ -26,6 +27,7 @@ describe("createMonitoringModule", () => {
     expect(module.crons!.map((c) => c.constructor)).toEqual([
       HourlyStatsCronService,
       DailyStatsCronService,
+      ActivityCountFlushCronService,
       ActivityEventCleanupCronService,
       ScraperMetricCleanupCronService,
       SystemLogCleanupCronService,
@@ -34,7 +36,7 @@ describe("createMonitoringModule", () => {
 
   it("passes the sections to the daily stats cron", async () => {
     vi.stubEnv("DISCORD_LOGS_TOKEN", "t");
-    vi.spyOn(ActivityEventService.prototype, "getCount").mockResolvedValue(7);
+    vi.spyOn(ActivityCountService.prototype, "getCount").mockResolvedValue(7);
     const sendDaily = vi
       .spyOn(DiscordLogService.prototype, "sendDaily")
       .mockResolvedValue(undefined as never);

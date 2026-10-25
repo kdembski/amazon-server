@@ -70,6 +70,11 @@ export class AmazonAdPriceRepository {
     return this.delegate.create({ data });
   }
 
+  async createMany(data: Prisma.AmazonAdPriceCreateManyInput[]) {
+    const { count } = await this.delegate.createMany({ data });
+    return count;
+  }
+
   update(id: number, data: Prisma.AmazonAdPriceUpdateInput) {
     return this.delegate.update({ where: { id }, data });
   }

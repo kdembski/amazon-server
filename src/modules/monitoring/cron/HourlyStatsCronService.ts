@@ -1,3 +1,4 @@
+import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
@@ -10,17 +11,20 @@ export class HourlyStatsCronService {
   private activityEventService;
   private metricService;
   private logger;
+  private activityCountService;
 
   constructor(
     discordService = new DiscordLogService(),
     activityEventService = new ActivityEventService(),
     metricService = new ScraperMetricService(),
-    logger = SystemLogService.getInstance()
+    logger = SystemLogService.getInstance(),
+    activityCountService = new ActivityCountService()
   ) {
     this.discordService = discordService;
     this.activityEventService = activityEventService;
     this.metricService = metricService;
     this.logger = logger;
+    this.activityCountService = activityCountService;
   }
 
   schedule() {
@@ -33,7 +37,7 @@ export class HourlyStatsCronService {
 
   async run() {
     const counts = [
-      this.getCount("ad_scraped"),
+      this.activityCountService.getCount("ad_scraped", ...this.getLastHour()),
       ...["1", "2", "3", "4", "5", "6"].map((channel) =>
         this.getCount("conversion_error_sent", channel)
       ),
@@ -64,15 +68,14 @@ export class HourlyStatsCronService {
   }
 
   getCount(type: ActivityEventType, channel?: string) {
+    return this.activityEventService.getCount(type, ...this.getLastHour(), channel);
+  }
+
+  private getLastHour(): [Date, Date] {
     const now = new Date();
     const hoursBefore = new Date();
     hoursBefore.setHours(hoursBefore.getHours() - 1);
 
-    return this.activityEventService.getCount(
-      type,
-      hoursBefore,
-      now,
-      channel
-    );
+    return [hoursBefore, now];
   }
 }

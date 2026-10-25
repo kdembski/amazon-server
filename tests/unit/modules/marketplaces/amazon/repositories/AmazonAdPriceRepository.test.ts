@@ -95,4 +95,13 @@ describe("AmazonAdPriceRepository", () => {
     });
     expect(delegate.delete).toHaveBeenCalledWith({ where: { id: 4 } });
   });
+
+  it("createMany inserts the prices and returns their count", async () => {
+    const { repository, delegate } = setup();
+    const prices = [{ adId: 1, countryId: 2, value: 3 }] as Prisma.AmazonAdPriceCreateManyInput[];
+    delegate.createMany.mockResolvedValue({ count: 1 });
+
+    expect(await repository.createMany(prices)).toBe(1);
+    expect(delegate.createMany).toHaveBeenCalledWith({ data: prices });
+  });
 });

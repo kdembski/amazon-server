@@ -7,6 +7,7 @@ import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { AmazonConversionErrorReporter } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorReporter";
 import { AmazonPricingErrorReporter } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorReporter";
+import { ActivityCounter } from "@/modules/monitoring/services/ActivityCounter";
 import { FIXED_DATE } from "../../../../../support/factories";
 import {
   fakeAmazonConversionErrorDiscordService,
@@ -96,7 +97,7 @@ describe("AmazonAdService (MySQL)", () => {
   });
 
   describe("updatePrices", () => {
-    it("stores prices, logs ad_scraped and reports a halved price as a pricing error", async () => {
+    it("stores prices, counts ad_scraped and reports a halved price as a pricing error", async () => {
       const { service, pricing } = buildAdService();
       const ad = await seedAd();
       const { countryId } = await seedAmazonCountry();
@@ -107,10 +108,7 @@ describe("AmazonAdService (MySQL)", () => {
       ]);
 
       expect(await prisma.amazonAdPrice.count({ where: { adId: ad.id } })).toBe(2);
-      const scraped = await prisma.activityEvent.findMany({ where: { type: "ad_scraped" } });
-      expect(scraped).toEqual([
-        expect.objectContaining({ marketplace: "amazon", data: { asin: ad.asin } }),
-      ]);
+      expect(ActivityCounter.getInstance().counts.get("ad_scraped:amazon")?.count).toBe(1);
       // The anomaly managers run after updatePrices resolves.
       await vi.waitFor(() => expect(pricing.send).toHaveBeenCalledTimes(1));
       const pricingErrors = await prisma.activityEvent.findMany({
@@ -124,6 +122,26 @@ describe("AmazonAdService (MySQL)", () => {
       ];
       expect(sentListing.asin).toBe(ad.asin);
       expect(sentGroups.map((g) => g.map((p) => p.value.toNumber()))).toEqual([[40, 100]]);
+    });
+
+    it("stores the valid prices and counts ad_scraped when one price of the batch is invalid", async () => {
+      const { service } = buildAdService();
+      const ad = await seedAd();
+      const { countryId } = await seedAmazonCountry();
+
+      await service.updatePrices(ad.id, [
+        { adId: ad.id, countryId, value: 40, dispatchFrom: "Amazon" },
+        { adId: ad.id, countryId: 999, value: 50, dispatchFrom: "Amazon" },
+      ]);
+
+      const prices = await prisma.amazonAdPrice.findMany({ where: { adId: ad.id } });
+      expect(prices.map((p) => [p.countryId, p.value.toNumber()])).toEqual([[countryId, 40]]);
+      expect(ActivityCounter.getInstance().counts.get("ad_scraped:amazon")?.count).toBe(1);
+      await vi.waitFor(async () =>
+        expect(
+          await prisma.systemLog.count({ where: { message: `Price of ad ${ad.id} was not stored` } })
+        ).toBe(1)
+      );
     });
 
     it("reports a conversion error when the cheapest market is under 10 % of the next one", async () => {

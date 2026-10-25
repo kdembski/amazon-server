@@ -5,7 +5,7 @@ import { CreatableService } from "@/shared/crud/services/CreatableService";
 import { DeletableService } from "@/shared/crud/services/DeletableService";
 import { SelectableService } from "@/shared/crud/services/SelectableService";
 import { AmazonAdPriceService } from "@/modules/marketplaces/amazon/services/AmazonAdPriceService";
-import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
+import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
 import { ConversionErrorManager } from "@/modules/anomalies/conversion-error/ConversionErrorManager";
 import { PricingErrorManager } from "@/modules/anomalies/pricing-error/PricingErrorManager";
@@ -20,7 +20,7 @@ import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 export class AmazonAdService {
   private repository;
   private priceService;
-  private activityEventService;
+  private activityCountService;
   private anomalyManager;
   private priceMapper;
   private logger;
@@ -33,7 +33,7 @@ export class AmazonAdService {
   constructor(
     repository = new AmazonAdRepository(),
     priceService = new AmazonAdPriceService(),
-    activityEventService = new ActivityEventService(),
+    activityCountService = new ActivityCountService(),
     anomalyManager = new AnomalyManager<AmazonAdSelectDto>([
       new ConversionErrorManager(new AmazonConversionErrorReporter()),
       new PricingErrorManager(new AmazonPricingErrorReporter()),
@@ -48,7 +48,7 @@ export class AmazonAdService {
     this.logger = logger;
     this.repository = repository;
     this.priceService = priceService;
-    this.activityEventService = activityEventService;
+    this.activityCountService = activityCountService;
     this.anomalyManager = anomalyManager;
     this.selectable = selectable;
     this.deletable = deletable;
@@ -66,26 +66,11 @@ export class AmazonAdService {
   }
 
   async updatePrices(id: number, prices: AmazonAdPriceCreateDto[]) {
-    const promises = prices.map((price) =>
-      this.priceService.creatable.create(price)
-    );
-    const results = await Promise.allSettled(promises);
-    results.forEach((result, index) => {
-      if (result.status === "rejected") {
-        this.logger.error("AmazonAdService", `Price of ad ${id} was not stored`, {
-          error: result.reason,
-          adId: id,
-          price: prices[index],
-        });
-      }
-    });
-
     const ad = await this.selectable.getById(id);
-    await this.activityEventService.creatable.create({
-      type: "ad_scraped",
-      marketplace: "amazon",
-      data: { asin: ad.asin },
-    });
+    await this.priceService
+      .createMany(prices)
+      .catch(() => this.createPricesOneByOne(id, prices));
+    this.activityCountService.increment("ad_scraped", "amazon");
 
     const scrapedCountryIds = prices.map((price) => price.countryId);
     this.priceService
@@ -104,6 +89,23 @@ export class AmazonAdService {
           scrapedCountryIds,
         })
       );
+  }
+
+  // Stores the valid prices of a batch that failed as a whole
+  private async createPricesOneByOne(id: number, prices: AmazonAdPriceCreateDto[]) {
+    const promises = prices.map((price) =>
+      this.priceService.creatable.create(price)
+    );
+    const results = await Promise.allSettled(promises);
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        this.logger.error("AmazonAdService", `Price of ad ${id} was not stored`, {
+          error: result.reason,
+          adId: id,
+          price: prices[index],
+        });
+      }
+    });
   }
 
   async getForScraping(batchSize: number): Promise<{ id: number; asin: string }[]> {

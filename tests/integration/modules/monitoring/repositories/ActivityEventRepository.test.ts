@@ -76,4 +76,25 @@ describe("ActivityEventRepository (MySQL)", () => {
 
     expect(await prisma.activityEvent.count()).toBe(0);
   });
+
+  it("getSum adds data.count within inclusive bounds and counts a row without it as 1", async () => {
+    await seedActivityEvent({ type: "ad_scraped", data: { count: 2 }, createdAt: minute(0) });
+    await seedActivityEvent({ type: "ad_scraped", data: { asin: "B0X" }, createdAt: minute(5) });
+    await seedActivityEvent({ type: "ad_scraped", data: { count: 4 }, createdAt: minute(10) });
+    await seedActivityEvent({ type: "ad_scraped", data: { count: 8 }, createdAt: minute(11) });
+    await seedActivityEvent({ type: "pricing_error_sent", data: { count: 16 }, createdAt: minute(5) });
+
+    expect(await repository.getSum("ad_scraped", minute(0), minute(10))).toBe(7);
+    expect(await repository.getSum("conversion_error_sent", minute(0), minute(10))).toBe(0);
+  });
+
+  it("createMany stores the rows", async () => {
+    expect(
+      await repository.createMany([
+        { type: "ad_scraped", marketplace: "amazon", data: { count: 3 }, createdAt: FIXED_DATE },
+      ])
+    ).toBe(1);
+
+    expect(await prisma.activityEvent.findMany()).toMatchObject([{ data: { count: 3 } }]);
+  });
 });

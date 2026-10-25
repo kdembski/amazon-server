@@ -69,4 +69,27 @@ describe("ActivityEventRepository", () => {
     expect(delegate.create).toHaveBeenCalledWith({ data: input });
     expect(delegate.delete).toHaveBeenCalledWith({ where: { id: 3 } });
   });
+
+  it("createMany delegates to prisma and returns the count", async () => {
+    const { repository, delegate } = setup();
+    delegate.createMany.mockResolvedValue({ count: 1 });
+    const data = [
+      { type: "ad_scraped" as const, marketplace: "amazon" as const, data: { count: 4 }, createdAt: new Date(0) },
+    ];
+
+    expect(await repository.createMany(data)).toBe(1);
+    expect(delegate.createMany).toHaveBeenCalledWith({ data });
+  });
+
+  it("getSum returns the summed counts of a type in a time window as a number", async () => {
+    const db = fakePrisma();
+    const repository = new ActivityEventRepository(db.prisma);
+    db.$queryRaw.mockResolvedValue([{ total: 12n }]);
+    const from = new Date(1);
+    const to = new Date(2);
+
+    expect(await repository.getSum("ad_scraped", from, to)).toBe(12);
+    const [, ...values] = db.$queryRaw.mock.calls[0];
+    expect(values).toEqual(["ad_scraped", from, to]);
+  });
 });

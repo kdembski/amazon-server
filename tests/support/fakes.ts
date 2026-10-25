@@ -2,6 +2,7 @@ import { vi } from "vitest";
 import type { Request, Response, Router } from "express";
 import type { PrismaClient } from "@prisma/client";
 import type { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
+import type { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import type { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
 import type { ScraperConfigService } from "@/modules/monitoring/services/ScraperConfigService";
 import type { DiscordService } from "@/shared/discord/DiscordService";
@@ -19,6 +20,14 @@ export function fakeActivityEventService() {
     deleteOlderThan,
   } as unknown as ActivityEventService;
   return { service, create, getCount, deleteOlderThan };
+}
+
+export function fakeActivityCountService() {
+  const increment = vi.fn();
+  const flush = vi.fn().mockResolvedValue(undefined);
+  const getCount = vi.fn().mockResolvedValue(0);
+  const service = { increment, flush, getCount } as unknown as ActivityCountService;
+  return { service, increment, flush, getCount };
 }
 
 export function fakeSystemLogService() {
@@ -155,6 +164,7 @@ export function fakeDelegate() {
     aggregate: vi.fn(),
     count: vi.fn(),
     create: vi.fn(),
+    createMany: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
   };
