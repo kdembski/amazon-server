@@ -22,8 +22,11 @@ describe("HourlyStatsCronService (MySQL)", () => {
     const service = new HourlyStatsCronService(
       { sendHourly } as unknown as DiscordLogService
     );
-    await seedActivityEvent({ type: "ad_scraped", createdAt: minutesAgo(30) });
-    await seedActivityEvent({ type: "ad_scraped", createdAt: minutesAgo(120) });
+    await seedActivityEvent({ type: "ad_scraped", data: { count: 3 }, createdAt: minutesAgo(30) });
+    await seedActivityEvent({ type: "ad_scraped", data: { count: 2 }, createdAt: minutesAgo(50) });
+    await seedActivityEvent({ type: "ad_scraped", data: { count: 7 }, createdAt: minutesAgo(120) });
+    // A single event from before the counts
+    await seedActivityEvent({ type: "ad_scraped", createdAt: minutesAgo(20) });
     await conversionError("1", minutesAgo(59));
     await conversionError("6", minutesAgo(5));
     await conversionError("6", minutesAgo(6));
@@ -33,7 +36,7 @@ describe("HourlyStatsCronService (MySQL)", () => {
     await service.run();
 
     // [ad_scraped, ce1, ce2, ce3, ce4, ce5, ce6, pricing_error]
-    expect(sendHourly).toHaveBeenCalledWith([1, 1, 0, 0, 0, 0, 2, 1], []);
+    expect(sendHourly).toHaveBeenCalledWith([6, 1, 0, 0, 0, 0, 2, 1], []);
   });
 
   describe("Scrapers field", () => {

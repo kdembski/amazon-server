@@ -36,8 +36,22 @@ export class ActivityEventRepository {
     return total;
   }
 
+  // A row without data.count (a single event) counts as 1
+  async getSum(type: ActivityEventType, from: Date, to: Date) {
+    const [{ total }] = await this.prisma.$queryRaw<{ total: bigint }[]>`
+      SELECT CAST(COALESCE(SUM(COALESCE(JSON_EXTRACT(data, '$.count'), 1)), 0) AS SIGNED) AS total
+      FROM ActivityEvent
+      WHERE type = ${type} AND createdAt >= ${from} AND createdAt <= ${to}`;
+    return Number(total);
+  }
+
   create(data: Prisma.ActivityEventCreateInput) {
     return this.delegate.create({ data });
+  }
+
+  async createMany(data: Prisma.ActivityEventCreateManyInput[]) {
+    const { count } = await this.delegate.createMany({ data });
+    return count;
   }
 
   delete(id: number) {

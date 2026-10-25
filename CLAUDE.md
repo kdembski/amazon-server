@@ -36,6 +36,8 @@ npm run test:integration  # tests/integration, needs a running Docker
 - Before every commit, stop and wait for the user to review the changes; commit only after their approval.
 - Commit messages: short English sentence starting with a capitalised past-tense verb (`Added ...`,
   `Fixed ...`). No `Co-Authored-By` or other attribution in commits or PR descriptions.
+- An arrow function whose body does not fit on one line gets a block body (`=> { ... }`), not an expression
+  wrapped over several lines.
 - Comments only for logic the code does not show (non-obvious constraint, ordering, external behaviour).
   No justifications, rejected alternatives or history.
 - In CLAUDE.md write only what to do, never why.
@@ -87,8 +89,8 @@ npm run test:integration  # tests/integration, needs a running Docker
   syntax lives in `ExclusionRuleParser` (`src/modules/exclusion-rules/services/`; `+` and, `|` or, `!` marks an
   exception inside a rule; a rule of only `!` members is invalid; phrases match whole words, `*` at a phrase edge
   matches part of a word). Match rules in JS with `ScopedExclusionRuleMatcher`, not in SQL.
-  `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices, stores an `ad_scraped`
-  `ActivityEvent` and asynchronously runs the anomaly managers (`src/modules/anomalies`); their marketplace reporters
+  `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices with one `createMany`,
+  counts `ad_scraped` through `ActivityCountService.increment` and asynchronously runs the anomaly managers (`src/modules/anomalies`); their marketplace reporters
   store `*_sent` events and post to Discord.
 - Amazon countries: keep Amazon's countries in `AmazonCountry` (`countryId` = `Country.id`, `tld`, `scraped`, `active`, `proxyType` = `datacenter` | `isp`),
   changed through `GET|POST /amazon/countries` and `PUT /amazon/countries/:id`; never delete rows, set `scraped = false`
@@ -106,5 +108,9 @@ npm run test:integration  # tests/integration, needs a running Docker
   (`error|warn|info(source, message, context?)`, `source` = class name) into the `SystemLog` table; never use
   `console.*` directly. Pass errors as `{ error }` in `context` plus the ids needed to debug. Keep
   `ActivityEvent` for `ad_scraped`/`*_sent` only.
+- Activity counts: count `ad_scraped` in memory with `ActivityCountService.increment`;
+  `ActivityCountFlushCronService` writes one `ActivityEvent` per type and marketplace with `data.count` every minute
+  (second 30). Read `ad_scraped` only through `ActivityCountService.getCount` (sums `data.count`, a row without it
+  counts as 1); store `*_sent` as single events.
 - `src/app.ts` builds the express app and mounts the routers of all modules; `src/index.ts` adds `listen`
   and calls `schedule()` on the crons of all modules.

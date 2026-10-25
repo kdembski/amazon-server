@@ -24,4 +24,15 @@ export class AmazonAdPriceCreateMapper
       updatedAt: new Date(Date.now()),
     };
   }
+
+  toCreateManyInput(dto: AmazonAdPriceCreateDto): Prisma.AmazonAdPriceCreateManyInput {
+    return {
+      value: dto.value,
+      dispatchFrom: dto.dispatchFrom?.slice(0, 63),
+      countryId: dto.countryId,
+      adId: dto.adId,
+      createdAt: new Date(Date.now()),
+      updatedAt: new Date(Date.now()),
+    };
+  }
 }

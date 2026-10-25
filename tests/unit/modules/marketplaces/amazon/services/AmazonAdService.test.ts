@@ -14,7 +14,7 @@ import {
 } from "../../../../../support/factories";
 import {
   deferred,
-  fakeActivityEventService,
+  fakeActivityCountService,
   unitLogger,
 } from "../../../../../support/fakes";
 
@@ -39,9 +39,10 @@ const setup = () => {
   };
   const priceService = {
     creatable: { create: vi.fn().mockResolvedValue({}) },
+    createMany: vi.fn().mockResolvedValue(1),
     getRecentByAd: vi.fn().mockResolvedValue([]),
   };
-  const log = fakeActivityEventService();
+  const counter = fakeActivityCountService();
   const anomalyManager = { check: vi.fn() };
   const listingPrices = [[buildListingPrice()]];
   const priceMapper = { map: vi.fn().mockReturnValue(listingPrices) };
@@ -49,7 +50,7 @@ const setup = () => {
   const service = new AmazonAdService(
     repository as unknown as AmazonAdRepository,
     priceService as unknown as AmazonAdPriceService,
-    log.service,
+    counter.service,
     anomalyManager as unknown as AnomalyManager<AmazonAdSelectDto>,
     undefined,
     undefined,
@@ -62,7 +63,7 @@ const setup = () => {
     service,
     repository,
     priceService,
-    log,
+    counter,
     anomalyManager,
     priceMapper,
     listingPrices,
@@ -84,8 +85,8 @@ describe("AmazonAdService delegation", () => {
 });
 
 describe("AmazonAdService.updatePrices", () => {
-  it("stores prices, logs ad_scraped and runs the error manager", async () => {
-    const { service, repository, priceService, log, anomalyManager } = setup();
+  it("stores prices, counts ad_scraped and runs the error manager", async () => {
+    const { service, repository, priceService, counter, anomalyManager } = setup();
     const ad = buildAd({ id: 9, asin: "B0SCRAPED" });
     repository.getById.mockResolvedValue(ad);
     const dtos = [
@@ -95,15 +96,10 @@ describe("AmazonAdService.updatePrices", () => {
 
     await service.updatePrices(9, dtos);
 
-    expect(priceService.creatable.create).toHaveBeenCalledTimes(2);
-    expect(priceService.creatable.create).toHaveBeenCalledWith(dtos[0]);
-    expect(priceService.creatable.create).toHaveBeenCalledWith(dtos[1]);
-    expect(log.create).toHaveBeenCalledWith({
-      type: "ad_scraped",
-      marketplace: "amazon",
-      data: { asin: "B0SCRAPED" },
-    });
     expect(repository.getById).toHaveBeenCalledWith(9);
+    expect(priceService.createMany).toHaveBeenCalledWith(dtos);
+    expect(priceService.creatable.create).not.toHaveBeenCalled();
+    expect(counter.increment).toHaveBeenCalledWith("ad_scraped", "amazon");
 
     await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalled());
   });
@@ -132,9 +128,10 @@ describe("AmazonAdService.updatePrices", () => {
     expect(anomalyManager.check).toHaveBeenCalledWith(ad, listingPrices);
   });
 
-  it("logs a failed price insert and continues", async () => {
-    const { service, repository, priceService, log } = setup();
+  it("stores the prices one by one when the batch fails, logging the failed ones", async () => {
+    const { service, repository, priceService, counter } = setup();
     repository.getById.mockResolvedValue(buildAd());
+    priceService.createMany.mockRejectedValue(new Error("batch"));
     const error = new Error("dup");
     priceService.creatable.create.mockRejectedValueOnce(error);
     const prices = [
@@ -151,9 +148,7 @@ describe("AmazonAdService.updatePrices", () => {
       "Price of ad 1 was not stored",
       { error, adId: 1, price: prices[0] }
     );
-    expect(log.create).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "ad_scraped" })
-    );
+    expect(counter.increment).toHaveBeenCalledWith("ad_scraped", "amazon");
   });
 
   it("logs a failed anomaly check", async () => {
@@ -176,8 +171,8 @@ describe("AmazonAdService.updatePrices", () => {
     );
   });
 
-  it("rejects without logging ad_scraped when the ad does not exist", async () => {
-    const { service, repository, log, anomalyManager } = setup();
+  it("rejects without storing anything when the ad does not exist", async () => {
+    const { service, repository, priceService, counter, anomalyManager } = setup();
     repository.getById.mockRejectedValue(new Error("No AmazonAd found"));
 
     await expect(
@@ -186,7 +181,8 @@ describe("AmazonAdService.updatePrices", () => {
       ])
     ).rejects.toThrow("No AmazonAd found");
 
-    expect(log.create).not.toHaveBeenCalled();
+    expect(priceService.createMany).not.toHaveBeenCalled();
+    expect(counter.increment).not.toHaveBeenCalled();
     expect(anomalyManager.check).not.toHaveBeenCalled();
   });
 });

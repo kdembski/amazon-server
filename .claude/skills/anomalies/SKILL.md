@@ -13,4 +13,4 @@ Price anomalies found after a marketplace stores scraped prices, reported as `Ac
 Read the file of the detector in question; read both before changing the marketplace input (its price update, the
 recent-prices query, the `ListingPrice` mapper). Detectors in `src/modules/anomalies` work on `ListingPrice` only;
 each marketplace in `src/modules/marketplaces/<name>` supplies the prices and the reporters. Check production
-behaviour with the `database` skill (`ActivityEvent` types `conversion_error_sent`, `pricing_error_sent`, `ad_scraped`).
+behaviour with the `database` skill (`ActivityEvent` types `conversion_error_sent`, `pricing_error_sent`, `ad_scraped` — one row per minute, sum `data.count`).

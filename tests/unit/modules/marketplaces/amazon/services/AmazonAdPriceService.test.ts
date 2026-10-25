@@ -7,6 +7,7 @@ const setup = () => {
     getById: vi.fn(),
     getRecentByAd: vi.fn().mockResolvedValue([]),
     create: vi.fn().mockResolvedValue({}),
+    createMany: vi.fn().mockResolvedValue(1),
     update: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue({}),
   };
@@ -48,5 +49,15 @@ describe("AmazonAdPriceService", () => {
       expect.objectContaining({ value: 6, updatedAt: expect.any(Date) })
     );
     expect(repository.delete).toHaveBeenCalledWith(9);
+  });
+
+  it("maps the prices for createMany", async () => {
+    const { service, repository } = setup();
+
+    await service.createMany([{ value: 5, adId: 1, countryId: 2, dispatchFrom: "Amazon" }]);
+
+    expect(repository.createMany).toHaveBeenCalledWith([
+      expect.objectContaining({ value: 5, adId: 1, countryId: 2, createdAt: expect.any(Date) }),
+    ]);
   });
 });

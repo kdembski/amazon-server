@@ -78,4 +78,17 @@ describe("AmazonAdPriceRepository (MySQL)", () => {
     await repository.delete(price.id);
     expect(await prisma.amazonAdPrice.count()).toBe(0);
   });
+
+  it("createMany stores all prices, or none when a row is invalid", async () => {
+    const ad = await seedAd();
+    const { countryId } = await seedAmazonCountry();
+    const price = { adId: ad.id, countryId, value: 5, createdAt: FIXED_DATE, updatedAt: FIXED_DATE };
+
+    expect(await repository.createMany([price, { ...price, value: 6 }])).toBe(2);
+    await expect(
+      repository.createMany([price, { ...price, countryId: 999 }])
+    ).rejects.toMatchObject({ code: "P2003" });
+
+    expect(await prisma.amazonAdPrice.count()).toBe(2);
+  });
 });

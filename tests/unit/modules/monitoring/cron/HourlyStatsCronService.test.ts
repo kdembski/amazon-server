@@ -3,6 +3,7 @@ import { CronJob } from "cron";
 import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCronService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import {
+  fakeActivityCountService,
   fakeActivityEventService,
   fakeScraperMetricService,
   unitLogger,
@@ -28,13 +29,16 @@ const COUNTS: [string, string?][] = [
 const setup = () => {
   const sendHourly = vi.fn();
   const log = fakeActivityEventService();
+  const counter = fakeActivityCountService();
   const metrics = fakeScraperMetricService();
   const service = new HourlyStatsCronService(
     { sendHourly } as unknown as DiscordLogService,
     log.service,
-    metrics.service
+    metrics.service,
+    undefined,
+    counter.service
   );
-  return { service, sendHourly, log, metrics };
+  return { service, sendHourly, log, counter, metrics };
 };
 
 describe("HourlyStatsCronService", () => {
@@ -76,7 +80,7 @@ describe("HourlyStatsCronService", () => {
   });
 
   it("counts every event type and conversion channel over the last hour and sends them in order", async () => {
-    const { service, sendHourly, log } = setup();
+    const { service, sendHourly, log, counter } = setup();
     log.getCount.mockImplementation(
       (type: string, _from: Date, _to: Date, channel?: string) =>
         Promise.resolve(
@@ -88,7 +92,8 @@ describe("HourlyStatsCronService", () => {
 
     const from = new Date("2026-06-01T09:00:00Z");
     const to = new Date("2026-06-01T10:00:00Z");
-    COUNTS.forEach(([type, channel]) =>
+    expect(counter.getCount).toHaveBeenCalledWith("ad_scraped", from, to);
+    COUNTS.slice(1).forEach(([type, channel]) =>
       expect(log.getCount).toHaveBeenCalledWith(type, from, to, channel)
     );
     expect(sendHourly).toHaveBeenCalledWith(
@@ -125,8 +130,9 @@ describe("HourlyStatsCronService", () => {
   });
 
   it("still sends the hourly report with empty summaries when getSummaries rejects", async () => {
-    const { service, sendHourly, log, metrics } = setup();
+    const { service, sendHourly, log, counter, metrics } = setup();
     log.getCount.mockResolvedValue(4);
+    counter.getCount.mockResolvedValue(4);
     const error = new Error("db down");
     metrics.getSummaries.mockRejectedValue(error);
 

@@ -109,6 +109,19 @@ describe("create mappers", () => {
       },
     },
     {
+      name: "AmazonAdPriceCreateMapper (many)",
+      map: (dto: any) => new AmazonAdPriceCreateMapper().toCreateManyInput(dto),
+      dto: { value: 9.99, adId: 3, countryId: 4, dispatchFrom: "a".repeat(100) },
+      expected: {
+        value: 9.99,
+        dispatchFrom: "a".repeat(63),
+        countryId: 4,
+        adId: 3,
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+    },
+    {
       name: "AmazonCountryCreateMapper",
       map: (dto: any) => new AmazonCountryCreateMapper().toCreateInput(dto),
       dto: { countryId: 2, tld: "com.be", scraped: true, active: true, proxyType: "isp" },

@@ -3,6 +3,7 @@ import request from "supertest";
 import type { Express } from "express";
 import { FIXED_DATE } from "../../support/factories";
 import { createTestApp } from "../../support/integration/app";
+import { ActivityCounter } from "@/modules/monitoring/services/ActivityCounter";
 import { prisma } from "../../support/integration/db";
 import { messagesSentTo } from "../../support/integration/discordInbox";
 import {
@@ -52,7 +53,7 @@ describe("GET /amazon/ads/scrap", () => {
 });
 
 describe("PUT /amazon/ads/:id", () => {
-  it("stores prices, logs ad_scraped and posts a pricing error embed to Discord", async () => {
+  it("stores prices, counts ad_scraped and posts a pricing error embed to Discord", async () => {
     const ad = await seedAd();
     const { countryId } = await seedAmazonCountry();
     await seedPrice({ adId: ad.id, countryId, value: 100, createdAt: new Date(Date.now() - 3_600_000) });
@@ -63,11 +64,7 @@ describe("PUT /amazon/ads/:id", () => {
       .expect(200);
 
     expect(await prisma.amazonAdPrice.count({ where: { adId: ad.id } })).toBe(2);
-    expect(
-      await prisma.activityEvent.findMany({ where: { type: "ad_scraped" } })
-    ).toEqual([
-      expect.objectContaining({ marketplace: "amazon", data: { asin: ad.asin } }),
-    ]);
+    expect(ActivityCounter.getInstance().counts.get("ad_scraped:amazon")?.count).toBe(1);
     await vi.waitFor(() =>
       expect(messagesSentTo("DISCORD_PRICING_ERROR_TOKEN")).toHaveLength(1)
     );
