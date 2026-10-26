@@ -33,4 +33,37 @@ describe("SystemLogRepository", () => {
     );
     expect(values).toEqual([date, 2]);
   });
+
+  it("getCountByLevelAndHour converts the raw numbers", async () => {
+    const db = fakePrisma();
+    const repository = new SystemLogRepository(db.prisma);
+    db.$queryRaw.mockResolvedValue([{ level: "warn", hour: 3600n, value: 2n }]);
+    const from = new Date(1);
+    const to = new Date(2);
+
+    expect(await repository.getCountByLevelAndHour(from, to)).toEqual([
+      { level: "warn", hour: 3600, value: 2 },
+    ]);
+    const [, ...values] = db.$queryRaw.mock.calls[0];
+    expect(values).toEqual([from, to]);
+  });
+
+  it("getCountBySourceAndLevel groups errors and warnings by source", async () => {
+    const db = fakePrisma();
+    const repository = new SystemLogRepository(db.prisma);
+    db.systemLog.groupBy.mockResolvedValue([
+      { source: "A", level: "error", _count: { _all: 3 } },
+    ]);
+    const from = new Date(1);
+    const to = new Date(2);
+
+    expect(await repository.getCountBySourceAndLevel(from, to)).toEqual([
+      { source: "A", level: "error", value: 3 },
+    ]);
+    expect(db.systemLog.groupBy).toHaveBeenCalledWith({
+      by: ["source", "level"],
+      where: { level: { in: ["error", "warn"] }, createdAt: { gte: from, lt: to } },
+      _count: { _all: true },
+    });
+  });
 });

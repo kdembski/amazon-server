@@ -180,7 +180,7 @@ export function fakePrisma() {
     currency: fakeDelegate(),
     currencyExchangeRate: fakeDelegate(),
     activityEvent: fakeDelegate(),
-    systemLog: fakeDelegate(),
+    systemLog: { ...fakeDelegate(), groupBy: vi.fn() },
     amazonExclusionRule: fakeDelegate(),
     scraperMetric: {
       ...fakeDelegate(),

@@ -16,3 +16,12 @@ export interface ActivityStatsDto {
   totals: Record<ActivityEventType, number>;
   previousTotals: Record<ActivityEventType, number>;
 }
+
+export type LogLevelCounts = { error: number; warn: number };
+
+export interface LogStatsDto {
+  series: { level: "error" | "warn"; points: TimePoint[] }[];
+  totals: LogLevelCounts;
+  previousTotals: LogLevelCounts;
+  topSources: ({ source: string } & LogLevelCounts)[];
+}
