@@ -44,6 +44,7 @@ npm run test:integration  # tests/integration, needs a running Docker
 - Keep the path aliases `@/*` → `src/*` and `@@prisma/*` → `prisma/*` in sync in `tsconfig.json` and
   `vite.config.ts`.
 - Write error messages in English.
+- Start the names of methods that read and return data with `get` (`getCount`, `getSumByTypeChannelAndHour`).
 - Set `createdAt`/`updatedAt` in mappers. Do not add Prisma migrations or column defaults.
 - The app reads env vars only from the runtime environment, never from `.env` files.
 

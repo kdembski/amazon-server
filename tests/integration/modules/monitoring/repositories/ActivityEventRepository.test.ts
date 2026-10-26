@@ -97,4 +97,30 @@ describe("ActivityEventRepository (MySQL)", () => {
 
     expect(await prisma.activityEvent.findMany()).toMatchObject([{ data: { count: 3 } }]);
   });
+
+  it("getSumByTypeChannelAndHour groups by type, channel and UTC hour within [from, to)", async () => {
+    const at = (iso: string) => new Date(iso);
+    await seedActivityEvent({ type: "ad_scraped", data: { count: 5 }, createdAt: at("2026-10-26T10:00:00Z") });
+    await seedActivityEvent({ type: "ad_scraped", data: { asin: "B0X" }, createdAt: at("2026-10-26T10:59:00Z") });
+    await seedActivityEvent({ type: "conversion_error_sent", data: { channel: "3" }, createdAt: at("2026-10-26T10:30:00Z") });
+    await seedActivityEvent({ type: "conversion_error_sent", data: { channel: 3 }, createdAt: at("2026-10-26T10:40:00Z") });
+    await seedActivityEvent({ type: "ad_scraped", data: { count: 7 }, createdAt: at("2026-10-26T12:00:00Z") });
+    await seedActivityEvent({ type: "pricing_error_sent", data: {}, createdAt: at("2026-10-25T23:59:00Z") });
+
+    const rows = await repository.getSumByTypeChannelAndHour(
+      at("2026-10-25T23:00:00Z"),
+      at("2026-10-26T12:00:00Z")
+    );
+
+    expect(
+      rows.map((row) => ({ ...row, hour: new Date(row.hour * 1000).toISOString() }))
+    ).toEqual(
+      expect.arrayContaining([
+        { type: "ad_scraped", channel: null, hour: "2026-10-26T10:00:00.000Z", value: 6 },
+        { type: "conversion_error_sent", channel: "3", hour: "2026-10-26T10:00:00.000Z", value: 2 },
+        { type: "pricing_error_sent", channel: null, hour: "2026-10-25T23:00:00.000Z", value: 1 },
+      ])
+    );
+    expect(rows).toHaveLength(3);
+  });
 });
