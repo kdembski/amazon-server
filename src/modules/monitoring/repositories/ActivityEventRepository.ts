@@ -45,6 +45,25 @@ export class ActivityEventRepository {
     return Number(total);
   }
 
+  // hour = epoch seconds of the UTC hour start, independent of the session time zone
+  async getSumByTypeChannelAndHour(from: Date, to: Date) {
+    const rows = await this.prisma.$queryRaw<
+      { type: ActivityEventType; channel: string | null; hour: bigint; value: bigint }[]
+    >`
+      SELECT type, JSON_UNQUOTE(JSON_EXTRACT(data, '$.channel')) AS channel,
+        CAST(FLOOR(UNIX_TIMESTAMP(createdAt) / 3600) * 3600 AS SIGNED) AS hour,
+        CAST(SUM(COALESCE(JSON_EXTRACT(data, '$.count'), 1)) AS SIGNED) AS value
+      FROM ActivityEvent
+      WHERE createdAt >= ${from} AND createdAt < ${to}
+      GROUP BY type, channel, hour`;
+    return rows.map((row) => ({
+      type: row.type,
+      channel: row.channel,
+      hour: Number(row.hour),
+      value: Number(row.value),
+    }));
+  }
+
   create(data: Prisma.ActivityEventCreateInput) {
     return this.delegate.create({ data });
   }

@@ -77,4 +77,16 @@ describe("ScraperMetricRepository", () => {
       _sum: { value: true },
     });
   });
+
+  it("getSumByScraperAndHour converts the raw numbers", async () => {
+    const db = fakePrisma();
+    db.$queryRaw.mockResolvedValue([
+      { scraper: "amazon-pdp", metric: "items", outcome: "data", hour: 3600n, value: 2.5 },
+    ]);
+    const repository = new ScraperMetricRepository(db.prisma);
+
+    expect(await repository.getSumByScraperAndHour(new Date(0), new Date(10))).toEqual([
+      { scraper: "amazon-pdp", metric: "items", outcome: "data", hour: 3600, value: 2.5 },
+    ]);
+  });
 });

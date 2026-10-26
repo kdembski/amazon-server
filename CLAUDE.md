@@ -44,6 +44,7 @@ npm run test:integration  # tests/integration, needs a running Docker
 - Keep the path aliases `@/*` → `src/*` and `@@prisma/*` → `prisma/*` in sync in `tsconfig.json` and
   `vite.config.ts`.
 - Write error messages in English.
+- Start the names of methods that read and return data with `get` (`getCount`, `getSumByTypeChannelAndHour`).
 - Set `createdAt`/`updatedAt` in mappers. Do not add Prisma migrations or column defaults.
 - The app reads env vars only from the runtime environment, never from `.env` files.
 
@@ -101,6 +102,10 @@ npm run test:integration  # tests/integration, needs a running Docker
 - Scraper metrics: scrapers send `POST /scrapers/:name/metrics` every minute; rows go to the `ScraperMetric`
   table (retention 30 days). Build the "Scrapers" field of the hourly Discord report from these metrics via
   `ScraperMetricService.getSummaries`.
+- API token: every route requires `Authorization: Bearer <API_TOKEN>` (`ApiTokenMiddleware`); scrapers and
+  amazon-admin send it; integration tests get it from `createTestApp()`.
+- Stats: `GET /stats/activity|logs` and `GET /scrapers/summaries|series` take `from`/`to` (ISO, at most 30 days,
+  `parseTimeRange`) and return hourly series with `t` = UTC hour start.
 - Scraper config: `ScraperConfig` (`scraper` = container `name`, `concurrency`, `rps`, `batchSize`) is the only source
   of these parameters, edited by hand in SQL. Scrapers poll `GET /scrapers/:name/config` every minute; an unknown
   name gets a row with the defaults (10 / 0 / 50).

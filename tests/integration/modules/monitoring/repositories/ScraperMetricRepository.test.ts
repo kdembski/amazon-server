@@ -50,6 +50,27 @@ describe("ScraperMetricRepository (MySQL)", () => {
     );
   });
 
+  it("getSumByScraperAndHour sums per scraper, metric, outcome and UTC hour inside [from, to)", async () => {
+    await seedScraperMetric({ metric: "requests", outcome: "ok", value: 3, periodStart: minute(0) });
+    await seedScraperMetric({ metric: "requests", outcome: "ok", value: 4, periodStart: minute(59) });
+    await seedScraperMetric({ metric: "requests", outcome: "ok", value: 5, periodStart: minute(60) });
+    await seedScraperMetric({ metric: "requests", outcome: "ok", value: 9, periodStart: minute(5), scraper: "amazon-plp" });
+    await seedScraperMetric({ metric: "pending", outcome: null, value: 50, periodStart: minute(3) });
+    await seedScraperMetric({ metric: "requests", outcome: "ok", value: 100, periodStart: minute(120) });
+
+    const result = await repository.getSumByScraperAndHour(minute(0), minute(120));
+    const hour = (n: number) => minute(n * 60).getTime() / 1000;
+
+    expect(result).toHaveLength(3);
+    expect(result).toEqual(
+      expect.arrayContaining([
+        { scraper: "amazon-pdp", metric: "requests", outcome: "ok", hour: hour(0), value: 7 },
+        { scraper: "amazon-pdp", metric: "requests", outcome: "ok", hour: hour(1), value: 5 },
+        { scraper: "amazon-plp", metric: "requests", outcome: "ok", hour: hour(0), value: 9 },
+      ])
+    );
+  });
+
   it("deleteOlderThan removes rows with periodStart strictly before the date across batches", async () => {
     await seedScraperMetric({ periodStart: minute(0) });
     await seedScraperMetric({ periodStart: minute(1) });

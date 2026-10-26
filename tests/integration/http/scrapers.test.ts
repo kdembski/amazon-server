@@ -86,4 +86,44 @@ describe("/scrapers", () => {
       .send({ speed: 1, pending: 2 })
       .expect(404);
   });
+
+  it("GET /summaries and GET /series report the stored metrics of the range", async () => {
+    await request(app)
+      .post("/scrapers/amazon-pdp/metrics")
+      .send({
+        ...body(),
+        metrics: [
+          { metric: "requests", outcome: "ok", value: 90 },
+          { metric: "requests", outcome: "timeout", value: 10 },
+          { metric: "items", outcome: "data", value: 3600 },
+        ],
+      })
+      .expect(200);
+    const range = { from: "2026-10-18T10:00:00.000Z", to: "2026-10-18T11:00:00.000Z" };
+
+    const summaries = await request(app).get("/scrapers/summaries").query(range).expect(200);
+    const series = await request(app).get("/scrapers/series").query(range).expect(200);
+
+    expect(summaries.body).toEqual([
+      expect.objectContaining({ scraper: "amazon-pdp", itemsPerSecond: 1, requests: 100 }),
+    ]);
+    expect(series.body).toEqual([
+      {
+        scraper: "amazon-pdp",
+        points: [
+          {
+            t: "2026-10-18T10:00:00.000Z",
+            itemsPerSecond: 1,
+            wastedPercent: 10,
+            captchaPercent: 0,
+            requests: 100,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("GET /series answers 400 for an invalid range", async () => {
+    await request(app).get("/scrapers/series").query({ from: "x", to: "y" }).expect(400);
+  });
 });

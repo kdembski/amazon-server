@@ -1,9 +1,12 @@
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { Prisma } from "@prisma/client";
+import { AmazonAdRecentPriceRow } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
+import { AmazonAdRecentPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdRecentPriceMapper";
 
 export class AmazonAdPriceRepository {
   private delegate;
   private prisma;
+  private recentPriceMapper;
   private structure = {
     id: true,
     adId: true,
@@ -29,9 +32,13 @@ export class AmazonAdPriceRepository {
     },
   };
 
-  constructor(prisma = PrismaClient.getInstance()) {
+  constructor(
+    prisma = PrismaClient.getInstance(),
+    recentPriceMapper = new AmazonAdRecentPriceMapper()
+  ) {
     this.delegate = prisma.amazonAdPrice;
     this.prisma = prisma;
+    this.recentPriceMapper = recentPriceMapper;
   }
 
   getById(id: number) {
@@ -41,29 +48,24 @@ export class AmazonAdPriceRepository {
     });
   }
 
-  // Groups keep the order of each country's newest price; prices inside a group are newest first.
-  // LATERAL reads at most count rows per country from the (adId, countryId, createdAt) index.
+  // LATERAL reads at most count rows per country from the (adId, countryId, createdAt) index;
+  // one query returns the prices with their country and currency in the shape of `structure`.
   async getRecentByAd(adId: number, count = 5) {
-    const rows = await this.prisma.$queryRaw<{ id: number }[]>`
-      SELECT p.id FROM AmazonCountry c, LATERAL (
-        SELECT id FROM AmazonAdPrice
-        WHERE adId = ${adId} AND countryId = c.countryId
+    const rows = await this.prisma.$queryRaw<AmazonAdRecentPriceRow[]>`
+      SELECT p.id, p.adId, p.countryId, p.value, p.dispatchFrom, p.createdAt, p.updatedAt,
+        ac.tld, ac.active, c.name AS countryName, c.code AS countryCode, c.currencyId,
+        cu.name AS currencyName, cu.code AS currencyCode, cu.symbol AS currencySymbol,
+        cu.createdAt AS currencyCreatedAt, cu.updatedAt AS currencyUpdatedAt
+      FROM AmazonCountry ac
+      JOIN Country c ON c.id = ac.countryId
+      JOIN Currency cu ON cu.id = c.currencyId
+      CROSS JOIN LATERAL (
+        SELECT id, adId, countryId, value, dispatchFrom, createdAt, updatedAt FROM AmazonAdPrice
+        WHERE adId = ${adId} AND countryId = ac.countryId
         ORDER BY createdAt DESC LIMIT ${count}
-      ) p`;
-    if (!rows.length) return [];
-
-    const prices = await this.delegate.findMany({
-      where: { id: { in: rows.map((row) => row.id) } },
-      orderBy: { createdAt: "desc" },
-      select: this.structure,
-    });
-
-    const countryPrices = new Map<number, typeof prices>();
-    for (const price of prices) {
-      const group = countryPrices.get(price.countryId) ?? [];
-      countryPrices.set(price.countryId, [...group, price]);
-    }
-    return [...countryPrices.values()];
+      ) p
+      ORDER BY p.createdAt DESC`;
+    return this.recentPriceMapper.toCountryGroups(rows);
   }
 
   create(data: Prisma.AmazonAdPriceCreateInput) {

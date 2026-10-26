@@ -92,4 +92,20 @@ describe("ActivityEventRepository", () => {
     const [, ...values] = db.$queryRaw.mock.calls[0];
     expect(values).toEqual(["ad_scraped", from, to]);
   });
+
+  it("getSumByTypeChannelAndHour converts the raw numbers", async () => {
+    const db = fakePrisma();
+    const repository = new ActivityEventRepository(db.prisma);
+    db.$queryRaw.mockResolvedValue([
+      { type: "ad_scraped", channel: null, hour: 3600n, value: 4n },
+    ]);
+    const from = new Date(1);
+    const to = new Date(2);
+
+    expect(await repository.getSumByTypeChannelAndHour(from, to)).toEqual([
+      { type: "ad_scraped", channel: null, hour: 3600, value: 4 },
+    ]);
+    const [, ...values] = db.$queryRaw.mock.calls[0];
+    expect(values).toEqual([from, to]);
+  });
 });

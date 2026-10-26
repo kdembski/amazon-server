@@ -44,6 +44,19 @@ export class ScraperMetricRepository {
     }));
   }
 
+  // hour = epoch seconds of the UTC hour start, independent of the session time zone
+  async getSumByScraperAndHour(from: Date, to: Date) {
+    const rows = await this.prisma.$queryRaw<(ScraperMetricSum & { hour: bigint })[]>`
+      SELECT scraper, metric, outcome,
+        CAST(FLOOR(UNIX_TIMESTAMP(periodStart) / 3600) * 3600 AS SIGNED) AS hour,
+        SUM(value) AS value
+      FROM ScraperMetric
+      WHERE periodStart >= ${from} AND periodStart < ${to}
+        AND metric IN (${Prisma.join(SUMMARY_METRICS)})
+      GROUP BY scraper, metric, outcome, hour`;
+    return rows.map((row) => ({ ...row, hour: Number(row.hour), value: Number(row.value) }));
+  }
+
   async deleteOlderThan(date: Date, batchSize = 10_000) {
     let total = 0;
     let deleted;

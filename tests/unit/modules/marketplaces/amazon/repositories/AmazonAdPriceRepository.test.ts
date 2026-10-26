@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Prisma } from "@prisma/client";
 import { AmazonAdPriceRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdPriceRepository";
-import { buildPrice, buildPriceCountry } from "../../../../../support/factories";
+import { AmazonAdRecentPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdRecentPriceMapper";
+import { buildPrice } from "../../../../../support/factories";
 import { fakePrisma } from "../../../../../support/fakes";
 
 const setup = () => {
@@ -51,33 +52,22 @@ describe("AmazonAdPriceRepository", () => {
     });
   });
 
-  it("getRecentByAd loads the prices of the newest ids per country and groups them preserving order", async () => {
-    const { repository, delegate, $queryRaw } = setup();
-    const pl = buildPriceCountry({ id: 1 });
-    const de = buildPriceCountry({ id: 2 });
-    const pl1 = buildPrice({ country: pl });
-    const de1 = buildPrice({ country: de });
-    const pl2 = buildPrice({ country: pl });
-    $queryRaw.mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }]);
-    delegate.findMany.mockResolvedValue([pl1, de1, pl2]);
+  it("getRecentByAd queries the ad and count and returns the rows grouped by the mapper", async () => {
+    const db = fakePrisma();
+    const groups = [[buildPrice()]];
+    const mapper = { toCountryGroups: vi.fn().mockReturnValue(groups) };
+    const repository = new AmazonAdPriceRepository(
+      db.prisma,
+      mapper as unknown as AmazonAdRecentPriceMapper
+    );
+    const rows = [{ id: 1 }];
+    db.$queryRaw.mockResolvedValue(rows);
 
-    const result = await repository.getRecentByAd(9, 3);
+    expect(await repository.getRecentByAd(9, 3)).toBe(groups);
 
-    const [, adId, count] = $queryRaw.mock.calls[0];
+    const [, adId, count] = db.$queryRaw.mock.calls[0];
     expect([adId, count]).toEqual([9, 3]);
-    expect(delegate.findMany).toHaveBeenCalledWith({
-      where: { id: { in: [1, 2, 3] } },
-      orderBy: { createdAt: "desc" },
-      select: structure,
-    });
-    expect(result).toEqual([[pl1, pl2], [de1]]);
-  });
-
-  it("getRecentByAd returns no groups without prices", async () => {
-    const { repository, delegate } = setup();
-
-    expect(await repository.getRecentByAd(9)).toEqual([]);
-    expect(delegate.findMany).not.toHaveBeenCalled();
+    expect(mapper.toCountryGroups).toHaveBeenCalledWith(rows);
   });
 
   it("create, update and delete delegate to prisma", async () => {

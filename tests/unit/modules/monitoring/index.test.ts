@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createMonitoringModule } from "@/modules/monitoring";
 import { ScraperRouter } from "@/modules/monitoring/routes/ScraperRouter";
+import { StatsRouter } from "@/modules/monitoring/routes/StatsRouter";
 import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCronService";
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
 import { ActivityCountFlushCronService } from "@/modules/monitoring/cron/ActivityCountFlushCronService";
@@ -16,14 +17,15 @@ vi.mock("discord.js", async (importOriginal) => {
 });
 
 describe("createMonitoringModule", () => {
-  it("exposes the scraper router and the stats, flush and cleanup crons", () => {
+  it("exposes the scraper and stats routers and the stats, flush and cleanup crons", () => {
     vi.stubEnv("DISCORD_LOGS_TOKEN", "t");
 
     const module = createMonitoringModule([]);
 
-    expect(module.routers).toHaveLength(1);
+    expect(module.routers).toHaveLength(2);
     expect(module.routers![0]).toBeInstanceOf(ScraperRouter);
     expect(module.routers![0].path).toBe("/scrapers");
+    expect(module.routers![1]).toBeInstanceOf(StatsRouter);
     expect(module.crons!.map((c) => c.constructor)).toEqual([
       HourlyStatsCronService,
       DailyStatsCronService,

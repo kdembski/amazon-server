@@ -24,7 +24,7 @@ vi.mock("cors", () => ({ default: vi.fn(() => corsMiddleware) }));
 vi.mock("@/modules", () => ({ createModules: vi.fn(() => []) }));
 
 describe("createApp", () => {
-  it("mounts json, cors, the request log, every module router in module order and the error handler", () => {
+  it("mounts json, cors, the request log, the API token guard, every module router in module order and the error handler", () => {
     const router = (path: string) => ({
       path,
       build: () => ({ router: `${path}-router` }),
@@ -40,6 +40,7 @@ describe("createApp", () => {
       ["json-middleware"],
       ["cors-middleware"],
       [expect.any(Function)],
+      [expect.any(Function)],
       ["/a", "/a-router"],
       ["/b", "/b-router"],
       ["/c", "/c-router"],
@@ -53,6 +54,7 @@ describe("createApp", () => {
     expect(use.mock.calls).toEqual([
       ["json-middleware"],
       ["cors-middleware"],
+      [expect.any(Function)],
       [expect.any(Function)],
       [handleError],
     ]);

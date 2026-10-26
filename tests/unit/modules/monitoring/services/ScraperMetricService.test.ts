@@ -9,6 +9,7 @@ const setup = () => {
     createMany: vi.fn().mockResolvedValue(2),
     deleteOlderThan: vi.fn().mockResolvedValue(7),
     sumByScraper: vi.fn().mockResolvedValue([]),
+    getSumByScraperAndHour: vi.fn().mockResolvedValue([]),
   };
   const mapper = {
     toCreateInputs: vi.fn().mockReturnValue([{ a: 1 }, { a: 2 }]),
@@ -181,6 +182,74 @@ describe("ScraperMetricService", () => {
       const result = await service.getSummaries(from, to);
 
       expect(result.map((s) => s.scraper)).toEqual(["amazon-pdp", "amazon-plp"]);
+    });
+  });
+
+  describe("getSeries", () => {
+    const h = (n: number) => Date.parse("2026-10-18T10:00:00Z") / 1000 + n * 3600;
+    const row = (
+      hour: number,
+      metric: string,
+      outcome: string | null,
+      value: number,
+      scraper = "amazon-pdp"
+    ) => ({ scraper, metric, outcome, hour, value });
+
+    it("summarizes every scraper per hour, sorted by scraper and hour", async () => {
+      const { service, repository } = setup();
+      repository.getSumByScraperAndHour.mockResolvedValue([
+        row(h(1), "requests", "ok", 10, "b"),
+        row(h(1), "requests", "ok", 80),
+        row(h(1), "requests", "timeout", 20),
+        row(h(1), "responses", "captcha", 5),
+        row(h(1), "items", "data", 3600),
+        row(h(1), "items", "given_up", 360),
+        row(h(0), "requests", "ok", 1),
+      ]);
+      const range = {
+        from: new Date("2026-10-18T10:00:00Z"),
+        to: new Date("2026-10-18T12:00:00Z"),
+      };
+
+      const series = await service.getSeries(range);
+
+      expect(repository.getSumByScraperAndHour).toHaveBeenCalledWith(range.from, range.to);
+      expect(series.map((s) => s.scraper)).toEqual(["amazon-pdp", "b"]);
+      expect(series[0].points.map((p) => p.t)).toEqual([
+        "2026-10-18T10:00:00.000Z",
+        "2026-10-18T11:00:00.000Z",
+      ]);
+      expect(series[0].points[1]).toEqual({
+        t: "2026-10-18T11:00:00.000Z",
+        itemsPerSecond: 1,
+        wastedPercent: 25,
+        captchaPercent: 5,
+        requests: 100,
+      });
+    });
+
+    it("divides by the part of an edge hour inside the range", async () => {
+      const { service, repository } = setup();
+      repository.getSumByScraperAndHour.mockResolvedValue([row(h(0), "items", "data", 1800)]);
+
+      const [series] = await service.getSeries({
+        from: new Date("2026-10-18T10:30:00Z"),
+        to: new Date("2026-10-18T11:00:00Z"),
+      });
+
+      expect(series.points[0].itemsPerSecond).toBe(1);
+    });
+
+    it("summarize returns zeros for an hour without requests", async () => {
+      const { service, repository } = setup();
+      repository.getSumByScraperAndHour.mockResolvedValue([row(h(0), "items", "data", 36)]);
+
+      const [series] = await service.getSeries({
+        from: new Date("2026-10-18T10:00:00Z"),
+        to: new Date("2026-10-18T11:00:00Z"),
+      });
+
+      expect(series.points[0]).toMatchObject({ wastedPercent: 0, captchaPercent: 0, requests: 0 });
     });
   });
 });
