@@ -3,7 +3,7 @@ import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDt
 import { DiscordService } from "@/shared/discord/DiscordService";
 import { roundToTwoDecimals } from "@/shared/utils/number";
 
-export class AmazonConversionErrorDiscordService {
+export class AmazonCountryOutlierDiscordService {
   private service;
 
   constructor(service = new DiscordService()) {
@@ -34,6 +34,6 @@ export class AmazonConversionErrorDiscordService {
   }
 
   setChannel(channel: string) {
-    this.service.client = `DISCORD_CONVERSION_ERROR_${channel}_TOKEN`;
+    this.service.client = `DISCORD_COUNTRY_OUTLIER_${channel}_TOKEN`;
   }
 }

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ConversionErrorStrategy } from "@/modules/anomalies/conversion-error/ConversionErrorStrategy";
+import { CountryOutlierStrategy } from "@/modules/anomalies/country-outlier/CountryOutlierStrategy";
 import { buildListingPrice } from "../../../../support/factories";
 
-const strategy = new ConversionErrorStrategy();
+const strategy = new CountryOutlierStrategy();
 
 const prices = (...values: number[]) =>
   values.map((value) => buildListingPrice({ value }));
@@ -10,7 +10,7 @@ const prices = (...values: number[]) =>
 const matchedChannels = (values: number[]) =>
   strategy.getMatchingRules(prices(...values)).map((rule) => rule.channel);
 
-describe("ConversionErrorStrategy", () => {
+describe("CountryOutlierStrategy", () => {
   it.each([
     { values: [9, 100, 120], channels: ["3", "4"] },
     { values: [25, 100, 120], channels: ["2", "4"] },

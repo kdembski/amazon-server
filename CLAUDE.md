@@ -68,7 +68,7 @@ npm run test:integration  # tests/integration, needs a running Docker
   `src/modules`. `currency`, `monitoring`, `exclusion-rules` and `anomalies` import nothing from
   `src/modules/marketplaces`; pass marketplace implementations in from `src/modules.ts`.
 - Add a marketplace: (1) Prisma models and a `src/modules/marketplaces/<name>/` folder with the layers;
-  (2) a mapper to `ListingPrice`, implementations of `ConversionErrorReporter`/`PricingErrorReporter` that
+  (2) a mapper to `ListingPrice`, implementations of `CountryOutlierReporter`/`PriceDropReporter` that
   store an event and post to Discord, and a call to `AnomalyManager([...])` with the managers of the chosen
   detectors after storing prices; (3) implementations of `ExclusionRuleTarget` and `DailyReportSection`;
   (4) `create<Name>Module()` returning `MarketplaceModule`, added to `marketplaces` in `src/modules.ts`.
@@ -93,9 +93,9 @@ npm run test:integration  # tests/integration, needs a running Docker
   `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices with one `createMany`,
   counts `ad_scraped` through `ActivityCountService.increment` and asynchronously runs the anomaly managers (`src/modules/anomalies`); their marketplace reporters
   store `*_sent` events and post to Discord.
-- Amazon countries: keep Amazon's countries in `AmazonCountry` (`countryId` = `Country.id`, `tld`, `scraped`, `active`, `proxyType` = `datacenter` | `isp`),
+- Amazon countries: keep Amazon's countries in `AmazonCountry` (`countryId` = `Country.id`, `tld`, `scraped`, `active`, `proxyType` = `datacenter` | `isp`, `priority`),
   changed through `GET|POST /amazon/countries` and `PUT /amazon/countries/:id`; never delete rows, set `scraped = false`
-  instead. `GET /amazon/countries/scrap` hands out `countryId`, `tld` and `proxyType` of `scraped` countries.
+  instead. `GET /amazon/countries/scrap` hands out `countryId`, `tld`, `proxyType` and `priority` of `scraped` countries.
   `AmazonAdPrice.countryId` references `AmazonCountry`. Build
   listing URLs as `https://www.amazon.<tld>/dp/<asin>` (`ListingPrice.url`). Report anomalies only for countries with
   `AmazonCountry.active = true` (`ListingPrice.country.active`).

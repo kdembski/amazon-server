@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { ConversionErrorEvaluator } from "@/modules/anomalies/conversion-error/ConversionErrorEvaluator";
+import { CountryOutlierEvaluator } from "@/modules/anomalies/country-outlier/CountryOutlierEvaluator";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { buildListingPrice } from "../../../../support/factories";
 
-const evaluator = new ConversionErrorEvaluator();
+const evaluator = new CountryOutlierEvaluator();
 const prices = (...values: number[]) =>
   values.map((value) => buildListingPrice({ value }));
 

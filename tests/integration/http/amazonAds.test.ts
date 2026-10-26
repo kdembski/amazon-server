@@ -53,7 +53,7 @@ describe("GET /amazon/ads/scrap", () => {
 });
 
 describe("PUT /amazon/ads/:id", () => {
-  it("stores prices, counts ad_scraped and posts a pricing error embed to Discord", async () => {
+  it("stores prices, counts ad_scraped and posts a price drop embed to Discord", async () => {
     const ad = await seedAd();
     const { countryId } = await seedAmazonCountry();
     await seedPrice({ adId: ad.id, countryId, value: 100, createdAt: new Date(Date.now() - 3_600_000) });
@@ -66,10 +66,10 @@ describe("PUT /amazon/ads/:id", () => {
     expect(await prisma.amazonAdPrice.count({ where: { adId: ad.id } })).toBe(2);
     expect(ActivityCounter.getInstance().counts.get("ad_scraped:amazon")?.count).toBe(1);
     await vi.waitFor(() =>
-      expect(messagesSentTo("DISCORD_PRICING_ERROR_TOKEN")).toHaveLength(1)
+      expect(messagesSentTo("DISCORD_PRICE_DROP_TOKEN")).toHaveLength(1)
     );
-    expect(await prisma.activityEvent.count({ where: { type: "pricing_error_sent" } })).toBe(1);
-    expect(messagesSentTo("DISCORD_PRICING_ERROR_TOKEN")[0].options).toMatchObject({
+    expect(await prisma.activityEvent.count({ where: { type: "price_drop_sent" } })).toBe(1);
+    expect(messagesSentTo("DISCORD_PRICE_DROP_TOKEN")[0].options).toMatchObject({
       embeds: [{ title: ad.name, description: ad.asin }],
     });
   });

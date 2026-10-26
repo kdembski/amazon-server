@@ -1,18 +1,18 @@
-import { PricingErrorReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
+import { PriceDropReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
-import { AmazonPricingErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorDiscordService";
+import { AmazonPriceDropDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPriceDropDiscordService";
 import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 
-export class AmazonPricingErrorReporter
-  implements PricingErrorReporter<AmazonAdSelectDto>
+export class AmazonPriceDropReporter
+  implements PriceDropReporter<AmazonAdSelectDto>
 {
   private activityEventService;
   private discordService;
 
   constructor(
     activityEventService = new ActivityEventService(),
-    discordService = new AmazonPricingErrorDiscordService()
+    discordService = new AmazonPriceDropDiscordService()
   ) {
     this.activityEventService = activityEventService;
     this.discordService = discordService;
@@ -20,7 +20,7 @@ export class AmazonPricingErrorReporter
 
   async report(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][]) {
     await this.activityEventService.creatable.create({
-      type: "pricing_error_sent",
+      type: "price_drop_sent",
       marketplace: "amazon",
       data: {
         asin: ad.asin,

@@ -1,4 +1,4 @@
-# Conversion error
+# Country outlier
 
 The same listing costs much less in one country than in the others once all prices are converted to PLN.
 
@@ -9,11 +9,11 @@ The same listing costs much less in one country than in the others once all pric
 2. It loads the 5 newest prices of each country of the listing, grouped per country, newest first.
 3. Its `ListingPrice` mapper sets `scraped` for prices of countries in this scrape and `reportable` only for those the
    marketplace considers reportable (Amazon: `dispatchFrom === "Amazon"`).
-4. It calls `AnomalyManager` with its `ConversionErrorManager` and `PricingErrorManager`; both get the same prices.
+4. It calls `AnomalyManager` with its `CountryOutlierManager` and `PriceDropManager`; both get the same prices.
 
-## Steps (`src/modules/anomalies/conversion-error/`)
+## Steps (`src/modules/anomalies/country-outlier/`)
 
-1. `ConversionErrorManager.check` drops countries missing from this scrape (`scraped = false`) and stops with fewer
+1. `CountryOutlierManager.check` drops countries missing from this scrape (`scraped = false`) and stops with fewer
    than 4 countries left.
 2. Takes the newest price of each country and converts it to PLN (`CurrencyExchangeRateService.getPlnRates`); the
    copies keep the original `country` object.
@@ -21,9 +21,9 @@ The same listing costs much less in one country than in the others once all pric
 4. Duplicate check (`hasChanged`) on the cheapest country, in its own currency: it goes on when that country has no
    previous price or its newest price differs from the previous one by at least 5% (`minPriceChange`,
    up or down); otherwise it stops.
-5. `ConversionErrorStrategy.getMatchingRules` returns nothing unless the cheapest price is reportable (country
+5. `CountryOutlierStrategy.getMatchingRules` returns nothing unless the cheapest price is reportable (country
    `active` and `reportable`).
-6. `ConversionErrorEvaluator.isOverPercentageDifference` compares the cheapest price with the weighted median of all
+6. `CountryOutlierEvaluator.isOverPercentageDifference` compares the cheapest price with the weighted median of all
    other PLN prices: sorted ascending with weights `n`..`1` from the cheapest, it is the first price whose cumulative
    weight passes half (mean with the next one when it is exactly half). Each rule group reports its first matching rule:
 
@@ -36,9 +36,9 @@ The same listing costs much less in one country than in the others once all pric
    | | 50-200 PLN | `5` |
    | | over 200 PLN | `6` |
 
-7. For each matched channel (at most two, one per group) the marketplace's `ConversionErrorReporter.report` gets the
-   listing, the sorted PLN prices and the channel; it stores a `conversion_error_sent` event and posts to that
-   channel's Discord webhook (Amazon: `DISCORD_CONVERSION_ERROR_<channel>_TOKEN`).
+7. For each matched channel (at most two, one per group) the marketplace's `CountryOutlierReporter.report` gets the
+   listing, the sorted PLN prices and the channel; it stores a `country_outlier_sent` event and posts to that
+   channel's Discord webhook (Amazon: `DISCORD_COUNTRY_OUTLIER_<channel>_TOKEN`).
 
 ## Known limits
 

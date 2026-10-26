@@ -24,11 +24,11 @@ describe("ActivityEventRepository", () => {
     const from = new Date(1);
     const to = new Date(2);
 
-    await repository.getCount("conversion_error_sent", from, to, "3");
+    await repository.getCount("country_outlier_sent", from, to, "3");
 
     expect(delegate.count).toHaveBeenCalledWith({
       where: {
-        type: "conversion_error_sent",
+        type: "country_outlier_sent",
         createdAt: { lte: to, gte: from },
         data: { path: "$.channel", equals: "3" },
       },

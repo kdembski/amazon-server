@@ -69,6 +69,7 @@ model AmazonCountry {
   scraped       Boolean
   active        Boolean
   proxyType     String          @db.VarChar(15)
+  priority      Int
   createdAt     DateTime        @db.Timestamp(2)
   updatedAt     DateTime        @db.Timestamp(2)
   country       Country         @relation(fields: [countryId], references: [id], onDelete: Cascade, map: "amazon_country_country_id_fk")
@@ -107,8 +108,8 @@ enum Marketplace {
 
 enum ActivityEventType {
   ad_scraped
-  conversion_error_sent
-  pricing_error_sent
+  country_outlier_sent
+  price_drop_sent
 }
 
 model ActivityEvent {

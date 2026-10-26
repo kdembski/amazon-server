@@ -1,8 +1,8 @@
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
-import { ConversionErrorRuleI } from "@/modules/anomalies/interfaces/ConversionErrorRuleI";
-import { ConversionErrorEvaluator } from "@/modules/anomalies/conversion-error/ConversionErrorEvaluator";
+import { CountryOutlierRuleI } from "@/modules/anomalies/interfaces/CountryOutlierRuleI";
+import { CountryOutlierEvaluator } from "@/modules/anomalies/country-outlier/CountryOutlierEvaluator";
 
-export class ConversionErrorPercentageRule implements ConversionErrorRuleI {
+export class CountryOutlierPercentageRule implements CountryOutlierRuleI {
   readonly channel;
   private percentage;
   private evaluator;
@@ -10,7 +10,7 @@ export class ConversionErrorPercentageRule implements ConversionErrorRuleI {
   constructor(
     channel: string,
     percentage: number,
-    evaluator = new ConversionErrorEvaluator()
+    evaluator = new CountryOutlierEvaluator()
   ) {
     this.channel = channel;
     this.percentage = percentage;

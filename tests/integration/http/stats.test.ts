@@ -33,8 +33,8 @@ describe("/stats", () => {
           points: [{ t: "2026-10-26T10:00:00.000Z", value: 3 }],
         },
       ],
-      totals: { ad_scraped: 3, conversion_error_sent: 0, pricing_error_sent: 0 },
-      previousTotals: { ad_scraped: 5, conversion_error_sent: 0, pricing_error_sent: 0 },
+      totals: { ad_scraped: 3, country_outlier_sent: 0, price_drop_sent: 0 },
+      previousTotals: { ad_scraped: 5, country_outlier_sent: 0, price_drop_sent: 0 },
     });
   });
 

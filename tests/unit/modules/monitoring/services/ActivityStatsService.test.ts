@@ -20,10 +20,10 @@ describe("ActivityStatsService", () => {
   it("builds hourly series of the range and totals of both periods", async () => {
     const { service, repository } = setup(
       [
-        { type: "pricing_error_sent", channel: null, hour: 11 * HOUR, value: 1 },
-        { type: "conversion_error_sent", channel: "3", hour: 10 * HOUR, value: 2 },
+        { type: "price_drop_sent", channel: null, hour: 11 * HOUR, value: 1 },
+        { type: "country_outlier_sent", channel: "3", hour: 10 * HOUR, value: 2 },
         { type: "ad_scraped", channel: null, hour: 11 * HOUR, value: 7 },
-        { type: "conversion_error_sent", channel: "1", hour: 11 * HOUR, value: 1 },
+        { type: "country_outlier_sent", channel: "1", hour: 11 * HOUR, value: 1 },
         { type: "ad_scraped", channel: null, hour: 10 * HOUR, value: 5 },
       ],
       [{ type: "ad_scraped", channel: null, hour: 9 * HOUR, value: 40 }]
@@ -46,23 +46,23 @@ describe("ActivityStatsService", () => {
           ],
         },
         {
-          type: "conversion_error_sent",
+          type: "country_outlier_sent",
           channel: "1",
           points: [{ t: "1970-01-01T11:00:00.000Z", value: 1 }],
         },
         {
-          type: "conversion_error_sent",
+          type: "country_outlier_sent",
           channel: "3",
           points: [{ t: "1970-01-01T10:00:00.000Z", value: 2 }],
         },
         {
-          type: "pricing_error_sent",
+          type: "price_drop_sent",
           channel: null,
           points: [{ t: "1970-01-01T11:00:00.000Z", value: 1 }],
         },
       ],
-      totals: { ad_scraped: 12, conversion_error_sent: 3, pricing_error_sent: 1 },
-      previousTotals: { ad_scraped: 40, conversion_error_sent: 0, pricing_error_sent: 0 },
+      totals: { ad_scraped: 12, country_outlier_sent: 3, price_drop_sent: 1 },
+      previousTotals: { ad_scraped: 40, country_outlier_sent: 0, price_drop_sent: 0 },
     });
   });
 
@@ -71,8 +71,8 @@ describe("ActivityStatsService", () => {
 
     expect(await service.get(range)).toEqual({
       series: [],
-      totals: { ad_scraped: 0, conversion_error_sent: 0, pricing_error_sent: 0 },
-      previousTotals: { ad_scraped: 0, conversion_error_sent: 0, pricing_error_sent: 0 },
+      totals: { ad_scraped: 0, country_outlier_sent: 0, price_drop_sent: 0 },
+      previousTotals: { ad_scraped: 0, country_outlier_sent: 0, price_drop_sent: 0 },
     });
   });
 });
