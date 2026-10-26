@@ -7,3 +7,4 @@ for (const channel of [1, 2, 3, 4, 5, 6]) {
   process.env[`DISCORD_CONVERSION_ERROR_${channel}_TOKEN`] =
     `conversion-${channel}-token`;
 }
+process.env.API_TOKEN = "api-token";

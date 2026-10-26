@@ -4,6 +4,7 @@ import { createModules } from "@/modules";
 import { AppModule } from "@/shared/interfaces/AppModule";
 import { RequestLogMiddleware } from "@/shared/http/RequestLogMiddleware";
 import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
+import { ApiTokenMiddleware } from "@/shared/http/ApiTokenMiddleware";
 
 const SCRAPER_ROUTES = [
   { method: "POST", path: /^\/amazon\/ads\/?$/ },
@@ -22,6 +23,7 @@ export function createApp(modules: AppModule[] = createModules()) {
   app.use(express.json());
   app.use(cors());
   app.use(new RequestLogMiddleware(SCRAPER_ROUTES).handle);
+  app.use(new ApiTokenMiddleware().handle);
   modules.forEach((module) =>
     module.routers?.forEach((router) =>
       app.use(router.path, router.build().router)
