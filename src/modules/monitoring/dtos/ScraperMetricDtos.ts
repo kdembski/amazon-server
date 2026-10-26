@@ -32,3 +32,16 @@ export interface ScraperMetricSummary {
   reusePercent: number;
   attemptsPerItem: number | null;
 }
+
+export interface ScraperSeriesPoint {
+  t: string;
+  itemsPerSecond: number;
+  wastedPercent: number;
+  captchaPercent: number;
+  requests: number;
+}
+
+export interface ScraperSeries {
+  scraper: string;
+  points: ScraperSeriesPoint[];
+}
