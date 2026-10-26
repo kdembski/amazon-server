@@ -1,14 +1,4 @@
 import { NextFunction, Request, Response } from "express";
-import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
-
-export class InvalidApiTokenError extends Error {
-  status = 401;
-
-  constructor() {
-    super("Invalid API token");
-    this.name = "InvalidApiTokenError";
-  }
-}
 
 export class ApiTokenMiddleware {
   private token;
@@ -17,10 +7,11 @@ export class ApiTokenMiddleware {
     this.token = token;
   }
 
+  // Rejections are not logged: unauthenticated traffic on the public port would flood SystemLog.
   handle = (request: Request, response: Response, next: NextFunction) => {
     if (this.token && request.header("Authorization") === `Bearer ${this.token}`) {
       return next();
     }
-    new ResponseErrorService(response).send(new InvalidApiTokenError());
+    response.status(401).send("Invalid API token");
   };
 }

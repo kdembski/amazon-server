@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Request } from "express";
 import { ApiTokenMiddleware } from "@/shared/http/ApiTokenMiddleware";
-import { fakeResponse } from "../../../support/fakes";
+import { fakeResponse, unitLogger } from "../../../support/fakes";
 
 const call = (token: string | undefined, authorization: string | undefined) => {
   const { response, status, send } = fakeResponse();
@@ -43,6 +43,13 @@ describe("ApiTokenMiddleware", () => {
       expect(next).not.toHaveBeenCalled();
     }
   );
+
+  it("does not log a rejected request", () => {
+    call("secret", "Bearer wrong");
+
+    expect(unitLogger().warn).not.toHaveBeenCalled();
+    expect(unitLogger().error).not.toHaveBeenCalled();
+  });
 
   it("reads the token from API_TOKEN by default", () => {
     vi.stubEnv("API_TOKEN", "from-env");
