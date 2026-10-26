@@ -11,6 +11,8 @@ import { AmazonAdUpdateMapper } from "@/modules/marketplaces/amazon/mappers/Amaz
 import { AmazonAdPriceCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdPriceCreateMapper";
 import { AmazonAdPriceUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdPriceUpdateMapper";
 import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingPriceMapper";
+import { AmazonAdRecentPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdRecentPriceMapper";
+import { AmazonAdPriceSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
 import { AmazonCountryCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonCountryCreateMapper";
 import { AmazonCountryUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonCountryUpdateMapper";
 import { CountryCreateMapper } from "@/modules/currency/mappers/CountryCreateMapper";
@@ -270,6 +272,46 @@ describe("update mappers", () => {
     },
   ])("$name maps dto to update input", ({ map, dto, expected }) => {
     expect(map(dto)).toStrictEqual(expected);
+  });
+});
+
+// A row of AmazonAdPriceRepository.getRecentByAd; MySQL returns `active` as 0/1
+const toRecentPriceRow = ({
+  country: { tld, active, country },
+  ...price
+}: AmazonAdPriceSelectDto) => {
+  return {
+    ...price,
+    tld,
+    active: Number(active),
+    countryName: country.name,
+    countryCode: country.code,
+    currencyId: country.currencyId,
+    currencyName: country.currency.name,
+    currencyCode: country.currency.code,
+    currencySymbol: country.currency.symbol,
+    currencyCreatedAt: country.currency.createdAt,
+    currencyUpdatedAt: country.currency.updatedAt,
+  };
+};
+
+describe("AmazonAdRecentPriceMapper", () => {
+  it("maps the joined rows to prices grouped by country in row order", () => {
+    const pl = buildPriceCountry({ id: 1 });
+    const de = buildPriceCountry({ id: 2, active: false });
+    const pl1 = buildPrice({ country: pl });
+    const de1 = buildPrice({ country: de, dispatchFrom: null });
+    const pl2 = buildPrice({ country: pl });
+
+    const groups = new AmazonAdRecentPriceMapper().toCountryGroups(
+      [pl1, de1, pl2].map(toRecentPriceRow)
+    );
+
+    expect(groups).toEqual([[pl1, pl2], [de1]]);
+  });
+
+  it("returns no groups without rows", () => {
+    expect(new AmazonAdRecentPriceMapper().toCountryGroups([])).toEqual([]);
   });
 });
 

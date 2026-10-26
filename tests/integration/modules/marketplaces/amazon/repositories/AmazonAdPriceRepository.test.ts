@@ -46,6 +46,9 @@ describe("AmazonAdPriceRepository (MySQL)", () => {
         currency: { id: pl.currencyId },
       },
     });
+    for (const price of groups.flat()) {
+      expect(price).toEqual(await repository.getById(price.id));
+    }
   });
 
   it("getRecentByAd ignores other ads", async () => {
