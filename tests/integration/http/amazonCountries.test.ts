@@ -16,7 +16,7 @@ describe("/amazon/countries", () => {
 
     const created = await request(app)
       .post("/amazon/countries")
-      .send({ countryId: country.id, tld: "com.be", scraped: false, active: false, proxyType: "datacenter" })
+      .send({ countryId: country.id, tld: "com.be", scraped: false, active: false, proxyType: "datacenter", priority: 1 })
       .expect(200);
     expect(created.body).toMatchObject({
       countryId: country.id,
@@ -24,6 +24,7 @@ describe("/amazon/countries", () => {
       scraped: false,
       active: false,
       proxyType: "datacenter",
+      priority: 1,
     });
 
     const list = await request(app).get("/amazon/countries").expect(200);
@@ -31,19 +32,19 @@ describe("/amazon/countries", () => {
 
     await request(app)
       .put(`/amazon/countries/${country.id}`)
-      .send({ tld: "com.be", scraped: true, active: true, proxyType: "isp" })
+      .send({ tld: "com.be", scraped: true, active: true, proxyType: "isp", priority: 2 })
       .expect(200);
     const updated = await prisma.amazonCountry.findUniqueOrThrow({ where: { countryId: country.id } });
-    expect([updated.scraped, updated.active, updated.proxyType]).toEqual([true, true, "isp"]);
+    expect([updated.scraped, updated.active, updated.proxyType, updated.priority]).toEqual([true, true, "isp", 2]);
   });
 
-  it("GET /scrap hands out only scraped countries with their tld and proxy type", async () => {
-    const scraped = await seedAmazonCountry({ tld: "de", scraped: true, proxyType: "isp" });
+  it("GET /scrap hands out only scraped countries with their tld, proxy type and priority", async () => {
+    const scraped = await seedAmazonCountry({ tld: "de", scraped: true, proxyType: "isp", priority: 2 });
     await seedAmazonCountry({ tld: "ie", scraped: false });
 
     const res = await request(app).get("/amazon/countries/scrap").expect(200);
 
-    expect(res.body).toEqual([{ countryId: scraped.countryId, tld: "de", proxyType: "isp" }]);
+    expect(res.body).toEqual([{ countryId: scraped.countryId, tld: "de", proxyType: "isp", priority: 2 }]);
   });
 
   it("does not expose DELETE /:id", async () => {
@@ -58,7 +59,7 @@ describe("/amazon/countries", () => {
 
     await request(app)
       .post("/amazon/countries")
-      .send({ countryId, tld: "pl", scraped: true, active: true, proxyType: "datacenter" })
+      .send({ countryId, tld: "pl", scraped: true, active: true, proxyType: "datacenter", priority: 0 })
       .expect(422);
   });
 });

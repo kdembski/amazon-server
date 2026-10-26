@@ -15,6 +15,7 @@ export class AmazonCountryUpdateMapper
       scraped: dto.scraped,
       active: dto.active,
       proxyType: dto.proxyType,
+      priority: dto.priority,
       updatedAt: new Date(Date.now()),
     };
   }

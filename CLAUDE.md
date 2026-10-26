@@ -93,9 +93,9 @@ npm run test:integration  # tests/integration, needs a running Docker
   `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices with one `createMany`,
   counts `ad_scraped` through `ActivityCountService.increment` and asynchronously runs the anomaly managers (`src/modules/anomalies`); their marketplace reporters
   store `*_sent` events and post to Discord.
-- Amazon countries: keep Amazon's countries in `AmazonCountry` (`countryId` = `Country.id`, `tld`, `scraped`, `active`, `proxyType` = `datacenter` | `isp`),
+- Amazon countries: keep Amazon's countries in `AmazonCountry` (`countryId` = `Country.id`, `tld`, `scraped`, `active`, `proxyType` = `datacenter` | `isp`, `priority`),
   changed through `GET|POST /amazon/countries` and `PUT /amazon/countries/:id`; never delete rows, set `scraped = false`
-  instead. `GET /amazon/countries/scrap` hands out `countryId`, `tld` and `proxyType` of `scraped` countries.
+  instead. `GET /amazon/countries/scrap` hands out `countryId`, `tld`, `proxyType` and `priority` of `scraped` countries.
   `AmazonAdPrice.countryId` references `AmazonCountry`. Build
   listing URLs as `https://www.amazon.<tld>/dp/<asin>` (`ListingPrice.url`). Report anomalies only for countries with
   `AmazonCountry.active = true` (`ListingPrice.country.active`).
