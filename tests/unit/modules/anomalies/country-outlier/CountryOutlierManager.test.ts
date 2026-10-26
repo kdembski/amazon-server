@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { ConversionErrorManager } from "@/modules/anomalies/conversion-error/ConversionErrorManager";
-import { ConversionErrorStrategy } from "@/modules/anomalies/conversion-error/ConversionErrorStrategy";
+import { CountryOutlierManager } from "@/modules/anomalies/country-outlier/CountryOutlierManager";
+import { CountryOutlierStrategy } from "@/modules/anomalies/country-outlier/CountryOutlierStrategy";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
 import {
@@ -15,10 +15,10 @@ const setup = (channels = ["1", "4"]) => {
   const getMatchingRules = vi
     .fn()
     .mockReturnValue(channels.map((channel) => ({ channel })));
-  const manager = new ConversionErrorManager(
+  const manager = new CountryOutlierManager(
     reporter,
     { getPlnRates } as unknown as CurrencyExchangeRateService,
-    { getMatchingRules } as unknown as ConversionErrorStrategy
+    { getMatchingRules } as unknown as CountryOutlierStrategy
   );
   return {
     manager,
@@ -36,7 +36,7 @@ const fourCountries = () => [
   [buildListingPrice()],
 ];
 
-describe("ConversionErrorManager", () => {
+describe("CountryOutlierManager", () => {
   it("ignores listings with fewer than 4 countries", async () => {
     const { manager, getPlnRates, getMatchingRules, listing } = setup();
 

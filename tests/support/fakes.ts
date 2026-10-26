@@ -7,8 +7,8 @@ import type { ScraperMetricService } from "@/modules/monitoring/services/Scraper
 import type { ScraperConfigService } from "@/modules/monitoring/services/ScraperConfigService";
 import type { DiscordService } from "@/shared/discord/DiscordService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
-import type { AmazonConversionErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorDiscordService";
-import type { AmazonPricingErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorDiscordService";
+import type { AmazonCountryOutlierDiscordService } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierDiscordService";
+import type { AmazonPriceDropDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPriceDropDiscordService";
 
 export function fakeActivityEventService() {
   const create = vi.fn().mockResolvedValue({ id: 1 });
@@ -69,19 +69,19 @@ export function fakeScraperConfigService() {
   return { service, get };
 }
 
-export function fakeAmazonConversionErrorDiscordService() {
+export function fakeAmazonCountryOutlierDiscordService() {
   const send = vi.fn().mockResolvedValue(undefined);
   const setChannel = vi.fn();
   const service = {
     send,
     setChannel,
-  } as unknown as AmazonConversionErrorDiscordService;
+  } as unknown as AmazonCountryOutlierDiscordService;
   return { service, send, setChannel };
 }
 
-export function fakeAmazonPricingErrorDiscordService() {
+export function fakeAmazonPriceDropDiscordService() {
   const send = vi.fn().mockResolvedValue(undefined);
-  const service = { send } as unknown as AmazonPricingErrorDiscordService;
+  const service = { send } as unknown as AmazonPriceDropDiscordService;
   return { service, send };
 }
 

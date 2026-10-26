@@ -108,8 +108,8 @@ enum Marketplace {
 
 enum ActivityEventType {
   ad_scraped
-  conversion_error_sent
-  pricing_error_sent
+  country_outlier_sent
+  price_drop_sent
 }
 
 model ActivityEvent {

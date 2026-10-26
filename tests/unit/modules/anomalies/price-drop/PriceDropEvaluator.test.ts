@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { PricingErrorEvaluator } from "@/modules/anomalies/pricing-error/PricingErrorEvaluator";
+import { PriceDropEvaluator } from "@/modules/anomalies/price-drop/PriceDropEvaluator";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { buildListingPrice } from "../../../../support/factories";
 
-const evaluator = new PricingErrorEvaluator();
+const evaluator = new PriceDropEvaluator();
 
 // newest price first, as the marketplace passes them in
 const history = (...values: number[]) =>

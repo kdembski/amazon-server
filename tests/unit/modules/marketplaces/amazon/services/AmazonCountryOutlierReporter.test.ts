@@ -1,22 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { AmazonConversionErrorReporter } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorReporter";
+import { AmazonCountryOutlierReporter } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierReporter";
 import { buildAd, buildListingPrice } from "../../../../../support/factories";
 import {
-  fakeAmazonConversionErrorDiscordService,
+  fakeAmazonCountryOutlierDiscordService,
   fakeActivityEventService,
 } from "../../../../../support/fakes";
 
 const setup = () => {
   const log = fakeActivityEventService();
-  const discord = fakeAmazonConversionErrorDiscordService();
-  const reporter = new AmazonConversionErrorReporter(
+  const discord = fakeAmazonCountryOutlierDiscordService();
+  const reporter = new AmazonCountryOutlierReporter(
     log.service,
     discord.service
   );
   return { reporter, log, discord };
 };
 
-describe("AmazonConversionErrorReporter", () => {
+describe("AmazonCountryOutlierReporter", () => {
   it("logs the event with the PLN prices and sends the embed to the rule's channel", async () => {
     const { reporter, log, discord } = setup();
     const ad = buildAd({ asin: "B000TEST01", name: "Bosch drill" });
@@ -28,7 +28,7 @@ describe("AmazonConversionErrorReporter", () => {
     await reporter.report(ad, prices, "3");
 
     expect(log.create).toHaveBeenCalledWith({
-      type: "conversion_error_sent",
+      type: "country_outlier_sent",
       marketplace: "amazon",
       data: {
         asin: "B000TEST01",

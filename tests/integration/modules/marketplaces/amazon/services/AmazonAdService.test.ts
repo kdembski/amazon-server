@@ -1,17 +1,17 @@
 import { describe, expect, it, vi } from "vitest";
 import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
 import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
-import { ConversionErrorManager } from "@/modules/anomalies/conversion-error/ConversionErrorManager";
-import { PricingErrorManager } from "@/modules/anomalies/pricing-error/PricingErrorManager";
+import { CountryOutlierManager } from "@/modules/anomalies/country-outlier/CountryOutlierManager";
+import { PriceDropManager } from "@/modules/anomalies/price-drop/PriceDropManager";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
-import { AmazonConversionErrorReporter } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorReporter";
-import { AmazonPricingErrorReporter } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorReporter";
+import { AmazonCountryOutlierReporter } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierReporter";
+import { AmazonPriceDropReporter } from "@/modules/marketplaces/amazon/services/AmazonPriceDropReporter";
 import { ActivityCounter } from "@/modules/monitoring/services/ActivityCounter";
 import { FIXED_DATE } from "../../../../../support/factories";
 import {
-  fakeAmazonConversionErrorDiscordService,
-  fakeAmazonPricingErrorDiscordService,
+  fakeAmazonCountryOutlierDiscordService,
+  fakeAmazonPriceDropDiscordService,
 } from "../../../../../support/fakes";
 import { prisma } from "../../../../../support/integration/db";
 import {
@@ -25,18 +25,18 @@ import {
 // Real repositories and services (constructor defaults), only the Discord
 // senders are faked. `undefined` positional arguments keep the defaults.
 const buildAdService = () => {
-  const pricing = fakeAmazonPricingErrorDiscordService();
-  const conversion = fakeAmazonConversionErrorDiscordService();
+  const pricing = fakeAmazonPriceDropDiscordService();
+  const conversion = fakeAmazonCountryOutlierDiscordService();
   const service = new AmazonAdService(
     undefined,
     undefined,
     undefined,
     new AnomalyManager<AmazonAdSelectDto>([
-      new ConversionErrorManager(
-        new AmazonConversionErrorReporter(undefined, conversion.service)
+      new CountryOutlierManager(
+        new AmazonCountryOutlierReporter(undefined, conversion.service)
       ),
-      new PricingErrorManager(
-        new AmazonPricingErrorReporter(undefined, pricing.service)
+      new PriceDropManager(
+        new AmazonPriceDropReporter(undefined, pricing.service)
       ),
     ])
   );
@@ -97,7 +97,7 @@ describe("AmazonAdService (MySQL)", () => {
   });
 
   describe("updatePrices", () => {
-    it("stores prices, counts ad_scraped and reports a halved price as a pricing error", async () => {
+    it("stores prices, counts ad_scraped and reports a halved price as a price drop", async () => {
       const { service, pricing } = buildAdService();
       const ad = await seedAd();
       const { countryId } = await seedAmazonCountry();
@@ -111,11 +111,11 @@ describe("AmazonAdService (MySQL)", () => {
       expect(ActivityCounter.getInstance().counts.get("ad_scraped:amazon")?.count).toBe(1);
       // The anomaly managers run after updatePrices resolves.
       await vi.waitFor(() => expect(pricing.send).toHaveBeenCalledTimes(1));
-      const pricingErrors = await prisma.activityEvent.findMany({
-        where: { type: "pricing_error_sent" },
+      const priceDrops = await prisma.activityEvent.findMany({
+        where: { type: "price_drop_sent" },
       });
-      expect(pricingErrors).toHaveLength(1);
-      expect(pricingErrors[0].data).toMatchObject({ asin: ad.asin });
+      expect(priceDrops).toHaveLength(1);
+      expect(priceDrops[0].data).toMatchObject({ asin: ad.asin });
       const [sentListing, sentGroups] = pricing.send.mock.calls[0] as [
         AmazonAdSelectDto,
         ListingPrice[][]
@@ -144,7 +144,7 @@ describe("AmazonAdService (MySQL)", () => {
       );
     });
 
-    it("reports a conversion error when the cheapest market is under 10 % of the next one", async () => {
+    it("reports a country outlier when the cheapest market is under 10 % of the next one", async () => {
       const { service, conversion, pricing } = buildAdService();
       const ad = await seedAd();
       const pl = await seedMarket({ countryCode: "pl", currencyCode: "PLN" });
@@ -163,7 +163,7 @@ describe("AmazonAdService (MySQL)", () => {
       await vi.waitFor(() => expect(conversion.send).toHaveBeenCalledTimes(2));
       expect(conversion.setChannel.mock.calls.map((c) => c[0]).sort()).toEqual(["3", "4"]);
       const events = await prisma.activityEvent.findMany({
-        where: { type: "conversion_error_sent" },
+        where: { type: "country_outlier_sent" },
       });
       const channels = events.map((e) => (e.data as { channel: string }).channel);
       expect(channels.sort()).toEqual(["3", "4"]);
@@ -214,7 +214,7 @@ describe("AmazonAdService (MySQL)", () => {
       expect(conversion.send).not.toHaveBeenCalled();
     });
 
-    it("reports a pricing error in the market currency while the conversion check runs", async () => {
+    it("reports a price drop in the market currency while the conversion check runs", async () => {
       const { service, pricing } = buildAdService();
       const ad = await seedAd();
       const pl = await seedMarket({ countryCode: "pl", currencyCode: "PLN" });

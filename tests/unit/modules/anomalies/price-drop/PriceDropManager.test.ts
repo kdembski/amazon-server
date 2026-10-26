@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { PricingErrorManager } from "@/modules/anomalies/pricing-error/PricingErrorManager";
+import { PriceDropManager } from "@/modules/anomalies/price-drop/PriceDropManager";
 import { buildListingPrice } from "../../../../support/factories";
 
 const setup = () => {
   const reporter = { report: vi.fn().mockResolvedValue(undefined) };
-  const manager = new PricingErrorManager(reporter);
+  const manager = new PriceDropManager(reporter);
   return { manager, reporter, listing: { id: 1 } };
 };
 
@@ -12,7 +12,7 @@ const setup = () => {
 const history = (...values: number[]) =>
   values.map((value) => buildListingPrice({ value }));
 
-describe("PricingErrorManager", () => {
+describe("PriceDropManager", () => {
   it("sends when the newest price is at most 50% of the previous and of the median of the older ones", async () => {
     const { manager, reporter, listing } = setup();
     const country = history(45, 100, 80);

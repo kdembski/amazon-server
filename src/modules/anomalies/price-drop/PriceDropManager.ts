@@ -1,15 +1,15 @@
 import { AnomalyManagerI } from "@/modules/anomalies/interfaces/AnomalyManagerI";
-import { PricingErrorReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
+import { PriceDropReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
-import { PricingErrorEvaluator } from "@/modules/anomalies/pricing-error/PricingErrorEvaluator";
+import { PriceDropEvaluator } from "@/modules/anomalies/price-drop/PriceDropEvaluator";
 
-export class PricingErrorManager<T> implements AnomalyManagerI<T> {
+export class PriceDropManager<T> implements AnomalyManagerI<T> {
   private reporter;
   private evaluator;
 
   constructor(
-    reporter: PricingErrorReporter<T>,
-    evaluator = new PricingErrorEvaluator()
+    reporter: PriceDropReporter<T>,
+    evaluator = new PriceDropEvaluator()
   ) {
     this.reporter = reporter;
     this.evaluator = evaluator;

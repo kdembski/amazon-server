@@ -4,10 +4,10 @@ import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDt
 import { DiscordService } from "@/shared/discord/DiscordService";
 import { roundToTwoDecimals } from "@/shared/utils/number";
 
-export class AmazonPricingErrorDiscordService {
+export class AmazonPriceDropDiscordService {
   private service;
 
-  constructor(service = new DiscordService("DISCORD_PRICING_ERROR_TOKEN")) {
+  constructor(service = new DiscordService("DISCORD_PRICE_DROP_TOKEN")) {
     this.service = service;
   }
 

@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
-import { AmazonConversionErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorDiscordService";
+import { AmazonCountryOutlierDiscordService } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierDiscordService";
 import { buildAd, buildListingPrice } from "../../../../../support/factories";
 import { fakeDiscordService } from "../../../../../support/fakes";
 
-describe("AmazonConversionErrorDiscordService", () => {
+describe("AmazonCountryOutlierDiscordService", () => {
   it("sends an embed with one field per country linking to the marketplace", async () => {
     const discord = fakeDiscordService();
-    const service = new AmazonConversionErrorDiscordService(discord.service);
+    const service = new AmazonCountryOutlierDiscordService(discord.service);
     const ad = buildAd({
       name: "Drill",
       asin: "B0X",
@@ -44,7 +44,7 @@ describe("AmazonConversionErrorDiscordService", () => {
     vi.stubEnv("NODE_ENV", "development");
     const discord = fakeDiscordService();
 
-    await new AmazonConversionErrorDiscordService(discord.service).send(
+    await new AmazonCountryOutlierDiscordService(discord.service).send(
       buildAd(),
       [buildListingPrice()]
     );
@@ -55,10 +55,10 @@ describe("AmazonConversionErrorDiscordService", () => {
   it("setChannel points the client at the matching env variable", () => {
     const discord = fakeDiscordService();
 
-    new AmazonConversionErrorDiscordService(discord.service).setChannel("4");
+    new AmazonCountryOutlierDiscordService(discord.service).setChannel("4");
 
     expect(discord.clientSetter).toHaveBeenCalledWith(
-      "DISCORD_CONVERSION_ERROR_4_TOKEN"
+      "DISCORD_COUNTRY_OUTLIER_4_TOKEN"
     );
   });
 });

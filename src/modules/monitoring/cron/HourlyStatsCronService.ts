@@ -39,9 +39,9 @@ export class HourlyStatsCronService {
     const counts = [
       this.activityCountService.getCount("ad_scraped", ...this.getLastHour()),
       ...["1", "2", "3", "4", "5", "6"].map((channel) =>
-        this.getCount("conversion_error_sent", channel)
+        this.getCount("country_outlier_sent", channel)
       ),
-      this.getCount("pricing_error_sent"),
+      this.getCount("price_drop_sent"),
     ];
 
     const to = new Date();

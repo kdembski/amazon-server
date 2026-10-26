@@ -18,9 +18,9 @@ describe("ActivityEventService", () => {
     const { service, repository } = setup();
     const from = new Date(1);
     const to = new Date(2);
-    await service.getCount("conversion_error_sent", from, to, "2");
+    await service.getCount("country_outlier_sent", from, to, "2");
     expect(repository.getCount).toHaveBeenCalledWith(
-      "conversion_error_sent",
+      "country_outlier_sent",
       from,
       to,
       "2"

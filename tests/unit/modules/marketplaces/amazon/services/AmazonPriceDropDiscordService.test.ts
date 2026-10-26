@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { format } from "date-fns";
-import { AmazonPricingErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorDiscordService";
+import { AmazonPriceDropDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPriceDropDiscordService";
 import { buildAd, buildListingPrice } from "../../../../../support/factories";
 import { fakeDiscordService } from "../../../../../support/fakes";
 
-describe("AmazonPricingErrorDiscordService", () => {
+describe("AmazonPriceDropDiscordService", () => {
   it("renders price history oldest-first with a link on the newest price", async () => {
     const discord = fakeDiscordService();
-    const service = new AmazonPricingErrorDiscordService(discord.service);
+    const service = new AmazonPriceDropDiscordService(discord.service);
     const ad = buildAd({
       name: "Drill",
       asin: "B0X",
@@ -61,7 +61,7 @@ describe("AmazonPricingErrorDiscordService", () => {
     vi.stubEnv("NODE_ENV", "development");
     const discord = fakeDiscordService();
 
-    await new AmazonPricingErrorDiscordService(discord.service).send(buildAd(), [
+    await new AmazonPriceDropDiscordService(discord.service).send(buildAd(), [
       [buildListingPrice()],
     ]);
 
@@ -69,7 +69,7 @@ describe("AmazonPricingErrorDiscordService", () => {
   });
 
   it("getDifference rounds the percentage to the next price and is undefined for the last one", () => {
-    const service = new AmazonPricingErrorDiscordService(
+    const service = new AmazonPriceDropDiscordService(
       fakeDiscordService().service
     );
     const prices = [
@@ -83,7 +83,7 @@ describe("AmazonPricingErrorDiscordService", () => {
 
   it("renders only price changes, dated when each price first appeared", async () => {
     const discord = fakeDiscordService();
-    const service = new AmazonPricingErrorDiscordService(discord.service);
+    const service = new AmazonPriceDropDiscordService(discord.service);
     const country = { name: "Germany", code: "de", currencyCode: "EUR" };
     const at = (hour: number) => new Date(2026, 0, 1, hour);
     const history = [
@@ -115,7 +115,7 @@ describe("AmazonPricingErrorDiscordService", () => {
   });
 
   it("getFullText omits the difference when it is missing or zero", () => {
-    const service = new AmazonPricingErrorDiscordService(
+    const service = new AmazonPriceDropDiscordService(
       fakeDiscordService().service
     );
 

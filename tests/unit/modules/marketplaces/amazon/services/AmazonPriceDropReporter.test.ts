@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { AmazonPricingErrorReporter } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorReporter";
+import { AmazonPriceDropReporter } from "@/modules/marketplaces/amazon/services/AmazonPriceDropReporter";
 import { buildAd, buildListingPrice } from "../../../../../support/factories";
 import {
-  fakeAmazonPricingErrorDiscordService,
+  fakeAmazonPriceDropDiscordService,
   fakeActivityEventService,
 } from "../../../../../support/fakes";
 
 const setup = () => {
   const log = fakeActivityEventService();
-  const discord = fakeAmazonPricingErrorDiscordService();
-  const reporter = new AmazonPricingErrorReporter(log.service, discord.service);
+  const discord = fakeAmazonPriceDropDiscordService();
+  const reporter = new AmazonPriceDropReporter(log.service, discord.service);
   return { reporter, log, discord };
 };
 
-describe("AmazonPricingErrorReporter", () => {
+describe("AmazonPriceDropReporter", () => {
   it("logs the event with the newest price of each country and sends the embed", async () => {
     const { reporter, log, discord } = setup();
     const ad = buildAd({ asin: "B000TEST01", name: "Bosch drill" });
@@ -33,7 +33,7 @@ describe("AmazonPricingErrorReporter", () => {
     await reporter.report(ad, countryPrices);
 
     expect(log.create).toHaveBeenCalledWith({
-      type: "pricing_error_sent",
+      type: "price_drop_sent",
       marketplace: "amazon",
       data: {
         asin: "B000TEST01",

@@ -9,9 +9,9 @@ import {
 } from "../../../../support/integration/seed";
 
 const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000);
-const conversionError = (channel: string, createdAt: Date) =>
+const countryOutlier = (channel: string, createdAt: Date) =>
   seedActivityEvent({
-    type: "conversion_error_sent",
+    type: "country_outlier_sent",
     data: { asin: "B000SEED00", channel, prices: [] },
     createdAt,
   });
@@ -27,15 +27,15 @@ describe("HourlyStatsCronService (MySQL)", () => {
     await seedActivityEvent({ type: "ad_scraped", data: { count: 7 }, createdAt: minutesAgo(120) });
     // A single event from before the counts
     await seedActivityEvent({ type: "ad_scraped", createdAt: minutesAgo(20) });
-    await conversionError("1", minutesAgo(59));
-    await conversionError("6", minutesAgo(5));
-    await conversionError("6", minutesAgo(6));
-    await conversionError("2", minutesAgo(90));
-    await seedActivityEvent({ type: "pricing_error_sent", createdAt: minutesAgo(10) });
+    await countryOutlier("1", minutesAgo(59));
+    await countryOutlier("6", minutesAgo(5));
+    await countryOutlier("6", minutesAgo(6));
+    await countryOutlier("2", minutesAgo(90));
+    await seedActivityEvent({ type: "price_drop_sent", createdAt: minutesAgo(10) });
 
     await service.run();
 
-    // [ad_scraped, ce1, ce2, ce3, ce4, ce5, ce6, pricing_error]
+    // [ad_scraped, ce1, ce2, ce3, ce4, ce5, ce6, price_drop]
     expect(sendHourly).toHaveBeenCalledWith([6, 1, 0, 0, 0, 0, 2, 1], []);
   });
 

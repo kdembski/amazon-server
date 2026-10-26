@@ -17,13 +17,13 @@ vi.mock("cron", () => ({
 
 const COUNTS: [string, string?][] = [
   ["ad_scraped"],
-  ["conversion_error_sent", "1"],
-  ["conversion_error_sent", "2"],
-  ["conversion_error_sent", "3"],
-  ["conversion_error_sent", "4"],
-  ["conversion_error_sent", "5"],
-  ["conversion_error_sent", "6"],
-  ["pricing_error_sent"],
+  ["country_outlier_sent", "1"],
+  ["country_outlier_sent", "2"],
+  ["country_outlier_sent", "3"],
+  ["country_outlier_sent", "4"],
+  ["country_outlier_sent", "5"],
+  ["country_outlier_sent", "6"],
+  ["price_drop_sent"],
 ];
 
 const setup = () => {

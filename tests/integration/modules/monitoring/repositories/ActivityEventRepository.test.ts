@@ -6,9 +6,9 @@ import { seedActivityEvent } from "../../../../support/integration/seed";
 
 const repository = new ActivityEventRepository(prisma);
 const minute = (n: number) => new Date(FIXED_DATE.getTime() + n * 60_000);
-const conversionError = (channel: string | number) =>
+const countryOutlier = (channel: string | number) =>
   seedActivityEvent({
-    type: "conversion_error_sent",
+    type: "country_outlier_sent",
     data: { asin: "B000SEED00", channel, prices: [] },
   });
 
@@ -17,30 +17,30 @@ describe("ActivityEventRepository (MySQL)", () => {
     await seedActivityEvent({ type: "ad_scraped", createdAt: minute(0) });
     await seedActivityEvent({ type: "ad_scraped", createdAt: minute(5) });
     await seedActivityEvent({ type: "ad_scraped", createdAt: minute(10) });
-    await seedActivityEvent({ type: "pricing_error_sent", createdAt: minute(5) });
+    await seedActivityEvent({ type: "price_drop_sent", createdAt: minute(5) });
 
     expect(await repository.getCount("ad_scraped")).toBe(3);
     expect(await repository.getCount("ad_scraped", minute(0), minute(5))).toBe(2);
     expect(await repository.getCount("ad_scraped", minute(6))).toBe(1);
-    expect(await repository.getCount("conversion_error_sent")).toBe(0);
+    expect(await repository.getCount("country_outlier_sent")).toBe(0);
   });
 
-  it("getCount counts conversion errors of exactly the given string channel", async () => {
-    await conversionError("3");
-    await conversionError("3");
-    await conversionError("30");
-    await conversionError(3);
+  it("getCount counts country outliers of exactly the given string channel", async () => {
+    await countryOutlier("3");
+    await countryOutlier("3");
+    await countryOutlier("30");
+    await countryOutlier(3);
 
     expect(
-      await repository.getCount("conversion_error_sent", undefined, undefined, "3")
+      await repository.getCount("country_outlier_sent", undefined, undefined, "3")
     ).toBe(2);
-    expect(await repository.getCount("conversion_error_sent")).toBe(4);
+    expect(await repository.getCount("country_outlier_sent")).toBe(4);
   });
 
   it("deleteOlderThan removes rows strictly before the date across batches", async () => {
     await seedActivityEvent({ type: "ad_scraped", createdAt: minute(0) });
     await seedActivityEvent({ type: "ad_scraped", createdAt: minute(1) });
-    await seedActivityEvent({ type: "pricing_error_sent", createdAt: minute(2) });
+    await seedActivityEvent({ type: "price_drop_sent", createdAt: minute(2) });
     const boundary = await seedActivityEvent({ type: "ad_scraped", createdAt: minute(3) });
     const later = await seedActivityEvent({ type: "ad_scraped", createdAt: minute(4) });
 
@@ -57,7 +57,7 @@ describe("ActivityEventRepository (MySQL)", () => {
       prices: [{ country: "de", value: "412.5", currency: "EUR" }],
     };
     const created = await repository.create({
-      type: "pricing_error_sent",
+      type: "price_drop_sent",
       marketplace: "amazon",
       data,
       createdAt: FIXED_DATE,
@@ -67,7 +67,7 @@ describe("ActivityEventRepository (MySQL)", () => {
       where: { id: created.id },
     });
     expect(stored).toMatchObject({
-      type: "pricing_error_sent",
+      type: "price_drop_sent",
       marketplace: "amazon",
       data,
     });
@@ -82,10 +82,10 @@ describe("ActivityEventRepository (MySQL)", () => {
     await seedActivityEvent({ type: "ad_scraped", data: { asin: "B0X" }, createdAt: minute(5) });
     await seedActivityEvent({ type: "ad_scraped", data: { count: 4 }, createdAt: minute(10) });
     await seedActivityEvent({ type: "ad_scraped", data: { count: 8 }, createdAt: minute(11) });
-    await seedActivityEvent({ type: "pricing_error_sent", data: { count: 16 }, createdAt: minute(5) });
+    await seedActivityEvent({ type: "price_drop_sent", data: { count: 16 }, createdAt: minute(5) });
 
     expect(await repository.getSum("ad_scraped", minute(0), minute(10))).toBe(7);
-    expect(await repository.getSum("conversion_error_sent", minute(0), minute(10))).toBe(0);
+    expect(await repository.getSum("country_outlier_sent", minute(0), minute(10))).toBe(0);
   });
 
   it("createMany stores the rows", async () => {
@@ -102,10 +102,10 @@ describe("ActivityEventRepository (MySQL)", () => {
     const at = (iso: string) => new Date(iso);
     await seedActivityEvent({ type: "ad_scraped", data: { count: 5 }, createdAt: at("2026-10-26T10:00:00Z") });
     await seedActivityEvent({ type: "ad_scraped", data: { asin: "B0X" }, createdAt: at("2026-10-26T10:59:00Z") });
-    await seedActivityEvent({ type: "conversion_error_sent", data: { channel: "3" }, createdAt: at("2026-10-26T10:30:00Z") });
-    await seedActivityEvent({ type: "conversion_error_sent", data: { channel: 3 }, createdAt: at("2026-10-26T10:40:00Z") });
+    await seedActivityEvent({ type: "country_outlier_sent", data: { channel: "3" }, createdAt: at("2026-10-26T10:30:00Z") });
+    await seedActivityEvent({ type: "country_outlier_sent", data: { channel: 3 }, createdAt: at("2026-10-26T10:40:00Z") });
     await seedActivityEvent({ type: "ad_scraped", data: { count: 7 }, createdAt: at("2026-10-26T12:00:00Z") });
-    await seedActivityEvent({ type: "pricing_error_sent", data: {}, createdAt: at("2026-10-25T23:59:00Z") });
+    await seedActivityEvent({ type: "price_drop_sent", data: {}, createdAt: at("2026-10-25T23:59:00Z") });
 
     const rows = await repository.getSumByTypeChannelAndHour(
       at("2026-10-25T23:00:00Z"),
@@ -117,8 +117,8 @@ describe("ActivityEventRepository (MySQL)", () => {
     ).toEqual(
       expect.arrayContaining([
         { type: "ad_scraped", channel: null, hour: "2026-10-26T10:00:00.000Z", value: 6 },
-        { type: "conversion_error_sent", channel: "3", hour: "2026-10-26T10:00:00.000Z", value: 2 },
-        { type: "pricing_error_sent", channel: null, hour: "2026-10-25T23:00:00.000Z", value: 1 },
+        { type: "country_outlier_sent", channel: "3", hour: "2026-10-26T10:00:00.000Z", value: 2 },
+        { type: "price_drop_sent", channel: null, hour: "2026-10-25T23:00:00.000Z", value: 1 },
       ])
     );
     expect(rows).toHaveLength(3);

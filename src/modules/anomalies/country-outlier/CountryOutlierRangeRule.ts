@@ -1,8 +1,8 @@
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
-import { ConversionErrorRuleI } from "@/modules/anomalies/interfaces/ConversionErrorRuleI";
-import { ConversionErrorEvaluator } from "@/modules/anomalies/conversion-error/ConversionErrorEvaluator";
+import { CountryOutlierRuleI } from "@/modules/anomalies/interfaces/CountryOutlierRuleI";
+import { CountryOutlierEvaluator } from "@/modules/anomalies/country-outlier/CountryOutlierEvaluator";
 
-export class ConversionErrorRangeRule implements ConversionErrorRuleI {
+export class CountryOutlierRangeRule implements CountryOutlierRuleI {
   readonly channel;
   private min;
   private max;
@@ -12,7 +12,7 @@ export class ConversionErrorRangeRule implements ConversionErrorRuleI {
     channel: string,
     min?: number,
     max?: number,
-    evaluator = new ConversionErrorEvaluator()
+    evaluator = new CountryOutlierEvaluator()
   ) {
     this.channel = channel;
     this.min = min;

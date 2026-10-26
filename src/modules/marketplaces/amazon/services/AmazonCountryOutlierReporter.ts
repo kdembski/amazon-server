@@ -1,18 +1,18 @@
-import { ConversionErrorReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
+import { CountryOutlierReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
-import { AmazonConversionErrorDiscordService } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorDiscordService";
+import { AmazonCountryOutlierDiscordService } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierDiscordService";
 import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 
-export class AmazonConversionErrorReporter
-  implements ConversionErrorReporter<AmazonAdSelectDto>
+export class AmazonCountryOutlierReporter
+  implements CountryOutlierReporter<AmazonAdSelectDto>
 {
   private activityEventService;
   private discordService;
 
   constructor(
     activityEventService = new ActivityEventService(),
-    discordService = new AmazonConversionErrorDiscordService()
+    discordService = new AmazonCountryOutlierDiscordService()
   ) {
     this.activityEventService = activityEventService;
     this.discordService = discordService;
@@ -20,7 +20,7 @@ export class AmazonConversionErrorReporter
 
   async report(ad: AmazonAdSelectDto, prices: ListingPrice[], channel: string) {
     await this.activityEventService.creatable.create({
-      type: "conversion_error_sent",
+      type: "country_outlier_sent",
       marketplace: "amazon",
       data: {
         asin: ad.asin,

@@ -9,7 +9,7 @@ describe("ActivityEventCleanupCronService (MySQL)", () => {
   it("removes only logs older than 30 days", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     await seedActivityEvent({ type: "ad_scraped", createdAt: daysAgo(31) });
-    await seedActivityEvent({ type: "pricing_error_sent", createdAt: daysAgo(45) });
+    await seedActivityEvent({ type: "price_drop_sent", createdAt: daysAgo(45) });
     const kept = await seedActivityEvent({ type: "ad_scraped", createdAt: daysAgo(29) });
 
     await new ActivityEventCleanupCronService().run();

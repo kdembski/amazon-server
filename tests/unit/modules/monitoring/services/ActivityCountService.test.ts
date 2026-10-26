@@ -30,11 +30,11 @@ describe("ActivityCountService", () => {
 
     service.increment("ad_scraped", "amazon");
     service.increment("ad_scraped", "amazon");
-    service.increment("pricing_error_sent", "amazon");
+    service.increment("price_drop_sent", "amazon");
 
     expect([...counter.counts.values()]).toEqual([
       { type: "ad_scraped", marketplace: "amazon", count: 2 },
-      { type: "pricing_error_sent", marketplace: "amazon", count: 1 },
+      { type: "price_drop_sent", marketplace: "amazon", count: 1 },
     ]);
   });
 
@@ -79,7 +79,7 @@ describe("ActivityCountService", () => {
     repository.createMany.mockReturnValue(write.promise);
     service.increment("ad_scraped", "amazon");
     service.increment("ad_scraped", "amazon");
-    service.increment("pricing_error_sent", "amazon");
+    service.increment("price_drop_sent", "amazon");
 
     const flushing = service.flush();
     service.increment("ad_scraped", "amazon");
@@ -88,7 +88,7 @@ describe("ActivityCountService", () => {
     await expect(flushing).rejects.toBe(error);
     expect([...counter.counts.values()]).toEqual([
       { type: "ad_scraped", marketplace: "amazon", count: 3 },
-      { type: "pricing_error_sent", marketplace: "amazon", count: 1 },
+      { type: "price_drop_sent", marketplace: "amazon", count: 1 },
     ]);
   });
 

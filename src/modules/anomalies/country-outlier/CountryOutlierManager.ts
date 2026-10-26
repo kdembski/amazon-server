@@ -1,19 +1,19 @@
 import { AnomalyManagerI } from "@/modules/anomalies/interfaces/AnomalyManagerI";
-import { ConversionErrorReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
+import { CountryOutlierReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
-import { ConversionErrorStrategy } from "@/modules/anomalies/conversion-error/ConversionErrorStrategy";
+import { CountryOutlierStrategy } from "@/modules/anomalies/country-outlier/CountryOutlierStrategy";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
 
-export class ConversionErrorManager<T> implements AnomalyManagerI<T> {
+export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
   private reporter;
   private exchangeRateService;
   private strategy;
   private minPriceChange = 0.05;
 
   constructor(
-    reporter: ConversionErrorReporter<T>,
+    reporter: CountryOutlierReporter<T>,
     exchangeRateService = new CurrencyExchangeRateService(),
-    strategy = new ConversionErrorStrategy()
+    strategy = new CountryOutlierStrategy()
   ) {
     this.reporter = reporter;
     this.exchangeRateService = exchangeRateService;

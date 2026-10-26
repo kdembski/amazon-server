@@ -7,11 +7,11 @@ import { SelectableService } from "@/shared/crud/services/SelectableService";
 import { AmazonAdPriceService } from "@/modules/marketplaces/amazon/services/AmazonAdPriceService";
 import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
-import { ConversionErrorManager } from "@/modules/anomalies/conversion-error/ConversionErrorManager";
-import { PricingErrorManager } from "@/modules/anomalies/pricing-error/PricingErrorManager";
+import { CountryOutlierManager } from "@/modules/anomalies/country-outlier/CountryOutlierManager";
+import { PriceDropManager } from "@/modules/anomalies/price-drop/PriceDropManager";
 import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingPriceMapper";
-import { AmazonConversionErrorReporter } from "@/modules/marketplaces/amazon/services/AmazonConversionErrorReporter";
-import { AmazonPricingErrorReporter } from "@/modules/marketplaces/amazon/services/AmazonPricingErrorReporter";
+import { AmazonCountryOutlierReporter } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierReporter";
+import { AmazonPriceDropReporter } from "@/modules/marketplaces/amazon/services/AmazonPriceDropReporter";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { UpdatableService } from "@/shared/crud/services/UpdatableService";
 import { AmazonAdPriceCreateDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
@@ -35,8 +35,8 @@ export class AmazonAdService {
     priceService = new AmazonAdPriceService(),
     activityCountService = new ActivityCountService(),
     anomalyManager = new AnomalyManager<AmazonAdSelectDto>([
-      new ConversionErrorManager(new AmazonConversionErrorReporter()),
-      new PricingErrorManager(new AmazonPricingErrorReporter()),
+      new CountryOutlierManager(new AmazonCountryOutlierReporter()),
+      new PriceDropManager(new AmazonPriceDropReporter()),
     ]),
     selectable = new SelectableService(repository),
     deletable = new DeletableService(repository),

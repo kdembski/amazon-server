@@ -3,8 +3,8 @@ import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAd
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
 import { AmazonAdPriceService } from "@/modules/marketplaces/amazon/services/AmazonAdPriceService";
 import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
-import { ConversionErrorManager } from "@/modules/anomalies/conversion-error/ConversionErrorManager";
-import { PricingErrorManager } from "@/modules/anomalies/pricing-error/PricingErrorManager";
+import { CountryOutlierManager } from "@/modules/anomalies/country-outlier/CountryOutlierManager";
+import { PriceDropManager } from "@/modules/anomalies/price-drop/PriceDropManager";
 import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingPriceMapper";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import {
@@ -268,14 +268,14 @@ describe("AmazonAdService.getForScraping", () => {
 });
 
 describe("AmazonAdService defaults", () => {
-  it("defaults to conversion and pricing error managers", () => {
-    vi.stubEnv("DISCORD_PRICING_ERROR_TOKEN", "t");
+  it("defaults to conversion and price drop managers", () => {
+    vi.stubEnv("DISCORD_PRICE_DROP_TOKEN", "t");
 
     new AmazonAdService();
 
     expect(AnomalyManager).toHaveBeenCalledWith([
-      expect.any(ConversionErrorManager),
-      expect.any(PricingErrorManager),
+      expect.any(CountryOutlierManager),
+      expect.any(PriceDropManager),
     ]);
   });
 });
