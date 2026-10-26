@@ -53,12 +53,14 @@ export function fakeScraperMetricService() {
   const add = vi.fn().mockResolvedValue(0);
   const deleteOlderThan = vi.fn().mockResolvedValue(0);
   const getSummaries = vi.fn().mockResolvedValue([]);
+  const getSeries = vi.fn().mockResolvedValue([]);
   const service = {
     add,
     deleteOlderThan,
     getSummaries,
+    getSeries,
   } as unknown as ScraperMetricService;
-  return { service, add, deleteOlderThan, getSummaries };
+  return { service, add, deleteOlderThan, getSummaries, getSeries };
 }
 
 export function fakeScraperConfigService() {
