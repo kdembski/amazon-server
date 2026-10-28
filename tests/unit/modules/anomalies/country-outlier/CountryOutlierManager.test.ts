@@ -149,7 +149,8 @@ describe("CountryOutlierManager", () => {
 
   it.each([
     ["the cheapest price did not change", [100, 100]],
-    ["the cheapest price changed by less than 5%", [104.99, 100]],
+    ["the cheapest price dropped by less than 5%", [95.01, 100]],
+    ["the cheapest price rose", [105, 100]],
   ])("skips the listing when %s", async (_, cheapest) => {
     const { manager, reporter, getMatchingRules, listing } = setup();
 
@@ -166,7 +167,6 @@ describe("CountryOutlierManager", () => {
 
   it.each([
     ["dropped by 5%", [95, 100]],
-    ["rose by 5%", [105, 100]],
     ["has no previous price", [100]],
   ])("checks the listing when the cheapest price %s", async (_, cheapest) => {
     const { manager, reporter, listing } = setup(["1"]);
