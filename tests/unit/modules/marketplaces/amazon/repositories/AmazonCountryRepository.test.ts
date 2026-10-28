@@ -22,7 +22,7 @@ describe("AmazonCountryRepository", () => {
     expect(delegate.findMany).toHaveBeenCalledWith();
     expect(delegate.findMany).toHaveBeenCalledWith({
       where: { scraped: true },
-      select: { countryId: true, tld: true, proxyType: true, pdpSource: true, priority: true },
+      select: { countryId: true, tld: true, active: true, proxyType: true, pdpSource: true, priority: true },
     });
   });
 
