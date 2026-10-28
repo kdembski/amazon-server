@@ -8,6 +8,7 @@ const setup = () => {
   const repository = {
     createMany: vi.fn().mockResolvedValue(1),
     getSum: vi.fn().mockResolvedValue(0),
+    getData: vi.fn().mockResolvedValue([]),
   };
   const counter = { counts: new Map<string, ActivityCount>() };
   const service = new ActivityCountService(
@@ -20,9 +21,13 @@ const setup = () => {
 const event = (type: string, count: number) => ({
   type,
   marketplace: "amazon",
-  data: { count },
+  data: { count, prices: {}, countries: {} },
   createdAt: expect.any(Date),
 });
+
+const count = (type: string, value: number) => {
+  return { type, marketplace: "amazon", count: value, prices: {}, countries: {} };
+};
 
 describe("ActivityCountService", () => {
   it("increments the count of a type and marketplace", () => {
@@ -33,9 +38,26 @@ describe("ActivityCountService", () => {
     service.increment("price_drop_sent", "amazon");
 
     expect([...counter.counts.values()]).toEqual([
-      { type: "ad_scraped", marketplace: "amazon", count: 2 },
-      { type: "price_drop_sent", marketplace: "amazon", count: 1 },
+      count("ad_scraped", 2),
+      count("price_drop_sent", 1),
     ]);
+  });
+
+  it("counts items by their number of distinct countries and by country", () => {
+    const { service, counter } = setup();
+
+    service.increment("ad_scraped", "amazon", [1, 2, 3, 3]);
+    service.increment("ad_scraped", "amazon", [1, 2, 3]);
+    service.increment("ad_scraped", "amazon", [4]);
+    service.increment("ad_scraped", "amazon");
+
+    expect(counter.counts.get("ad_scraped:amazon")).toEqual({
+      type: "ad_scraped",
+      marketplace: "amazon",
+      count: 4,
+      prices: { 1: 1, 3: 2 },
+      countries: { 1: 2, 2: 2, 3: 2, 4: 1 },
+    });
   });
 
   it("flush stores one event per count and starts from zero", async () => {
@@ -77,18 +99,24 @@ describe("ActivityCountService", () => {
     const error = new Error("db down");
     const write = deferred<number>();
     repository.createMany.mockReturnValue(write.promise);
-    service.increment("ad_scraped", "amazon");
+    service.increment("ad_scraped", "amazon", [1, 2]);
     service.increment("ad_scraped", "amazon");
     service.increment("price_drop_sent", "amazon");
 
     const flushing = service.flush();
-    service.increment("ad_scraped", "amazon");
+    service.increment("ad_scraped", "amazon", [2]);
     write.reject(error);
 
     await expect(flushing).rejects.toBe(error);
     expect([...counter.counts.values()]).toEqual([
-      { type: "ad_scraped", marketplace: "amazon", count: 3 },
-      { type: "price_drop_sent", marketplace: "amazon", count: 1 },
+      {
+        type: "ad_scraped",
+        marketplace: "amazon",
+        count: 3,
+        prices: { 1: 1, 2: 1 },
+        countries: { 1: 1, 2: 2 },
+      },
+      count("price_drop_sent", 1),
     ]);
   });
 
@@ -100,5 +128,19 @@ describe("ActivityCountService", () => {
 
     expect(await service.getCount("ad_scraped", from, to)).toBe(9);
     expect(repository.getSum).toHaveBeenCalledWith("ad_scraped", from, to);
+  });
+
+  it("getCountWithMinPrices sums the items with at least the given number of prices", async () => {
+    const { service, repository } = setup();
+    const from = new Date(1);
+    const to = new Date(2);
+    repository.getData.mockResolvedValue([
+      { count: 9, prices: { 3: 2, 4: 3, 10: 4 } },
+      { count: 1 },
+      { count: 2, prices: { 5: 2 } },
+    ]);
+
+    expect(await service.getCountWithMinPrices("ad_scraped", 4, from, to)).toBe(9);
+    expect(repository.getData).toHaveBeenCalledWith("ad_scraped", from, to);
   });
 });

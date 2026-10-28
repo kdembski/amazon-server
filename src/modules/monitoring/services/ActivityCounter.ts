@@ -1,6 +1,13 @@
 import { ActivityEventType, Marketplace } from "@prisma/client";
 
-export type ActivityCount = { type: ActivityEventType; marketplace: Marketplace; count: number };
+// prices: number of countries of one item's prices -> items; countries: countryId -> items
+export type ActivityCount = {
+  type: ActivityEventType;
+  marketplace: Marketplace;
+  count: number;
+  prices: Record<string, number>;
+  countries: Record<string, number>;
+};
 
 export class ActivityCounter {
   private static instance: ActivityCounter;

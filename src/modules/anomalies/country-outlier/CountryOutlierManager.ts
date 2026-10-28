@@ -3,6 +3,7 @@ import { CountryOutlierReporter } from "@/modules/anomalies/interfaces/AnomalyRe
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { CountryOutlierStrategy } from "@/modules/anomalies/country-outlier/CountryOutlierStrategy";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
+import { MIN_COUNTRY_OUTLIER_PRICES } from "@/shared/utils/countryOutlier";
 
 export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
   private reporter;
@@ -22,7 +23,7 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
 
   async check(listing: T, allCountryPrices: ListingPrice[][]) {
     const countryPrices = allCountryPrices.filter(([price]) => price.scraped);
-    if (countryPrices.length < 4) return;
+    if (countryPrices.length < MIN_COUNTRY_OUTLIER_PRICES) return;
 
     const newestPrices = countryPrices.map((prices) => prices[0]);
     const prices = await this.toPln(newestPrices);

@@ -113,7 +113,10 @@ npm run test:integration  # tests/integration, needs a running Docker
   (`error|warn|info(source, message, context?)`, `source` = class name) into the `SystemLog` table; never use
   `console.*` directly. Pass errors as `{ error }` in `context` plus the ids needed to debug. Keep
   `ActivityEvent` for `ad_scraped`/`*_sent` only.
-- Activity counts: count `ad_scraped` in memory with `ActivityCountService.increment`;
+- Activity counts: count `ad_scraped` in memory with `ActivityCountService.increment(type, marketplace, countryIds)`;
+  its rows hold `data.prices` (number of distinct countries → ads) and `data.countries` (countryId → ads). Show
+  ads with at least `MIN_COUNTRY_OUTLIER_PRICES` (`src/shared/utils/countryOutlier.ts`) prices next to Scraped in the
+  hourly and daily report via `ActivityCountService.getCountWithMinPrices`;
   `ActivityCountFlushCronService` writes one `ActivityEvent` per type and marketplace with `data.count` every minute
   (second 30). Read `ad_scraped` only through `ActivityCountService.getCount` (sums `data.count`, a row without it
   counts as 1); store `*_sent` as single events.

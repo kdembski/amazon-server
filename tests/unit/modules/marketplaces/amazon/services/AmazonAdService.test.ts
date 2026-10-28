@@ -99,7 +99,7 @@ describe("AmazonAdService.updatePrices", () => {
     expect(repository.getById).toHaveBeenCalledWith(9);
     expect(priceService.createMany).toHaveBeenCalledWith(dtos);
     expect(priceService.creatable.create).not.toHaveBeenCalled();
-    expect(counter.increment).toHaveBeenCalledWith("ad_scraped", "amazon");
+    expect(counter.increment).toHaveBeenCalledWith("ad_scraped", "amazon", [1, 2]);
 
     await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalled());
   });
@@ -148,7 +148,7 @@ describe("AmazonAdService.updatePrices", () => {
       "Price of ad 1 was not stored",
       { error, adId: 1, price: prices[0] }
     );
-    expect(counter.increment).toHaveBeenCalledWith("ad_scraped", "amazon");
+    expect(counter.increment).toHaveBeenCalledWith("ad_scraped", "amazon", [1, 2]);
   });
 
   it("logs a failed anomaly check", async () => {
