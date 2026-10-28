@@ -1,0 +1,1 @@
+export const MIN_COUNTRY_OUTLIER_PRICES = 4;

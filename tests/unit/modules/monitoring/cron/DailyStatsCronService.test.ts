@@ -70,21 +70,19 @@ describe("DailyStatsCronService", () => {
     const dayBefore = new Date("2026-06-01T20:00:00Z");
     const now = new Date("2026-06-02T20:00:00Z");
     log.getCount.mockResolvedValue(777);
+    log.getCountWithMinPrices.mockResolvedValue(55);
 
     await service.run();
 
     expect(getField1).toHaveBeenCalledWith(dayBefore, now);
     expect(getField2).toHaveBeenCalledWith(dayBefore, now);
-    expect(log.getCount).toHaveBeenCalledWith(
-      "ad_scraped",
-      dayBefore,
-      now
-    );
-    expect(sendDaily).toHaveBeenCalledWith([field1, field2], 777);
+    expect(log.getCount).toHaveBeenCalledWith("ad_scraped", dayBefore, now);
+    expect(log.getCountWithMinPrices).toHaveBeenCalledWith("ad_scraped", 4, dayBefore, now);
+    expect(sendDaily).toHaveBeenCalledWith([field1, field2], 777, 55);
     expect(unitLogger().info).toHaveBeenCalledWith(
       "DailyStatsCronService",
       "Daily report sent",
-      { scraped: 777, sections: ["First", "Second"] }
+      { scraped: 777, comparable: 55, sections: ["First", "Second"] }
     );
   });
 });

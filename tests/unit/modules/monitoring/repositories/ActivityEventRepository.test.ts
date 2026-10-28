@@ -19,6 +19,19 @@ describe("ActivityEventRepository", () => {
     expect(delegate.count).toHaveBeenCalledWith({ where });
   });
 
+  it("getData returns the data of the rows of a type within inclusive bounds", async () => {
+    const { repository, delegate } = setup();
+    const from = new Date(1);
+    const to = new Date(2);
+    delegate.findMany.mockResolvedValue([{ data: { count: 1 } }, { data: { count: 2 } }]);
+
+    expect(await repository.getData("ad_scraped", from, to)).toEqual([{ count: 1 }, { count: 2 }]);
+    expect(delegate.findMany).toHaveBeenCalledWith({
+      where: { type: "ad_scraped", createdAt: { gte: from, lte: to } },
+      select: { data: true },
+    });
+  });
+
   it("also filters by the conversion channel stored in data", async () => {
     const { repository, delegate } = setup();
     const from = new Date(1);

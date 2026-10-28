@@ -39,6 +39,7 @@ describe("createMonitoringModule", () => {
   it("passes the sections to the daily stats cron", async () => {
     vi.stubEnv("DISCORD_LOGS_TOKEN", "t");
     vi.spyOn(ActivityCountService.prototype, "getCount").mockResolvedValue(7);
+    vi.spyOn(ActivityCountService.prototype, "getCountWithMinPrices").mockResolvedValue(3);
     const sendDaily = vi
       .spyOn(DiscordLogService.prototype, "sendDaily")
       .mockResolvedValue(undefined as never);
@@ -52,6 +53,6 @@ describe("createMonitoringModule", () => {
     await daily.run();
 
     expect(section.getField).toHaveBeenCalledTimes(1);
-    expect(sendDaily).toHaveBeenCalledWith([field], 7);
+    expect(sendDaily).toHaveBeenCalledWith([field], 7, 3);
   });
 });

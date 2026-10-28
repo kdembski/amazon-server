@@ -11,7 +11,7 @@ const GREEN = "<:gn:1345009439916294154>";
 const UP = "<:au:1369710756358258748>";
 const DOWN = "<:ad:1369710758241374219>";
 const FLAT = `${getSpacing(3)}-${getSpacing(3)}`;
-const COUNTS = [0, 0, 0, 0, 0, 0, 0, 0];
+const COUNTS = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
 const summary = (
   overrides: Partial<ScraperMetricSummary> = {}
@@ -58,11 +58,11 @@ describe("DiscordLogService.sendHourly", () => {
   it("renders channel counts and server stats", async () => {
     const { service, lastEmbed } = setup();
 
-    await service.sendHourly([1234, 1, 2, 3, 4, 5, 6, 7], []);
+    await service.sendHourly([1234, 1, 2, 3, 4, 5, 6, 7, 5678], []);
 
     expect(lastEmbed()).toEqual({
       title: "Hourly status",
-      description: "Scraped: **1 234**",
+      description: ["Scraped: **1 234**", "4+ prices: **5 678**"].join(SP4),
       fields: [
         {
           name: "Channels",
@@ -140,11 +140,11 @@ describe("DiscordLogService.sendDaily", () => {
   it("renders section fields in order followed by disk usage", async () => {
     const { service, lastEmbed } = setup();
 
-    await service.sendDaily(sectionFields, 890);
+    await service.sendDaily(sectionFields, 890, 12);
 
     expect(lastEmbed()).toEqual({
       title: "Daily status",
-      description: "Scraped: **890**",
+      description: ["Scraped: **890**", "4+ prices: **12**"].join(SP4),
       fields: [
         ...sectionFields,
         { name: "Server", value: "Disk space: **10**/**100** *(10%)*" },
@@ -156,7 +156,7 @@ describe("DiscordLogService.sendDaily", () => {
     const { service, getDiskSpace, lastEmbed } = setup();
     getDiskSpace.mockResolvedValue(undefined);
 
-    await service.sendDaily(sectionFields, 0);
+    await service.sendDaily(sectionFields, 0, 0);
 
     expect(lastEmbed().fields).toEqual(sectionFields);
   });

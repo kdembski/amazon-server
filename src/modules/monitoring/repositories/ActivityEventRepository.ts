@@ -45,6 +45,14 @@ export class ActivityEventRepository {
     return Number(total);
   }
 
+  async getData(type: ActivityEventType, from: Date, to: Date) {
+    const rows = await this.delegate.findMany({
+      where: { type, createdAt: { gte: from, lte: to } },
+      select: { data: true },
+    });
+    return rows.map((row) => row.data);
+  }
+
   // hour = epoch seconds of the UTC hour start, independent of the session time zone
   async getSumByTypeChannelAndHour(from: Date, to: Date) {
     const rows = await this.prisma.$queryRaw<

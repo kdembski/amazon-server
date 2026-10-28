@@ -70,9 +70,8 @@ export class AmazonAdService {
     await this.priceService
       .createMany(prices)
       .catch(() => this.createPricesOneByOne(id, prices));
-    this.activityCountService.increment("ad_scraped", "amazon");
-
     const scrapedCountryIds = prices.map((price) => price.countryId);
+    this.activityCountService.increment("ad_scraped", "amazon", scrapedCountryIds);
     this.priceService
       .getRecentByAd(ad.id)
       .then((countryPrices) =>

@@ -27,14 +27,14 @@ describe("AmazonCountryService", () => {
 
   it("wires creatable and updatable to the repository", async () => {
     const { service, repository } = setup();
-    await service.creatable.create({ countryId: 2, tld: "de", scraped: true, active: true, proxyType: "isp", priority: 2 });
-    await service.updatable.update(2, { tld: "de", scraped: false, active: false, proxyType: "datacenter", priority: 0 });
+    await service.creatable.create({ countryId: 2, tld: "de", scraped: true, active: true, proxyType: "isp", pdpSource: "dp", priority: 2 });
+    await service.updatable.update(2, { tld: "de", scraped: false, active: false, proxyType: "datacenter", pdpSource: "aod", priority: 0 });
     expect(repository.create).toHaveBeenCalledWith(
-      expect.objectContaining({ countryId: 2, tld: "de", scraped: true, active: true, proxyType: "isp", priority: 2 })
+      expect.objectContaining({ countryId: 2, tld: "de", scraped: true, active: true, proxyType: "isp", pdpSource: "dp", priority: 2 })
     );
     expect(repository.update).toHaveBeenCalledWith(
       2,
-      expect.objectContaining({ tld: "de", scraped: false, active: false, proxyType: "datacenter", priority: 0 })
+      expect.objectContaining({ tld: "de", scraped: false, active: false, proxyType: "datacenter", pdpSource: "aod", priority: 0 })
     );
   });
 });

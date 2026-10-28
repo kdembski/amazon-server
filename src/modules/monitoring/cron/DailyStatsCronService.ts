@@ -2,6 +2,7 @@ import { ActivityCountService } from "@/modules/monitoring/services/ActivityCoun
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
+import { MIN_COUNTRY_OUTLIER_PRICES } from "@/shared/utils/countryOutlier";
 import { CronJob } from "cron";
 
 export class DailyStatsCronService {
@@ -35,15 +36,20 @@ export class DailyStatsCronService {
     const fields = await Promise.all(
       this.sections.map((section) => section.getField(dayBefore, now))
     );
-    const scraped = await this.activityCountService.getCount(
-      "ad_scraped",
-      dayBefore,
-      now
-    );
+    const [scraped, comparable] = await Promise.all([
+      this.activityCountService.getCount("ad_scraped", dayBefore, now),
+      this.activityCountService.getCountWithMinPrices(
+        "ad_scraped",
+        MIN_COUNTRY_OUTLIER_PRICES,
+        dayBefore,
+        now
+      ),
+    ]);
 
-    await this.discordService.sendDaily(fields, scraped);
+    await this.discordService.sendDaily(fields, scraped, comparable);
     this.logger.info("DailyStatsCronService", "Daily report sent", {
       scraped,
+      comparable,
       sections: fields.map((field) => field.name),
     });
   }

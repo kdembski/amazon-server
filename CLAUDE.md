@@ -93,9 +93,9 @@ npm run test:integration  # tests/integration, needs a running Docker
   `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices with one `createMany`,
   counts `ad_scraped` through `ActivityCountService.increment` and asynchronously runs the anomaly managers (`src/modules/anomalies`); their marketplace reporters
   store `*_sent` events and post to Discord.
-- Amazon countries: keep Amazon's countries in `AmazonCountry` (`countryId` = `Country.id`, `tld`, `scraped`, `active`, `proxyType` = `datacenter` | `isp`, `priority`),
+- Amazon countries: keep Amazon's countries in `AmazonCountry` (`countryId` = `Country.id`, `tld`, `scraped`, `active`, `proxyType` = `datacenter` | `isp`, `pdpSource` = `aod` | `twister` (PDP from the AOD fragment or the twister fragment, `twister` falls back to AOD for products without variations), `priority`),
   changed through `GET|POST /amazon/countries` and `PUT /amazon/countries/:id`; never delete rows, set `scraped = false`
-  instead. `GET /amazon/countries/scrap` hands out `countryId`, `tld`, `proxyType` and `priority` of `scraped` countries.
+  instead. `GET /amazon/countries/scrap` hands out `countryId`, `tld`, `proxyType`, `pdpSource` and `priority` of `scraped` countries.
   `AmazonAdPrice.countryId` references `AmazonCountry`. Build
   listing URLs as `https://www.amazon.<tld>/dp/<asin>` (`ListingPrice.url`). Report anomalies only for countries with
   `AmazonCountry.active = true` (`ListingPrice.country.active`).
@@ -113,7 +113,10 @@ npm run test:integration  # tests/integration, needs a running Docker
   (`error|warn|info(source, message, context?)`, `source` = class name) into the `SystemLog` table; never use
   `console.*` directly. Pass errors as `{ error }` in `context` plus the ids needed to debug. Keep
   `ActivityEvent` for `ad_scraped`/`*_sent` only.
-- Activity counts: count `ad_scraped` in memory with `ActivityCountService.increment`;
+- Activity counts: count `ad_scraped` in memory with `ActivityCountService.increment(type, marketplace, countryIds)`;
+  its rows hold `data.prices` (number of distinct countries → ads) and `data.countries` (countryId → ads). Show
+  ads with at least `MIN_COUNTRY_OUTLIER_PRICES` (`src/shared/utils/countryOutlier.ts`) prices next to Scraped in the
+  hourly and daily report via `ActivityCountService.getCountWithMinPrices`;
   `ActivityCountFlushCronService` writes one `ActivityEvent` per type and marketplace with `data.count` every minute
   (second 30). Read `ad_scraped` only through `ActivityCountService.getCount` (sums `data.count`, a row without it
   counts as 1); store `*_sent` as single events.

@@ -11,6 +11,7 @@ import {
 } from "discord.js";
 import { SystemService } from "@/shared/system/SystemService";
 import { getSpacing } from "@/shared/discord/spacing";
+import { MIN_COUNTRY_OUTLIER_PRICES } from "@/shared/utils/countryOutlier";
 import { ScraperMetricSummary } from "@/modules/monitoring/dtos/ScraperMetricDtos";
 
 export class DiscordLogService {
@@ -64,14 +65,14 @@ export class DiscordLogService {
 
     const embed = {
       title: "Hourly status",
-      description: `Scraped: **${addSeparators(logs[0])}**`,
+      description: this.getScrapedDescription(logs[0], logs[8]),
       fields,
     };
 
     return this.service.send({ embeds: [embed] });
   }
 
-  async sendDaily(sectionFields: APIEmbedField[], scraped: number) {
+  async sendDaily(sectionFields: APIEmbedField[], scraped: number, comparable: number) {
     const disk = await this.systemService.getDiskSpace();
     const fields: APIEmbedField[] = [...sectionFields];
 
@@ -84,11 +85,18 @@ export class DiscordLogService {
 
     const embed = {
       title: "Daily status",
-      description: `Scraped: **${addSeparators(scraped)}**`,
+      description: this.getScrapedDescription(scraped, comparable),
       fields,
     };
 
     return this.service.send({ embeds: [embed] });
+  }
+
+  private getScrapedDescription(scraped: number, comparable: number) {
+    return [
+      `Scraped: **${addSeparators(scraped)}**`,
+      `${MIN_COUNTRY_OUTLIER_PRICES}+ prices: **${addSeparators(comparable)}**`,
+    ].join(getSpacing(4));
   }
 
   private getSpeedIcon(speed: number) {

@@ -88,6 +88,18 @@ describe("ActivityEventRepository (MySQL)", () => {
     expect(await repository.getSum("country_outlier_sent", minute(0), minute(10))).toBe(0);
   });
 
+  it("getData returns the data of the rows of a type within inclusive bounds", async () => {
+    await seedActivityEvent({ type: "ad_scraped", data: { count: 1 }, createdAt: minute(0) });
+    await seedActivityEvent({ type: "ad_scraped", data: { count: 2 }, createdAt: minute(10) });
+    await seedActivityEvent({ type: "ad_scraped", data: { count: 3 }, createdAt: minute(11) });
+    await seedActivityEvent({ type: "price_drop_sent", data: { count: 4 }, createdAt: minute(5) });
+
+    expect(await repository.getData("ad_scraped", minute(0), minute(10))).toEqual([
+      { count: 1 },
+      { count: 2 },
+    ]);
+  });
+
   it("createMany stores the rows", async () => {
     expect(
       await repository.createMany([

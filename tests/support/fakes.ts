@@ -26,8 +26,14 @@ export function fakeActivityCountService() {
   const increment = vi.fn();
   const flush = vi.fn().mockResolvedValue(undefined);
   const getCount = vi.fn().mockResolvedValue(0);
-  const service = { increment, flush, getCount } as unknown as ActivityCountService;
-  return { service, increment, flush, getCount };
+  const getCountWithMinPrices = vi.fn().mockResolvedValue(0);
+  const service = {
+    increment,
+    flush,
+    getCount,
+    getCountWithMinPrices,
+  } as unknown as ActivityCountService;
+  return { service, increment, flush, getCount, getCountWithMinPrices };
 }
 
 export function fakeSystemLogService() {

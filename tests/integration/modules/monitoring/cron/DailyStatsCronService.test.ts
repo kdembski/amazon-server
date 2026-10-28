@@ -32,7 +32,7 @@ describe("DailyStatsCronService (MySQL)", () => {
     const eur = await seedCurrency({ code: "EUR" });
     await seedRate({ sourceId: eur.id, targetId: pln.id, value: 4.3 });
     await seedRate({ sourceId: pln.id, targetId: pln.id, value: 1 });
-    await seedActivityEvent({ type: "ad_scraped", data: { count: 4 }, createdAt: hoursAgo(2) });
+    await seedActivityEvent({ type: "ad_scraped", data: { count: 4, prices: { 3: 1, 4: 2, 6: 1 } }, createdAt: hoursAgo(2) });
     await seedActivityEvent({ type: "ad_scraped", data: { count: 9 }, createdAt: hoursAgo(30) });
 
     await service.run();
@@ -45,7 +45,8 @@ describe("DailyStatsCronService (MySQL)", () => {
         },
         { name: "Exchange rates", value: "EUR -> PLN: **4.3**" },
       ],
-      4
+      4,
+      3
     );
   });
 });

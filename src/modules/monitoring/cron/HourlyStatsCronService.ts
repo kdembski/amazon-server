@@ -4,6 +4,7 @@ import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogServi
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
 import { ActivityEventType } from "@prisma/client";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
+import { MIN_COUNTRY_OUTLIER_PRICES } from "@/shared/utils/countryOutlier";
 import { CronJob } from "cron";
 
 export class HourlyStatsCronService {
@@ -42,6 +43,11 @@ export class HourlyStatsCronService {
         this.getCount("country_outlier_sent", channel)
       ),
       this.getCount("price_drop_sent"),
+      this.activityCountService.getCountWithMinPrices(
+        "ad_scraped",
+        MIN_COUNTRY_OUTLIER_PRICES,
+        ...this.getLastHour()
+      ),
     ];
 
     const to = new Date();

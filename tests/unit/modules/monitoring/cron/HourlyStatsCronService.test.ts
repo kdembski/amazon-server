@@ -87,17 +87,19 @@ describe("HourlyStatsCronService", () => {
           COUNTS.findIndex(([t, c]) => t === type && c === channel) * 10
         )
     );
+    counter.getCountWithMinPrices.mockResolvedValue(80);
 
     await service.run();
 
     const from = new Date("2026-06-01T09:00:00Z");
     const to = new Date("2026-06-01T10:00:00Z");
     expect(counter.getCount).toHaveBeenCalledWith("ad_scraped", from, to);
+    expect(counter.getCountWithMinPrices).toHaveBeenCalledWith("ad_scraped", 4, from, to);
     COUNTS.slice(1).forEach(([type, channel]) =>
       expect(log.getCount).toHaveBeenCalledWith(type, from, to, channel)
     );
     expect(sendHourly).toHaveBeenCalledWith(
-      [0, 10, 20, 30, 40, 50, 60, 70],
+      [0, 10, 20, 30, 40, 50, 60, 70, 80],
       []
     );
   });
@@ -133,6 +135,7 @@ describe("HourlyStatsCronService", () => {
     const { service, sendHourly, log, counter, metrics } = setup();
     log.getCount.mockResolvedValue(4);
     counter.getCount.mockResolvedValue(4);
+    counter.getCountWithMinPrices.mockResolvedValue(4);
     const error = new Error("db down");
     metrics.getSummaries.mockRejectedValue(error);
 
@@ -147,11 +150,11 @@ describe("HourlyStatsCronService", () => {
         to: metrics.getSummaries.mock.calls[0][1],
       }
     );
-    expect(sendHourly).toHaveBeenCalledWith(Array(8).fill(4), []);
+    expect(sendHourly).toHaveBeenCalledWith(Array(9).fill(4), []);
     expect(unitLogger().info).toHaveBeenCalledWith(
       "HourlyStatsCronService",
       "Hourly report sent",
-      { counts: Array(8).fill(4), scrapers: 0 }
+      { counts: Array(9).fill(4), scrapers: 0 }
     );
   });
 });
