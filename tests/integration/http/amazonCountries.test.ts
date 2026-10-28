@@ -39,13 +39,13 @@ describe("/amazon/countries", () => {
     expect([updated.scraped, updated.active, updated.proxyType, updated.pdpSource, updated.priority]).toEqual([true, true, "isp", "dp", 2]);
   });
 
-  it("GET /scrap hands out only scraped countries with their tld, proxy type, PDP source and priority", async () => {
-    const scraped = await seedAmazonCountry({ tld: "de", scraped: true, proxyType: "isp", pdpSource: "dp", priority: 2 });
+  it("GET /scrap hands out only scraped countries with their tld, active flag, proxy type, PDP source and priority", async () => {
+    const scraped = await seedAmazonCountry({ tld: "de", scraped: true, active: false, proxyType: "isp", pdpSource: "dp", priority: 2 });
     await seedAmazonCountry({ tld: "ie", scraped: false });
 
     const res = await request(app).get("/amazon/countries/scrap").expect(200);
 
-    expect(res.body).toEqual([{ countryId: scraped.countryId, tld: "de", proxyType: "isp", pdpSource: "dp", priority: 2 }]);
+    expect(res.body).toEqual([{ countryId: scraped.countryId, tld: "de", active: false, proxyType: "isp", pdpSource: "dp", priority: 2 }]);
   });
 
   it("does not expose DELETE /:id", async () => {
