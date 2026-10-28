@@ -6,6 +6,7 @@ export interface AmazonCountryCreateDto {
   scraped: boolean;
   active: boolean;
   proxyType: string;
+  pdpSource: string;
   priority: number;
 }
 
@@ -14,6 +15,7 @@ export interface AmazonCountryUpdateDto {
   scraped: boolean;
   active: boolean;
   proxyType: string;
+  pdpSource: string;
   priority: number;
 }
 

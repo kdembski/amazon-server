@@ -126,13 +126,14 @@ describe("create mappers", () => {
     {
       name: "AmazonCountryCreateMapper",
       map: (dto: any) => new AmazonCountryCreateMapper().toCreateInput(dto),
-      dto: { countryId: 2, tld: "com.be", scraped: true, active: true, proxyType: "isp", priority: 2 },
+      dto: { countryId: 2, tld: "com.be", scraped: true, active: true, proxyType: "isp", pdpSource: "dp", priority: 2 },
       expected: {
         countryId: 2,
         tld: "com.be",
         scraped: true,
         active: true,
         proxyType: "isp",
+        pdpSource: "dp",
         priority: 2,
         createdAt: NOW,
         updatedAt: NOW,
@@ -244,8 +245,8 @@ describe("update mappers", () => {
     {
       name: "AmazonCountryUpdateMapper",
       map: (dto: any) => new AmazonCountryUpdateMapper().toUpdateInput(dto),
-      dto: { tld: "com.be", scraped: false, active: false, proxyType: "isp", priority: 2 },
-      expected: { tld: "com.be", scraped: false, active: false, proxyType: "isp", priority: 2, updatedAt: NOW },
+      dto: { tld: "com.be", scraped: false, active: false, proxyType: "isp", pdpSource: "dp", priority: 2 },
+      expected: { tld: "com.be", scraped: false, active: false, proxyType: "isp", pdpSource: "dp", priority: 2, updatedAt: NOW },
     },
     {
       name: "CountryUpdateMapper",
