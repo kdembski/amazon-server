@@ -64,7 +64,11 @@ export class AmazonAdRepository {
   // commits quickly and only briefly locks the rows /scrap stamps.
   async getExclusionRules() {
     const rules = await this.exclusionRuleRepository.getAll();
-    return rules.map((rule) => ({ value: rule.value, scope: rule.categoryId }));
+    return rules.map((rule) => ({
+      value: rule.value,
+      scope: rule.categoryId,
+      inverted: rule.inverted,
+    }));
   }
 
   async getActiveScopes() {

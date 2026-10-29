@@ -8,7 +8,8 @@
 //   --min-bought <n>               demand floor for "bought last month", default 50
 //   --kept <n>                     print the n cheapest passing products that are not in demand
 //   --category <id>                also use the rules of this category; without it only rules with no category
-// A rules.txt line is "<value>" or "<categoryId>\t<value>".
+// A rules.txt line is "<value>", "<categoryId>\t<value>" or "<categoryId>\tinverted\t<value>"; with inverted rules
+// the category keeps only names matching one of them.
 // products.tsv comes from parse-listing.js. A product is in demand when its rating reaches the quality floor
 // and its reviews or monthly purchases reach theirs.
 // Imports the production parser and matcher through vite-node (it resolves the `@/` alias), so results equal
@@ -16,8 +17,10 @@
 import fs from "node:fs";
 import { ExclusionRuleParser } from "@/modules/exclusion-rules/services/ExclusionRuleParser";
 import { ExclusionRuleMatcher } from "@/modules/exclusion-rules/services/ExclusionRuleMatcher";
+import { ScopedExclusionRuleMatcher } from "@/modules/exclusion-rules/services/ScopedExclusionRuleMatcher";
 
 const parser = new ExclusionRuleParser();
+const NO_INVERTED_MATCH = "(no inverted rule matched)";
 const createExcludes = (rules) => {
   const matcher = new ExclusionRuleMatcher(rules);
   return (name) => matcher.excludes(name);
@@ -49,10 +52,10 @@ const productFiles = args;
 
 const rules = lines(rulesFile)
   .map((line) => {
-    const scoped = line.match(/^(\d+)\t(.*)$/);
+    const scoped = line.match(/^(\d+)\t(inverted\t)?(.*)$/);
     return scoped
-      ? { category: scoped[1], value: scoped[2].trim() }
-      : { category: null, value: line };
+      ? { category: scoped[1], inverted: !!scoped[2], value: scoped[3].trim() }
+      : { category: null, inverted: false, value: line };
   })
   .filter((rule) => rule.category === null || rule.category === category);
 const values = rules.map((rule) => rule.value);
@@ -65,16 +68,31 @@ const parsed = values.map((value) => {
     return null;
   }
 });
-const excludesAll = createExcludes(parsed.filter((rule) => rule !== null));
-const ruleExcludes = parsed.map((rule) => (rule ? createExcludes([rule]) : () => false));
-const excludedBy = (name) => values.filter((_, i) => ruleExcludes[i](name));
-const scopeOf = (i) => (rules[i].category ? `  (category ${rules[i].category})` : "");
+const scopedMatcher = new ScopedExclusionRuleMatcher(
+  rules.flatMap((rule, i) =>
+    parsed[i] ? [{ rule: parsed[i], scope: rule.category, inverted: rule.inverted }] : []
+  )
+);
+const excludesAll = (name) => scopedMatcher.excludes(name, category);
+const ruleMatches = parsed.map((rule) => (rule ? createExcludes([rule]) : () => false));
+const ruleExcludes = ruleMatches.map((matches, i) => (rules[i].inverted ? () => false : matches));
+const invertedIndexes = rules.flatMap((rule, i) => (rule.inverted ? [i] : []));
+const missesInverted = (name) =>
+  invertedIndexes.length > 0 && !invertedIndexes.some((i) => ruleMatches[i](name));
+const excludedBy = (name) => [
+  ...values.filter((_, i) => ruleExcludes[i](name)),
+  ...(missesInverted(name) ? [NO_INVERTED_MATCH] : []),
+];
+const scopeOf = (i) =>
+  rules[i].category ? `  (category ${rules[i].category}${rules[i].inverted ? ", inverted" : ""})` : "";
 
 if (mode === "which") {
   const name = productFiles.join(" ");
   values.forEach((value, i) => {
     if (ruleExcludes[i](name)) console.log(`EXCLUDED BY ${value}${scopeOf(i)}`);
+    if (rules[i].inverted && ruleMatches[i](name)) console.log(`MATCHED BY ${value}${scopeOf(i)}`);
   });
+  if (missesInverted(name)) console.log(`EXCLUDED BY ${NO_INVERTED_MATCH}`);
   console.log(excludesAll(name) ? "=> excluded (excluded = true)" : "=> scraped (excluded = false)");
 } else {
   for (const value of values) {
@@ -128,6 +146,11 @@ if (mode === "which") {
         dropped.slice(0, 4).forEach((p) => console.log(`    ${p.price}  ${p.title.slice(0, 90)}`));
       }
     });
+    const missed = inDemand.filter((p) => missesInverted(p.title));
+    if (missed.length) {
+      console.log(`\n${missed.length} in-demand products excluded by  ${NO_INVERTED_MATCH}`);
+      missed.slice(0, 4).forEach((p) => console.log(`    ${p.price}  ${p.title.slice(0, 90)}`));
+    }
 
     if (keptCount) {
       console.log(`\nKEPT (price | rating | reviews | bought/month | title)`);

@@ -165,6 +165,7 @@ export const buildAmazonExclusionRule = (
   id: nextId(),
   value: "refurbished",
   categoryId: null,
+  inverted: false,
   createdAt: FIXED_DATE,
   ...overrides,
 });

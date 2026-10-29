@@ -76,15 +76,17 @@ npm run test:integration  # tests/integration, needs a running Docker
   sections through `DailyReportSection`.
 - Cross-cutting services are `getInstance()` singletons. `*SelectDto` types derive from repository return
   types. Controller errors go through `ResponseErrorService` (`error.status` if set, P2002/P2003 → 422, P1001 → 503).
-- Exclusion rules are per marketplace (`AmazonExclusionRule`, optional `categoryId`; `NULL` = every category). Change
+- Exclusion rules are per marketplace (`AmazonExclusionRule`, optional `categoryId`; `NULL` = every category;
+  `inverted` only with a `categoryId`: the category keeps only ads matching one of its inverted rules). Change
   them only through `GET|POST /amazon/exclusion-rules`, `PUT|DELETE /amazon/exclusion-rules/:id` and
   `POST /amazon/exclusion-rules/batch` (`{create, update: [{id, ...}], delete: [id]}` in one transaction: deletes,
   updates, then creates; returns all rules) (skill `exclusion-rules`); writes are validated with
   `ExclusionRuleValidator` (invalid → 400).
 - Scraping: `GET /amazon/ads/scrap` hands out ads with `excluded = false`, oldest `scrapedAt` first, and stamps
   them; never filter it by `name LIKE` or by category. An ad of an inactive category or matching a rule of its
-  category or a rule without one gets `excluded = true`; otherwise `excluded = false`. `ExclusionRuleMatchCronService`
-  runs every minute: it rematches every ad of an `ExclusionRuleTarget` when its rules (value or category) or its
+  category or a rule without one, or matching none of its category's inverted rules, gets `excluded = true`; otherwise
+  `excluded = false`. `ExclusionRuleMatchCronService`
+  runs every minute: it rematches every ad of an `ExclusionRuleTarget` when its rules (value, category or inverted) or its
   active scopes (`getActiveScopes`) changed since the last run (and after each restart), otherwise only ads with
   `excluded = null`. New ads start with `excluded: null`. Rule
   syntax lives in `ExclusionRuleParser` (`src/modules/exclusion-rules/services/`; `+` and, `|` or, `!` marks an

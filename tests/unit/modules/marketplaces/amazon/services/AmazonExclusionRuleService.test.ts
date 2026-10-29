@@ -35,11 +35,13 @@ describe("AmazonExclusionRuleService", () => {
     expect(repository.create).toHaveBeenCalledWith({
       value: "sony",
       categoryId: 2,
+      inverted: false,
       createdAt: expect.any(Date),
     });
     expect(repository.update).toHaveBeenCalledWith(3, {
       value: undefined,
       categoryId: null,
+      inverted: undefined,
     });
     expect(repository.delete).toHaveBeenCalledWith(4);
   });

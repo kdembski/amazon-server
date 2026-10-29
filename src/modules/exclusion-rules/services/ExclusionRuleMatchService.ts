@@ -46,7 +46,7 @@ export class ExclusionRuleMatchService {
     const exclusionRules = await target.getExclusionRules();
     const activeScopes = await target.getActiveScopes();
     const fingerprint = [
-      ...exclusionRules.map((rule) => `${rule.scope ?? ""}\t${rule.value}`).sort(),
+      ...exclusionRules.map((rule) => `${rule.scope ?? ""}\t${rule.inverted}\t${rule.value}`).sort(),
       `active\t${[...activeScopes].sort((a, b) => a - b).join(",")}`,
     ].join("\n");
     const active = new Set(activeScopes);
@@ -80,11 +80,11 @@ export class ExclusionRuleMatchService {
   }
 
   private parseExclusionRules(
-    rules: { value: string; scope: number | null }[]
+    rules: { value: string; scope: number | null; inverted: boolean }[]
   ): ScopedExclusionRule[] {
-    return rules.flatMap(({ value, scope }) => {
+    return rules.flatMap(({ value, scope, inverted }) => {
       try {
-        return [{ rule: this.parser.parse(value), scope }];
+        return [{ rule: this.parser.parse(value), scope, inverted }];
       } catch (e) {
         this.logger.warn(
           "ExclusionRuleMatchService",

@@ -15,8 +15,11 @@ marketplace first:
 - Exclusion rules are per marketplace; each marketplace implements `ExclusionRuleTarget`.
 - Every ad of an active category is scraped unless a rule matches its name.
 - `ExclusionRuleMatchCronService` sets the ad's `excluded` via `ScopedExclusionRuleMatcher`
-  (`src/modules/exclusion-rules/services/`): `true` when a rule matches or the category is inactive, else `false`.
+  (`src/modules/exclusion-rules/services/`): `true` when a rule matches, the category is inactive, or the category
+  has inverted rules and none matches, else `false`.
 - `categoryId = NULL` rule applies to every category; with `categoryId` only to that category.
+- `inverted = true` (needs `categoryId`): the rule says what the category looks for; normal and global rules still
+  exclude inside it.
 - Rules live in the production database; change them yourself through the marketplace's exclusion-rules API, only
   after verifying the set with the production matcher.
 - Only known brands pass: exclude junk product types, accessories, parts and no-name products (see Brands).
@@ -46,7 +49,8 @@ npx vite-node $K/check-rules.js check <rules.txt> [--category id] [--junk f] [--
 npx vite-node $K/check-rules.js which <rules.txt> [--category id] "<ad name>"
 ```
 
-- `rules.txt`: one rule per line, `<value>` or `<categoryId>\t<value>`; `check`/`which` use global rules plus the
+- `rules.txt`: one rule per line, `<value>`, `<categoryId>\t<value>` or `<categoryId>\tinverted\t<value>`;
+  `check`/`which` use global rules plus the
   `--category` rules; tsv products have no category.
 - `products.tsv`: `source, price, reviews, bought/month, rating, title` per line, from the marketplace's parser.
 - `--junk` / `--keep`: ad names that must be excluded / must pass.
@@ -80,9 +84,9 @@ npx vite-node $K/check-rules.js which <rules.txt> [--category id] "<ad name>"
    the user accepted every in-demand product excluded.
 5. Apply the difference in one `POST <exclusion-rules>/batch` call, never one call per rule (each change rematches
    all ads):
-   - `{"create": [{"value", "categoryId"}], "update": [{"id", "value"?, "categoryId"?}], "delete": [id]}`; omitted
-     lists are empty.
-   - One transaction (deletes, updates, creates); any error rolls back: 400 invalid rule or id, 422 duplicate or
+   - `{"create": [{"value", "categoryId", "inverted"?}], "update": [{"id", "value"?, "categoryId"?, "inverted"?}],
+     "delete": [id]}`; omitted lists are empty; `inverted: true` also needs `categoryId` in the same item.
+   - One transaction (deletes, updates, creates); any error rolls back: 400 invalid rule, id or inverted, 422 duplicate or
      unknown `categoryId`, 500 unknown id.
    - Report each change (type, id, value, category), HTTP status, coverage before/after, in-demand items each new
      rule excludes. Cron rematches within a minute.

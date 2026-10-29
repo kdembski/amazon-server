@@ -3,4 +3,5 @@ import { ParsedExclusionRule } from "@/modules/exclusion-rules/interfaces/Parsed
 export interface ScopedExclusionRule {
   rule: ParsedExclusionRule;
   scope: number | null;
+  inverted: boolean;
 }

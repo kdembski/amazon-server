@@ -29,7 +29,7 @@ describe("ExclusionRuleMatchService (MySQL)", () => {
     expect((await flags())[2]).toEqual(["Sony A7 IV", true]);
 
     // A rule inserted straight into the table, bypassing Discord.
-    await prisma.amazonExclusionRule.create({ data: { value: "bose", createdAt: new Date() } });
+    await prisma.amazonExclusionRule.create({ data: { value: "bose", inverted: false, createdAt: new Date() } });
     await service.sync();
     expect(await flags()).toEqual([
       ["Sony WH-1000XM5", true],

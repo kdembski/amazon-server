@@ -50,6 +50,22 @@ describe("/amazon/exclusion-rules", () => {
     expect(await prisma.amazonExclusionRule.count()).toBe(0);
   });
 
+  it("POST / stores an inverted rule of a category and rejects one without a category with 400", async () => {
+    const category = await seedCategory();
+
+    const response = await request(app)
+      .post("/amazon/exclusion-rules")
+      .send({ value: "rtx + 4090", categoryId: category.id, inverted: true })
+      .expect(200);
+    await request(app)
+      .post("/amazon/exclusion-rules")
+      .send({ value: "rtx", inverted: true })
+      .expect(400);
+
+    expect(response.body).toMatchObject({ categoryId: category.id, inverted: true });
+    expect(await prisma.amazonExclusionRule.count()).toBe(1);
+  });
+
   it("POST /batch rejects an unknown category with 422 and writes nothing", async () => {
     const rule = await seedAmazonExclusionRule({ value: "sony" });
 

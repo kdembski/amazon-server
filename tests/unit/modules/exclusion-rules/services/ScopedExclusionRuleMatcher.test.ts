@@ -10,9 +10,24 @@ const createScopedExclusionRuleMatcher = (rules: ScopedExclusionRule[]) => {
 };
 
 describe("ScopedExclusionRuleMatcher.excludes", () => {
-  const scoped = (value: string, scope: number | null) => ({
+  const scoped = (value: string, scope: number | null, inverted = false) => ({
     rule: parser.parse(value),
     scope,
+    inverted,
+  });
+
+  it("keeps only names matching an inverted rule of the scope", () => {
+    const matches = createScopedExclusionRuleMatcher([
+      scoped("rtx + 4090|5090", 1, true),
+      scoped("kabel", 1),
+      scoped("sony", null),
+    ]);
+    expect(matches("RTX 4090 Gaming", 1)).toBe(false);
+    expect(matches("RTX 4080 Gaming", 1)).toBe(true);
+    expect(matches("RTX 5090 Kabel", 1)).toBe(true);
+    expect(matches("Sony RTX 4090", 1)).toBe(true);
+    expect(matches("RTX 4080 Gaming", 2)).toBe(false);
+    expect(matches("RTX 4080 Gaming", null)).toBe(false);
   });
 
   it("applies global rules everywhere and scoped rules only in their scope", () => {

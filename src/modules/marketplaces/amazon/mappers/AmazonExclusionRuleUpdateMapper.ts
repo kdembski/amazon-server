@@ -17,10 +17,12 @@ export class AmazonExclusionRuleUpdateMapper
   }
 
   toUpdateInput(dto: AmazonExclusionRuleUpdateDto) {
+    const categoryId = this.validator.validateScope(dto.categoryId);
     return {
       value:
         dto.value === undefined ? undefined : this.validator.validate(dto.value),
-      categoryId: this.validator.validateScope(dto.categoryId),
+      categoryId,
+      inverted: this.validator.validateInverted(dto.inverted, categoryId),
     };
   }
 }

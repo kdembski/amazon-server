@@ -17,9 +17,12 @@ export class AmazonExclusionRuleCreateMapper
   }
 
   toCreateInput(dto: AmazonExclusionRuleCreateDto) {
+    const categoryId = this.validator.validateScope(dto.categoryId) ?? null;
     return {
       value: this.validator.validate(dto.value),
-      categoryId: this.validator.validateScope(dto.categoryId) ?? null,
+      categoryId,
+      inverted:
+        this.validator.validateInverted(dto.inverted, categoryId) ?? false,
       createdAt: new Date(Date.now()),
     };
   }

@@ -44,4 +44,20 @@ export class ExclusionRuleValidator {
     }
     return scope as number;
   }
+
+  // Setting inverted in an update requires sending the scope as well.
+  validateInverted(inverted: unknown, scope: number | null | undefined) {
+    if (inverted === undefined) return inverted;
+    if (typeof inverted !== "boolean") {
+      throw invalid(
+        new Error(
+          `Exclusion rule inverted ${JSON.stringify(inverted)} must be a boolean`
+        )
+      );
+    }
+    if (inverted && (scope === undefined || scope === null)) {
+      throw invalid(new Error("Inverted exclusion rule must have a scope"));
+    }
+    return inverted;
+  }
 }
