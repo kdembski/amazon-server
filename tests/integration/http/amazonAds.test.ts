@@ -98,6 +98,26 @@ describe("POST /amazon/ads/batch", () => {
     expect(await prisma.amazonAdPrice.count({ where: { adId: scraped.id } })).toBe(1);
     expect(await prisma.amazonAd.count({ where: { id: gone.id } })).toBe(0);
   });
+
+  it("accepts a body over 100 kB", async () => {
+    const { countryId } = await seedAmazonCountry();
+    const ads = await Promise.all(Array.from({ length: 300 }, () => seedAd()));
+    const prices = ads.map((ad) => ({
+      id: ad.id,
+      prices: Array.from({ length: 6 }, () => ({
+        adId: ad.id,
+        countryId,
+        value: 40,
+        dispatchFrom: "Amazon",
+      })),
+    }));
+    expect(JSON.stringify({ prices, deleted: [] }).length).toBeGreaterThan(100 * 1024);
+
+    const res = await request(app).post("/amazon/ads/batch").send({ prices, deleted: [] });
+
+    expect(res.status).toBe(200);
+    expect(await prisma.amazonAdPrice.count()).toBe(1800);
+  });
 });
 
 describe("CRUD /amazon/ads", () => {

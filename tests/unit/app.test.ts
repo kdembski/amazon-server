@@ -46,6 +46,7 @@ describe("createApp", () => {
       ["/c", "/c-router"],
       [handleError],
     ]);
+    expect(json).toHaveBeenCalledWith({ limit: "5mb" });
   });
 
   it("uses the default module list when none is given", () => {
