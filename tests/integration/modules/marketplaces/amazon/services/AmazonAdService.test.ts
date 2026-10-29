@@ -237,6 +237,55 @@ describe("AmazonAdService (MySQL)", () => {
     });
   });
 
+  describe("createMany", () => {
+    const dto = (asin: string, categoryName: string) => ({
+      asin,
+      name: `Ad ${asin}`,
+      image: `${asin}.jpg`,
+      categoryName,
+    });
+
+    it("inserts new ads and skips ASINs already stored", async () => {
+      const { service } = buildAdService();
+      const old = await seedAd({ asin: "B0OLD00001", name: "Old name" });
+      const category = await prisma.amazonAdCategory.findUniqueOrThrow({
+        where: { id: old.categoryId },
+      });
+
+      const result = await service.createMany([
+        dto("B0OLD00001", category.name),
+        dto("B0NEW00001", category.name),
+      ]);
+
+      expect(result).toEqual({ count: 1 });
+      const rows = await prisma.amazonAd.findMany({ orderBy: { asin: "asc" } });
+      expect(rows.map((r) => [r.asin, r.name, r.excluded, r.categoryId])).toEqual([
+        ["B0NEW00001", "Ad B0NEW00001", null, category.id],
+        ["B0OLD00001", "Old name", old.excluded, category.id],
+      ]);
+    });
+
+    it("creates a missing category once and reuses an existing one", async () => {
+      const { service } = buildAdService();
+      const existing = await seedCategory({ name: "audio" });
+
+      await service.createMany([
+        dto("B0CAT00001", "new-cat"),
+        dto("B0CAT00002", "new-cat"),
+        dto("B0CAT00003", "audio"),
+      ]);
+
+      const created = await prisma.amazonAdCategory.findMany({ where: { name: "new-cat" } });
+      expect(created).toHaveLength(1);
+      const rows = await prisma.amazonAd.findMany({ orderBy: { asin: "asc" } });
+      expect(rows.map((r) => r.categoryId)).toEqual([
+        created[0].id,
+        created[0].id,
+        existing.id,
+      ]);
+    });
+  });
+
   describe("applyBatch", () => {
     it("stores the prices of every ad and counts ad_scraped per ad", async () => {
       const { service } = buildAdService();

@@ -136,6 +136,11 @@ export class AmazonAdRepository {
     return this.delegate.create({ data });
   }
 
+  async createMany(data: Prisma.AmazonAdCreateManyInput[]) {
+    const { count } = await this.delegate.createMany({ data, skipDuplicates: true });
+    return count;
+  }
+
   update(id: number, data: Prisma.AmazonAdUpdateInput) {
     return this.delegate.update({ where: { id }, data });
   }

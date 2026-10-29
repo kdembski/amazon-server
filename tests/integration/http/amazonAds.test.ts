@@ -136,7 +136,7 @@ describe("CRUD /amazon/ads", () => {
     const dup = await request(app).post("/amazon/ads").send(body).expect(422);
 
     expect(one.body).toMatchObject({ asin: "B0HTTP0001", excluded: null });
-    expect(many.body).toHaveLength(2);
+    expect(many.body).toEqual({ count: 2 });
     expect(await prisma.amazonAdCategory.count()).toBe(1);
     expect(dup.text).toMatch(/^Unique constraint failed on the/);
   });
@@ -150,7 +150,7 @@ describe("CRUD /amazon/ads", () => {
       .send([body, { ...body, asin: "B0HTTP0002" }])
       .expect(200);
 
-    expect(res.body.map((a: { asin: string }) => a.asin)).toEqual(["B0HTTP0002"]);
+    expect(res.body).toEqual({ count: 1 });
     expect(await prisma.amazonAd.count()).toBe(2);
   });
 
