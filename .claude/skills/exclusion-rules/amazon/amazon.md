@@ -29,4 +29,4 @@ bash $A/api.sh POST /batch @<batch.json>             # every change at once
 
 - Live rules to `rules.txt`: `bash $A/api.sh GET > rules.json`, then
   `node -e 'for (const r of JSON.parse(require("fs").readFileSync(0, "utf8"))) console.log((r.categoryId ? r.categoryId + "\t" : "") + (r.inverted ? "inverted\t" : "") + r.value)' < rules.json > rules.txt`.
-- `api.sh` reads `AMAZON_API_URL` from `.env`; pass bodies as `@<file>` (UTF-8 JSON in the scratchpad), never inline.
+- `api.sh` reads `API_URL` and `API_TOKEN` from `.env`; pass bodies as `@<file>` (UTF-8 JSON in the scratchpad), never inline.
