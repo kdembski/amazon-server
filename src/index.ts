@@ -7,13 +7,14 @@ const modules = createModules();
 const app = createApp(modules);
 const port = process.env.PORT || 5001;
 
-app.listen(port, () =>
+const server = app.listen(port, () =>
   logger.info("Server", "Amazon Server is running", {
     port,
     pid: process.pid,
     nodeVersion: process.version,
   })
 );
+server.keepAliveTimeout = 15 * 1000;
 
 modules.forEach((module) => module.crons?.forEach((cron) => cron.schedule()));
 

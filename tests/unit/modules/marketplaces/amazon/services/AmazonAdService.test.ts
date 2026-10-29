@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi, Mock } from "vitest";
+import _ from "lodash";
 import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
 import { AmazonAdPriceService } from "@/modules/marketplaces/amazon/services/AmazonAdPriceService";
@@ -143,6 +144,49 @@ describe("AmazonAdService.applyBatch with an idempotency key", () => {
     await service.applyBatch(batch, "key");
 
     expect(priceService.createMany).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("AmazonAdService.applyBatch anomaly checks", () => {
+  it("counts every ad at once and checks anomalies 10 ads at a time", async () => {
+    const { service, repository, priceService, counter, anomalyManager } = setup();
+    const ids = _.range(1, 26);
+    Object.assign(repository, {
+      getByIds: vi.fn().mockResolvedValue(ids.map((id) => buildAd({ id }))),
+    });
+    const recent = ids.map(() => deferred<never[]>());
+    ids.forEach((_id, i) => priceService.getRecentByAd.mockReturnValueOnce(recent[i].promise));
+    const price = (adId: number) => ({ value: 1, adId, countryId: 1, dispatchFrom: "Amazon" });
+
+    await service.applyBatch({
+      prices: ids.map((id) => ({ id, prices: [price(id)] })),
+      deleted: [],
+    });
+
+    expect(counter.increment).toHaveBeenCalledTimes(25);
+    expect(priceService.getRecentByAd).toHaveBeenCalledTimes(10);
+
+    recent.slice(0, 10).forEach((item) => item.resolve([]));
+    await vi.waitFor(() => expect(priceService.getRecentByAd).toHaveBeenCalledTimes(20));
+
+    recent.slice(10).forEach((item) => item.resolve([]));
+    await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalledTimes(25));
+  });
+
+  it("goes on with the next ads when one check fails", async () => {
+    const { service, repository, priceService, anomalyManager } = setup();
+    const ids = _.range(1, 12);
+    Object.assign(repository, {
+      getByIds: vi.fn().mockResolvedValue(ids.map((id) => buildAd({ id }))),
+    });
+    priceService.getRecentByAd.mockRejectedValueOnce(new Error("pool")).mockResolvedValue([]);
+
+    await service.applyBatch({
+      prices: ids.map((id) => ({ id, prices: [] })),
+      deleted: [],
+    });
+
+    await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalledTimes(10));
   });
 });
 
