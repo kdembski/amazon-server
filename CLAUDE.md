@@ -97,7 +97,7 @@ npm run test:integration  # tests/integration, needs a running Docker
   store `*_sent` events and post to Discord. `POST /amazon/ads/batch` (`{ prices: [{ id, prices }], deleted: [id] }`, what the
   scraper sends) does the same for many ads with one `createMany` of all prices (one by one per ad when it fails) and deletes
   `deleted` with one `deleteMany`; with an `Idempotency-Key` header the prices of a key are stored once (`IdempotencyCache`, in memory, 10 min, a failed store is forgotten), the delete always runs. `POST /amazon/ads` with an array upserts the category names and inserts the ads with one
-  `createMany` that skips existing ASINs, answering `{ count }`. JSON bodies up to 5 MB. Idle keep-alive connections stay open 65 s (`keepAliveTimeout`, `headersTimeout` 66 s) so scrapers reuse one socket between batches.
+  `createMany` that skips existing ASINs, answering `{ count }`. JSON bodies up to 5 MB. Idle keep-alive connections stay open 15 s (`keepAliveTimeout`) so scrapers reuse one socket between batches (every ~5 s).
 - Amazon countries: keep Amazon's countries in `AmazonCountry` (`countryId` = `Country.id`, `tld`, `scraped`, `active`, `proxyType` = `datacenter` | `isp`, `pdpSource` = comma-separated list of `aod` | `twister` | `awd` (PDP from the AOD fragment, the twister fragment or the mobile product page; a 404 moves to the next one, e.g. `twister,awd`; fits `VarChar(15)`), `priority`),
   changed through `GET|POST /amazon/countries` and `PUT /amazon/countries/:id`; never delete rows, set `scraped = false`
   instead. `GET /amazon/countries/scrap` hands out `countryId`, `tld`, `active`, `proxyType`, `pdpSource` and `priority` of `scraped` countries.

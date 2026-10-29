@@ -14,8 +14,7 @@ const server = app.listen(port, () =>
     nodeVersion: process.version,
   })
 );
-server.keepAliveTimeout = 65 * 1000;
-server.headersTimeout = 66 * 1000;
+server.keepAliveTimeout = 15 * 1000;
 
 modules.forEach((module) => module.crons?.forEach((cron) => cron.schedule()));
 
