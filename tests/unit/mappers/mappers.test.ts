@@ -63,7 +63,13 @@ describe("create mappers", () => {
       name: "AmazonExclusionRuleCreateMapper",
       map: (dto: any) => new AmazonExclusionRuleCreateMapper().toCreateInput(dto),
       dto: { value: " sony " },
-      expected: { value: "sony", categoryId: null, createdAt: NOW },
+      expected: { value: "sony", categoryId: null, inverted: false, createdAt: NOW },
+    },
+    {
+      name: "AmazonExclusionRuleCreateMapper (inverted)",
+      map: (dto: any) => new AmazonExclusionRuleCreateMapper().toCreateInput(dto),
+      dto: { value: "sony", categoryId: 2, inverted: true },
+      expected: { value: "sony", categoryId: 2, inverted: true, createdAt: NOW },
     },
     {
       name: "AmazonAdCreateMapper",
@@ -222,13 +228,19 @@ describe("update mappers", () => {
       name: "AmazonExclusionRuleUpdateMapper (clears the category)",
       map: (dto: any) => new AmazonExclusionRuleUpdateMapper().toUpdateInput(dto),
       dto: { categoryId: null },
-      expected: { value: undefined, categoryId: null },
+      expected: { value: undefined, categoryId: null, inverted: undefined },
     },
     {
       name: "AmazonExclusionRuleUpdateMapper (keeps the category)",
       map: (dto: any) => new AmazonExclusionRuleUpdateMapper().toUpdateInput(dto),
       dto: { value: "bose" },
-      expected: { value: "bose", categoryId: undefined },
+      expected: { value: "bose", categoryId: undefined, inverted: undefined },
+    },
+    {
+      name: "AmazonExclusionRuleUpdateMapper (inverts the rule)",
+      map: (dto: any) => new AmazonExclusionRuleUpdateMapper().toUpdateInput(dto),
+      dto: { categoryId: 2, inverted: true },
+      expected: { value: undefined, categoryId: 2, inverted: true },
     },
     {
       name: "AmazonAdUpdateMapper",
@@ -434,6 +446,20 @@ describe("AmazonExclusionRule mappers categoryId", () => {
   });
 });
 
+describe("AmazonExclusionRule mappers inverted", () => {
+  it("reject an inverted rule without a category with status 400", () => {
+    expect(() =>
+      new AmazonExclusionRuleCreateMapper().toCreateInput({
+        value: "sony",
+        inverted: true,
+      })
+    ).toThrow(expect.objectContaining({ status: 400 }));
+    expect(() =>
+      new AmazonExclusionRuleUpdateMapper().toUpdateInput({ inverted: true })
+    ).toThrow(expect.objectContaining({ status: 400 }));
+  });
+});
+
 describe("AmazonExclusionRuleBatchMapper", () => {
   it("maps creates, updates and deletes", () => {
     expect(
@@ -443,8 +469,10 @@ describe("AmazonExclusionRuleBatchMapper", () => {
         delete: [4],
       })
     ).toEqual({
-      create: [{ value: "sony", categoryId: 2, createdAt: NOW }],
-      update: [{ id: 3, data: { value: undefined, categoryId: null } }],
+      create: [{ value: "sony", categoryId: 2, inverted: false, createdAt: NOW }],
+      update: [
+        { id: 3, data: { value: undefined, categoryId: null, inverted: undefined } },
+      ],
       delete: [4],
     });
   });

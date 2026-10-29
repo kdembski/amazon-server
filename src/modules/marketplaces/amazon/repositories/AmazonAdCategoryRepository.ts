@@ -29,6 +29,16 @@ export class AmazonAdCategoryRepository {
     return this.delegate.create({ data });
   }
 
+  upsertByName(name: string) {
+    const now = new Date(Date.now());
+    return this.delegate.upsert({
+      where: { name },
+      create: { name, createdAt: now, updatedAt: now },
+      update: {},
+      select: { id: true },
+    });
+  }
+
   update(id: number, data: Prisma.AmazonAdCategoryUpdateInput) {
     return this.delegate.update({ where: { id }, data });
   }

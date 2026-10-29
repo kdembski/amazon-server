@@ -122,7 +122,7 @@ export function seedAmazonExclusionRule(
 ) {
   const n = next();
   return prisma.amazonExclusionRule.create({
-    data: { value: `rule-${n}`, createdAt: FIXED_DATE, ...overrides },
+    data: { value: `rule-${n}`, inverted: false, createdAt: FIXED_DATE, ...overrides },
   });
 }
 

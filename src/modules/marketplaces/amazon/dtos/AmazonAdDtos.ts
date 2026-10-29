@@ -14,6 +14,11 @@ export interface AmazonAdUpdateDto {
   prices: AmazonAdPriceCreateDto[];
 }
 
+export interface AmazonAdBatchDto {
+  prices: { id: number; prices: AmazonAdPriceCreateDto[] }[];
+  deleted: number[];
+}
+
 export type AmazonAdSelectDto = NonNullable<
   Awaited<ReturnType<AmazonAdRepository["getById"]>>
 >;

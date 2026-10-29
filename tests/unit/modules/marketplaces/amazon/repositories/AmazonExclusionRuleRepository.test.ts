@@ -51,7 +51,7 @@ describe("AmazonExclusionRuleRepository.applyBatch", () => {
     delegate.delete.mockImplementation(() => order.push("delete"));
     delegate.update.mockImplementation(() => order.push("update"));
     delegate.create.mockImplementation(() => order.push("create"));
-    const data = { value: "sony", createdAt: new Date() };
+    const data = { value: "sony", inverted: false, createdAt: new Date() };
 
     await repository.applyBatch({
       create: [data],

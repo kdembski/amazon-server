@@ -62,13 +62,13 @@ describe("AmazonAdRepository", () => {
   it("getExclusionRules maps the category of each rule to its scope", async () => {
     const { repository, exclusionRuleRepository } = setup();
     exclusionRuleRepository.getAll.mockResolvedValue([
-      { id: 1, value: "sony", categoryId: 3, createdAt: new Date() },
-      { id: 2, value: "bose", categoryId: null, createdAt: new Date() },
+      { id: 1, value: "sony", categoryId: 3, inverted: true, createdAt: new Date() },
+      { id: 2, value: "bose", categoryId: null, inverted: false, createdAt: new Date() },
     ]);
 
     await expect(repository.getExclusionRules()).resolves.toEqual([
-      { value: "sony", scope: 3 },
-      { value: "bose", scope: null },
+      { value: "sony", scope: 3, inverted: true },
+      { value: "bose", scope: null, inverted: false },
     ]);
   });
 

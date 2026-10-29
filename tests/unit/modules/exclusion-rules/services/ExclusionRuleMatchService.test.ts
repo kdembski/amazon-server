@@ -3,10 +3,10 @@ import { ExclusionRuleMatchService } from "@/modules/exclusion-rules/services/Ex
 import { ExclusionRuleTarget } from "@/modules/exclusion-rules/interfaces/ExclusionRuleTarget";
 import { deferred, fakeSystemLogService } from "../../../../support/fakes";
 
-type Rule = { value: string; scope: number | null };
+type Rule = { value: string; scope: number | null; inverted?: boolean };
 
 const global = (...values: string[]): Rule[] =>
-  values.map((value) => ({ value, scope: null }));
+  values.map((value) => ({ value, scope: null, inverted: false }));
 
 const fakeTarget = (rules: Rule[] = []) => ({
   getExclusionRules: vi.fn().mockResolvedValue(rules),
@@ -197,6 +197,22 @@ describe("ExclusionRuleMatchService.sync", () => {
     await service.sync();
 
     expect(onlyNewFlags(targetA)).toEqual([false, false]);
+    info.mockRestore();
+  });
+
+  it("rematches when only the inverted flag of a rule changed", async () => {
+    const { service, targetA, info } = setup();
+    targetA.getExclusionRules
+      .mockResolvedValueOnce([{ value: "drill", scope: 1, inverted: false }])
+      .mockResolvedValueOnce([{ value: "drill", scope: 1, inverted: true }]);
+
+    await service.sync();
+    await service.sync();
+
+    expect(onlyNewFlags(targetA)).toEqual([false, false]);
+    const [matches] = targetA.matchExclusionRules.mock.calls[1];
+    expect(matches("Bosch drill", 1)).toBe(false);
+    expect(matches("Bosch saw", 1)).toBe(true);
     info.mockRestore();
   });
 

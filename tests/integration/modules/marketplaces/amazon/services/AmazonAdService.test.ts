@@ -236,4 +236,154 @@ describe("AmazonAdService (MySQL)", () => {
       expect(sentGroups.map((g) => g.map((p) => p.value.toNumber()))).toEqual([[40, 100]]);
     });
   });
+
+  describe("createMany", () => {
+    const dto = (asin: string, categoryName: string) => ({
+      asin,
+      name: `Ad ${asin}`,
+      image: `${asin}.jpg`,
+      categoryName,
+    });
+
+    it("inserts new ads and skips ASINs already stored", async () => {
+      const { service } = buildAdService();
+      const old = await seedAd({ asin: "B0OLD00001", name: "Old name" });
+      const category = await prisma.amazonAdCategory.findUniqueOrThrow({
+        where: { id: old.categoryId },
+      });
+
+      const result = await service.createMany([
+        dto("B0OLD00001", category.name),
+        dto("B0NEW00001", category.name),
+      ]);
+
+      expect(result).toEqual({ count: 1 });
+      const rows = await prisma.amazonAd.findMany({ orderBy: { asin: "asc" } });
+      expect(rows.map((r) => [r.asin, r.name, r.excluded, r.categoryId])).toEqual([
+        ["B0NEW00001", "Ad B0NEW00001", null, category.id],
+        ["B0OLD00001", "Old name", old.excluded, category.id],
+      ]);
+    });
+
+    it("creates a missing category once and reuses an existing one", async () => {
+      const { service } = buildAdService();
+      const existing = await seedCategory({ name: "audio" });
+
+      await service.createMany([
+        dto("B0CAT00001", "new-cat"),
+        dto("B0CAT00002", "new-cat"),
+        dto("B0CAT00003", "audio"),
+      ]);
+
+      const created = await prisma.amazonAdCategory.findMany({ where: { name: "new-cat" } });
+      expect(created).toHaveLength(1);
+      const rows = await prisma.amazonAd.findMany({ orderBy: { asin: "asc" } });
+      expect(rows.map((r) => r.categoryId)).toEqual([
+        created[0].id,
+        created[0].id,
+        existing.id,
+      ]);
+    });
+  });
+
+  describe("applyBatch", () => {
+    it("stores the prices of every ad and counts ad_scraped per ad", async () => {
+      const { service } = buildAdService();
+      const first = await seedAd();
+      const second = await seedAd();
+      const de = await seedAmazonCountry();
+      const fr = await seedAmazonCountry();
+
+      const result = await service.applyBatch({
+        prices: [first, second].map((ad) => ({
+          id: ad.id,
+          prices: [de, fr].map(({ countryId }) => ({
+            adId: ad.id,
+            countryId,
+            value: 40,
+            dispatchFrom: "Amazon",
+          })),
+        })),
+        deleted: [],
+      });
+
+      expect(result).toEqual({ prices: 2, deleted: 0 });
+      expect(await prisma.amazonAdPrice.count({ where: { adId: first.id } })).toBe(2);
+      expect(await prisma.amazonAdPrice.count({ where: { adId: second.id } })).toBe(2);
+      expect(ActivityCounter.getInstance().counts.get("ad_scraped:amazon")?.count).toBe(2);
+    });
+
+    it("stores the valid prices of every ad when one price is invalid", async () => {
+      const { service } = buildAdService();
+      const broken = await seedAd();
+      const valid = await seedAd();
+      const { countryId } = await seedAmazonCountry();
+
+      await service.applyBatch({
+        prices: [
+          {
+            id: broken.id,
+            prices: [
+              { adId: broken.id, countryId, value: 40, dispatchFrom: "Amazon" },
+              { adId: broken.id, countryId: 999, value: 50, dispatchFrom: "Amazon" },
+            ],
+          },
+          {
+            id: valid.id,
+            prices: [{ adId: valid.id, countryId, value: 30, dispatchFrom: "Amazon" }],
+          },
+        ],
+        deleted: [],
+      });
+
+      const prices = await prisma.amazonAdPrice.findMany({ orderBy: { adId: "asc" } });
+      expect(prices.map((p) => [p.adId, p.value.toNumber()])).toEqual([
+        [broken.id, 40],
+        [valid.id, 30],
+      ]);
+    });
+
+    it("deletes ads with their prices and ignores missing ids", async () => {
+      const { service } = buildAdService();
+      const gone = await seedAd();
+      const kept = await seedAd();
+      await seedPrice({ adId: gone.id });
+
+      const result = await service.applyBatch({ prices: [], deleted: [gone.id, 999999] });
+
+      expect(result).toEqual({ prices: 0, deleted: 1 });
+      expect(await prisma.amazonAd.findMany({ select: { id: true } })).toEqual([{ id: kept.id }]);
+      expect(await prisma.amazonAdPrice.count()).toBe(0);
+    });
+
+    it("accepts empty lists", async () => {
+      const { service } = buildAdService();
+
+      expect(await service.applyBatch({ prices: [], deleted: [] })).toEqual({
+        prices: 0,
+        deleted: 0,
+      });
+    });
+
+    it("runs the anomaly check per ad", async () => {
+      const { service, pricing } = buildAdService();
+      const dropped = await seedAd();
+      const steady = await seedAd();
+      const { countryId } = await seedAmazonCountry();
+      const hourAgo = new Date(Date.now() - 3_600_000);
+      await seedPrice({ adId: dropped.id, countryId, value: 100, createdAt: hourAgo });
+      await seedPrice({ adId: steady.id, countryId, value: 100, createdAt: hourAgo });
+
+      await service.applyBatch({
+        prices: [
+          { id: dropped.id, prices: [{ adId: dropped.id, countryId, value: 40, dispatchFrom: "Amazon" }] },
+          { id: steady.id, prices: [{ adId: steady.id, countryId, value: 100, dispatchFrom: "Amazon" }] },
+        ],
+        deleted: [],
+      });
+
+      await vi.waitFor(() => expect(pricing.send).toHaveBeenCalledTimes(1));
+      expect((pricing.send.mock.calls[0][0] as AmazonAdSelectDto).asin).toBe(dropped.asin);
+    });
+  });
 });

@@ -18,7 +18,7 @@ describe("AmazonExclusionRuleRepository (MySQL)", () => {
 
   it("rejects a duplicate (value, categoryId)", async () => {
     const category = await seedCategory();
-    const data = { value: "sony", categoryId: category.id, createdAt: new Date() };
+    const data = { value: "sony", categoryId: category.id, inverted: false, createdAt: new Date() };
     await repository.create(data);
 
     await expect(repository.create(data)).rejects.toMatchObject({ code: "P2002" });
@@ -30,7 +30,7 @@ describe("AmazonExclusionRuleRepository (MySQL)", () => {
     const moved = await seedAmazonExclusionRule({ value: "bose" });
 
     await repository.applyBatch({
-      create: [{ value: "sony", createdAt: new Date() }],
+      create: [{ value: "sony", inverted: false, createdAt: new Date() }],
       update: [{ id: moved.id, data: { categoryId: category.id } }],
       delete: [replaced.id],
     });
@@ -47,7 +47,7 @@ describe("AmazonExclusionRuleRepository (MySQL)", () => {
 
     await expect(
       repository.applyBatch({
-        create: [{ value: "bose", createdAt: new Date() }],
+        create: [{ value: "bose", inverted: false, createdAt: new Date() }],
         update: [{ id: rule.id, data: { value: "jbl" } }],
         delete: [rule.id + 1000],
       })

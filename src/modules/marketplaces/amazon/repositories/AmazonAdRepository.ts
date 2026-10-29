@@ -44,6 +44,13 @@ export class AmazonAdRepository {
     });
   }
 
+  getByIds(ids: number[]) {
+    return this.delegate.findMany({
+      where: { id: { in: ids } },
+      select: this.structure,
+    });
+  }
+
   // MySQL sorts NULL first in ascending order; an explicit `nulls` option
   // would turn the ORDER BY into an expression the index cannot serve.
   getForScraping(batchSize: number) {
@@ -64,7 +71,11 @@ export class AmazonAdRepository {
   // commits quickly and only briefly locks the rows /scrap stamps.
   async getExclusionRules() {
     const rules = await this.exclusionRuleRepository.getAll();
-    return rules.map((rule) => ({ value: rule.value, scope: rule.categoryId }));
+    return rules.map((rule) => ({
+      value: rule.value,
+      scope: rule.categoryId,
+      inverted: rule.inverted,
+    }));
   }
 
   async getActiveScopes() {
@@ -125,12 +136,22 @@ export class AmazonAdRepository {
     return this.delegate.create({ data });
   }
 
+  async createMany(data: Prisma.AmazonAdCreateManyInput[]) {
+    const { count } = await this.delegate.createMany({ data, skipDuplicates: true });
+    return count;
+  }
+
   update(id: number, data: Prisma.AmazonAdUpdateInput) {
     return this.delegate.update({ where: { id }, data });
   }
 
   delete(id: number) {
     return this.delegate.delete({ where: { id } });
+  }
+
+  async deleteMany(ids: number[]) {
+    const { count } = await this.delegate.deleteMany({ where: { id: { in: ids } } });
+    return count;
   }
 
   // Includes ads before excluding the rest, so the scraping queue never runs

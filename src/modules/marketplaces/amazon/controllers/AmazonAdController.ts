@@ -5,6 +5,11 @@ import { SelectableController } from "@/shared/crud/controllers/SelectableContro
 import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
 import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
 import { AmazonAdPriceCreateDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
+import {
+  AmazonAdBatchDto,
+  AmazonAdCreateDto,
+} from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
+import _ from "lodash";
 
 export class AmazonAdController {
   private service;
@@ -55,6 +60,33 @@ export class AmazonAdController {
       const data = request.body;
 
       const results = await this.service.updatePrices(id, data.prices);
+      response.json(results);
+    } catch (error: any) {
+      new ResponseErrorService(response).send(error);
+    }
+  }
+
+  async create(
+    request: Request<{}, {}, AmazonAdCreateDto | AmazonAdCreateDto[]>,
+    response: Response
+  ) {
+    if (!_.isArray(request.body)) return this.creatable.create(request, response);
+
+    try {
+      const results = await this.service.createMany(request.body);
+      response.json(results);
+    } catch (error: any) {
+      new ResponseErrorService(response).send(error);
+    }
+  }
+
+  async applyBatch(request: Request<{}, {}, AmazonAdBatchDto>, response: Response) {
+    try {
+      const key = request.headers["idempotency-key"];
+      const results = await this.service.applyBatch(
+        request.body,
+        typeof key === "string" ? key : undefined
+      );
       response.json(results);
     } catch (error: any) {
       new ResponseErrorService(response).send(error);

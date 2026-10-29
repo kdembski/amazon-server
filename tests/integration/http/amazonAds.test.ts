@@ -75,6 +75,77 @@ describe("PUT /amazon/ads/:id", () => {
   });
 });
 
+describe("POST /amazon/ads/batch", () => {
+  it("stores prices and deletes ads and is not shadowed by /:id", async () => {
+    const scraped = await seedAd();
+    const gone = await seedAd();
+    const { countryId } = await seedAmazonCountry();
+
+    const res = await request(app)
+      .post("/amazon/ads/batch")
+      .send({
+        prices: [
+          {
+            id: scraped.id,
+            prices: [{ adId: scraped.id, countryId, value: 40, dispatchFrom: "Amazon" }],
+          },
+        ],
+        deleted: [gone.id],
+      })
+      .expect(200);
+
+    expect(res.body).toEqual({ prices: 1, deleted: 1 });
+    expect(await prisma.amazonAdPrice.count({ where: { adId: scraped.id } })).toBe(1);
+    expect(await prisma.amazonAd.count({ where: { id: gone.id } })).toBe(0);
+  });
+
+  it("stores the prices of a retried batch once and still deletes", async () => {
+    const scraped = await seedAd();
+    const { countryId } = await seedAmazonCountry();
+    const body = {
+      prices: [
+        {
+          id: scraped.id,
+          prices: [{ adId: scraped.id, countryId, value: 40, dispatchFrom: "Amazon" }],
+        },
+      ],
+      deleted: [],
+    };
+    const send = () =>
+      request(app)
+        .post("/amazon/ads/batch")
+        .set("Idempotency-Key", `retry-${scraped.id}`)
+        .send(body)
+        .expect(200);
+
+    await send();
+    await send();
+
+    expect(await prisma.amazonAdPrice.count({ where: { adId: scraped.id } })).toBe(1);
+    expect(ActivityCounter.getInstance().counts.get("ad_scraped:amazon")?.count).toBe(1);
+  });
+
+  it("accepts a body over 100 kB", async () => {
+    const { countryId } = await seedAmazonCountry();
+    const ads = await Promise.all(Array.from({ length: 300 }, () => seedAd()));
+    const prices = ads.map((ad) => ({
+      id: ad.id,
+      prices: Array.from({ length: 6 }, () => ({
+        adId: ad.id,
+        countryId,
+        value: 40,
+        dispatchFrom: "Amazon",
+      })),
+    }));
+    expect(JSON.stringify({ prices, deleted: [] }).length).toBeGreaterThan(100 * 1024);
+
+    const res = await request(app).post("/amazon/ads/batch").send({ prices, deleted: [] });
+
+    expect(res.status).toBe(200);
+    expect(await prisma.amazonAdPrice.count()).toBe(1800);
+  });
+});
+
 describe("CRUD /amazon/ads", () => {
   it("GET / lists ads and GET /:id returns one with its category", async () => {
     const category = await seedCategory({ name: "audio", active: true });
@@ -111,7 +182,7 @@ describe("CRUD /amazon/ads", () => {
     const dup = await request(app).post("/amazon/ads").send(body).expect(422);
 
     expect(one.body).toMatchObject({ asin: "B0HTTP0001", excluded: null });
-    expect(many.body).toHaveLength(2);
+    expect(many.body).toEqual({ count: 2 });
     expect(await prisma.amazonAdCategory.count()).toBe(1);
     expect(dup.text).toMatch(/^Unique constraint failed on the/);
   });
@@ -125,7 +196,7 @@ describe("CRUD /amazon/ads", () => {
       .send([body, { ...body, asin: "B0HTTP0002" }])
       .expect(200);
 
-    expect(res.body.map((a: { asin: string }) => a.asin)).toEqual(["B0HTTP0002"]);
+    expect(res.body).toEqual({ count: 1 });
     expect(await prisma.amazonAd.count()).toBe(2);
   });
 

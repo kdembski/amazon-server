@@ -9,7 +9,7 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
   private reporter;
   private exchangeRateService;
   private strategy;
-  private minPriceChange = 0.05;
+  private minPriceDrop = 0.05;
 
   constructor(
     reporter: CountryOutlierReporter<T>,
@@ -31,7 +31,7 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     const cheapest = countryPrices.find(
       ([price]) => price.country === prices[0].country
     )!;
-    if (!this.hasChanged(cheapest)) return;
+    if (!this.hasDropped(cheapest)) return;
 
     for (const rule of this.strategy.getMatchingRules(prices)) {
       await this.reporter.report(listing, prices, rule.channel);
@@ -39,11 +39,11 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
   }
 
   // Compares raw prices: PLN values move with exchange rates.
-  private hasChanged([newest, previous]: ListingPrice[]) {
+  private hasDropped([newest, previous]: ListingPrice[]) {
     if (!previous) return true;
 
-    const change = newest.value.minus(previous.value).abs();
-    return change.gte(previous.value.times(this.minPriceChange));
+    const drop = previous.value.minus(newest.value);
+    return drop.gte(previous.value.times(this.minPriceDrop));
   }
 
   // Returns copies: the same price objects are passed to the other error managers.

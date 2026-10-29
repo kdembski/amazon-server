@@ -20,6 +20,28 @@ describe("ExclusionRuleValidator.validate", () => {
   );
 });
 
+describe("ExclusionRuleValidator.validateInverted", () => {
+  it.each([
+    [undefined, null],
+    [false, null],
+    [false, undefined],
+    [true, 3],
+  ])("accepts %j with scope %j", (inverted, scope) => {
+    expect(validator.validateInverted(inverted, scope)).toBe(inverted);
+  });
+
+  it.each([
+    ["true", 3],
+    [1, 3],
+    [true, null],
+    [true, undefined],
+  ])("rejects %j with scope %j with status 400", (inverted, scope) => {
+    expect(() => validator.validateInverted(inverted, scope)).toThrow(
+      expect.objectContaining({ status: 400 })
+    );
+  });
+});
+
 describe("ExclusionRuleValidator.validateScope", () => {
   it.each([[undefined], [null], [12]])("accepts %j", (scope) => {
     expect(validateExclusionRuleScope(scope)).toBe(scope);

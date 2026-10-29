@@ -3,11 +3,13 @@ import { AmazonExclusionRuleRepository } from "@/modules/marketplaces/amazon/rep
 export interface AmazonExclusionRuleCreateDto {
   value: string;
   categoryId?: number | null;
+  inverted?: boolean;
 }
 
 export interface AmazonExclusionRuleUpdateDto {
   value?: string;
   categoryId?: number | null;
+  inverted?: boolean;
 }
 
 export interface AmazonExclusionRuleBatchDto {

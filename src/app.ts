@@ -8,6 +8,7 @@ import { ApiTokenMiddleware } from "@/shared/http/ApiTokenMiddleware";
 
 const SCRAPER_ROUTES = [
   { method: "POST", path: /^\/amazon\/ads\/?$/ },
+  { method: "POST", path: /^\/amazon\/ads\/batch\/?$/ },
   { method: "PUT", path: /^\/amazon\/ads\/\d+\/?$/ },
   { method: "DELETE", path: /^\/amazon\/ads\/\d+\/?$/ },
   { method: "POST", path: /^\/scrapers\/[^/]+\/metrics\/?$/ },
@@ -20,7 +21,7 @@ export const handleError: ErrorRequestHandler = (error, request, response, next)
 
 export function createApp(modules: AppModule[] = createModules()) {
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ limit: "5mb" }));
   app.use(cors());
   app.use(new RequestLogMiddleware(SCRAPER_ROUTES).handle);
   app.use(new ApiTokenMiddleware().handle);

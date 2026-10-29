@@ -146,6 +146,7 @@ model AmazonExclusionRule {
   id         Int               @id @default(autoincrement())
   value      String            @db.VarChar(63)
   categoryId Int?
+  inverted   Boolean
   createdAt  DateTime          @db.Timestamp(2)
   category   AmazonAdCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "amazon_exclusion_rule_category_id_fk")
 
