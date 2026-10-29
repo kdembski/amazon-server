@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: bash .claude/skills/exclusion-rules/scripts/api.sh <GET|POST|PUT|DELETE> [/<id>] [@<body.json>]
+# Usage: bash .claude/skills/exclusion-rules/amazon/api.sh <GET|POST|PUT|DELETE> [/<id>] [@<body.json>]
 # Calls $AMAZON_API_URL/amazon/exclusion-rules; AMAZON_API_URL comes from the repo's .env.
 # Prints the response body to stdout and "HTTP <status>" to stderr; exits non-zero on a 4xx/5xx.
 set -euo pipefail
