@@ -24,6 +24,8 @@ import { AmazonAdPriceCreateDto } from "@/modules/marketplaces/amazon/dtos/Amazo
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
 
+const ANOMALY_CHECK_CHUNK = 10;
+
 export class AmazonAdService {
   private repository;
   private priceService;
@@ -105,7 +107,8 @@ export class AmazonAdService {
     await this.priceService
       .createMany(prices)
       .catch(() => this.createPricesOneByOne(id, prices));
-    this.afterPricesStored(ad, prices);
+    this.countScraped(prices);
+    this.checkAnomalies(ad, prices);
   }
 
   async applyBatch({ prices, deleted }: AmazonAdBatchDto, key?: string) {
@@ -125,15 +128,30 @@ export class AmazonAdService {
       .catch(async () => {
         for (const ad of prices) await this.createPricesOneByOne(ad.id, ad.prices);
       });
-    ads.forEach((ad) =>
-      this.afterPricesStored(ad, prices.find((item) => item.id === ad.id)!.prices)
-    );
+    const scraped = ads.map((ad) => ({
+      ad,
+      prices: prices.find((item) => item.id === ad.id)!.prices,
+    }));
+    scraped.forEach((item) => this.countScraped(item.prices));
+    this.checkAnomaliesInChunks(scraped);
   }
 
-  private afterPricesStored(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
+  private async checkAnomaliesInChunks(
+    scraped: { ad: AmazonAdSelectDto; prices: AmazonAdPriceCreateDto[] }[]
+  ) {
+    for (const chunk of _.chunk(scraped, ANOMALY_CHECK_CHUNK)) {
+      await Promise.all(chunk.map((item) => this.checkAnomalies(item.ad, item.prices)));
+    }
+  }
+
+  private countScraped(prices: AmazonAdPriceCreateDto[]) {
     const scrapedCountryIds = prices.map((price) => price.countryId);
     this.activityCountService.increment("ad_scraped", "amazon", scrapedCountryIds);
-    this.priceService
+  }
+
+  private checkAnomalies(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
+    const scrapedCountryIds = prices.map((price) => price.countryId);
+    return this.priceService
       .getRecentByAd(ad.id)
       .then((countryPrices) =>
         this.anomalyManager.check(
