@@ -8,6 +8,7 @@ import { ApiTokenMiddleware } from "@/shared/http/ApiTokenMiddleware";
 
 const SCRAPER_ROUTES = [
   { method: "POST", path: /^\/amazon\/ads\/?$/ },
+  { method: "POST", path: /^\/amazon\/ads\/batch\/?$/ },
   { method: "PUT", path: /^\/amazon\/ads\/\d+\/?$/ },
   { method: "DELETE", path: /^\/amazon\/ads\/\d+\/?$/ },
   { method: "POST", path: /^\/scrapers\/[^/]+\/metrics\/?$/ },
