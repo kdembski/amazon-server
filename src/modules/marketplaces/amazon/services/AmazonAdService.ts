@@ -109,9 +109,9 @@ export class AmazonAdService {
       const ads = await this.repository.getByIds(prices.map((ad) => ad.id));
       await this.priceService
         .createMany(prices.flatMap((ad) => ad.prices))
-        .catch(() =>
-          Promise.all(prices.map((ad) => this.createPricesOneByOne(ad.id, ad.prices)))
-        );
+        .catch(async () => {
+          for (const ad of prices) await this.createPricesOneByOne(ad.id, ad.prices);
+        });
       ads.forEach((ad) =>
         this.afterPricesStored(ad, prices.find((item) => item.id === ad.id)!.prices)
       );

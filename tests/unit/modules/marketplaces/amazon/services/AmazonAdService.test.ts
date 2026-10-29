@@ -84,6 +84,34 @@ describe("AmazonAdService delegation", () => {
   });
 });
 
+describe("AmazonAdService.applyBatch", () => {
+  it("stores the prices of one ad after another when the batch insert fails", async () => {
+    const { service, repository, priceService } = setup();
+    Object.assign(repository, { getByIds: vi.fn().mockResolvedValue([]) });
+    priceService.createMany.mockRejectedValue(new Error("FK"));
+    const first = deferred<object>();
+    priceService.creatable.create
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValue({});
+    const price = (adId: number) => ({ value: 1, adId, countryId: 1, dispatchFrom: "Amazon" });
+
+    const result = service.applyBatch({
+      prices: [
+        { id: 1, prices: [price(1)] },
+        { id: 2, prices: [price(2)] },
+      ],
+      deleted: [],
+    });
+    await vi.waitFor(() => expect(priceService.creatable.create).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(priceService.creatable.create).toHaveBeenCalledTimes(1);
+
+    first.resolve({});
+    await result;
+    expect(priceService.creatable.create.mock.calls).toEqual([[price(1)], [price(2)]]);
+  });
+});
+
 describe("AmazonAdService.updatePrices", () => {
   it("stores prices, counts ad_scraped and runs the error manager", async () => {
     const { service, repository, priceService, counter, anomalyManager } = setup();
