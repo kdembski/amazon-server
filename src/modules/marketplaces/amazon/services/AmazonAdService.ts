@@ -12,7 +12,7 @@ import { PriceDropManager } from "@/modules/anomalies/price-drop/PriceDropManage
 import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingPriceMapper";
 import { AmazonCountryOutlierReporter } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierReporter";
 import { AmazonPriceDropReporter } from "@/modules/marketplaces/amazon/services/AmazonPriceDropReporter";
-import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
+import { AmazonAdBatchDto, AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { UpdatableService } from "@/shared/crud/services/UpdatableService";
 import { AmazonAdPriceCreateDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
@@ -70,6 +70,27 @@ export class AmazonAdService {
     await this.priceService
       .createMany(prices)
       .catch(() => this.createPricesOneByOne(id, prices));
+    this.afterPricesStored(ad, prices);
+  }
+
+  async applyBatch({ prices, deleted }: AmazonAdBatchDto) {
+    if (prices.length) {
+      const ads = await this.repository.getByIds(prices.map((ad) => ad.id));
+      await this.priceService
+        .createMany(prices.flatMap((ad) => ad.prices))
+        .catch(() =>
+          Promise.all(prices.map((ad) => this.createPricesOneByOne(ad.id, ad.prices)))
+        );
+      ads.forEach((ad) =>
+        this.afterPricesStored(ad, prices.find((item) => item.id === ad.id)!.prices)
+      );
+    }
+
+    const deletedCount = deleted.length ? await this.repository.deleteMany(deleted) : 0;
+    return { prices: prices.length, deleted: deletedCount };
+  }
+
+  private afterPricesStored(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
     const scrapedCountryIds = prices.map((price) => price.countryId);
     this.activityCountService.increment("ad_scraped", "amazon", scrapedCountryIds);
     this.priceService

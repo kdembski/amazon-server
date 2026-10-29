@@ -11,6 +11,7 @@ const setup = () => {
     getAll: vi.fn(),
     getForScraping: vi.fn(),
     update: vi.fn(),
+    applyBatch: vi.fn(),
     selectable: {},
     creatable: {},
     deletable: {},
@@ -39,6 +40,7 @@ describe("AmazonAdRouter", () => {
     expect(routeTable(calls)).toEqual([
       ["get", "/"],
       ["get", "/scrap"],
+      ["post", "/batch"],
       ["put", "/:id"],
       ["use", "SELECTABLE"],
       ["use", "CREATABLE"],
@@ -53,9 +55,11 @@ describe("AmazonAdRouter", () => {
     (calls[0].handler as Function)("req", "res");
     (calls[1].handler as Function)("req", "res");
     (calls[2].handler as Function)("req", "res");
+    (calls[3].handler as Function)("req", "res");
 
     expect(controller.getAll).toHaveBeenCalledWith("res");
     expect(controller.getForScraping).toHaveBeenCalledWith("req", "res");
+    expect(controller.applyBatch).toHaveBeenCalledWith("req", "res");
     expect(controller.update).toHaveBeenCalledWith("req", "res");
   });
 });

@@ -11,6 +11,7 @@ const setup = () => {
     getAll: vi.fn().mockResolvedValue([{ id: 1 }]),
     getForScraping: vi.fn().mockResolvedValue([{ id: 1, asin: "A" }]),
     updatePrices: vi.fn().mockResolvedValue(undefined),
+    applyBatch: vi.fn().mockResolvedValue({ prices: 1, deleted: 2 }),
     selectable: {},
     creatable: {},
     deletable: {},
@@ -68,11 +69,23 @@ describe("AmazonAdController", () => {
     expect(json).toHaveBeenCalledWith(undefined);
   });
 
+  it("applyBatch forwards the body and returns the result", async () => {
+    const { service, controller } = setup();
+    const { response, json } = fakeResponse();
+    const body = { prices: [{ id: 2, prices: [] }], deleted: [3, 4] };
+
+    await controller.applyBatch(fakeRequest({ body }), response);
+
+    expect(service.applyBatch).toHaveBeenCalledWith(body);
+    expect(json).toHaveBeenCalledWith({ prices: 1, deleted: 2 });
+  });
+
   it("sends error responses when the service throws", async () => {
     const { service, controller } = setup();
     service.getAll.mockRejectedValue(new Error("a"));
     service.getForScraping.mockRejectedValue(new Error("b"));
     service.updatePrices.mockRejectedValue(new Error("c"));
+    service.applyBatch.mockRejectedValue(new Error("d"));
     const { response, status, send, json } = fakeResponse();
 
     await controller.getAll(response);
@@ -81,10 +94,11 @@ describe("AmazonAdController", () => {
       fakeRequest({ params: { id: "1" }, body: { prices: [] } }),
       response
     );
+    await controller.applyBatch(fakeRequest({ body: { prices: [], deleted: [] } }), response);
 
-    expect(status).toHaveBeenCalledTimes(3);
+    expect(status).toHaveBeenCalledTimes(4);
     expect(status).toHaveBeenCalledWith(500);
-    expect(send.mock.calls.map(([m]) => m)).toEqual(["a", "b", "c"]);
+    expect(send.mock.calls.map(([m]) => m)).toEqual(["a", "b", "c", "d"]);
     expect(json).not.toHaveBeenCalled();
   });
 });

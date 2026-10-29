@@ -44,6 +44,13 @@ export class AmazonAdRepository {
     });
   }
 
+  getByIds(ids: number[]) {
+    return this.delegate.findMany({
+      where: { id: { in: ids } },
+      select: this.structure,
+    });
+  }
+
   // MySQL sorts NULL first in ascending order; an explicit `nulls` option
   // would turn the ORDER BY into an expression the index cannot serve.
   getForScraping(batchSize: number) {
@@ -135,6 +142,11 @@ export class AmazonAdRepository {
 
   delete(id: number) {
     return this.delegate.delete({ where: { id } });
+  }
+
+  async deleteMany(ids: number[]) {
+    const { count } = await this.delegate.deleteMany({ where: { id: { in: ids } } });
+    return count;
   }
 
   // Includes ads before excluding the rest, so the scraping queue never runs

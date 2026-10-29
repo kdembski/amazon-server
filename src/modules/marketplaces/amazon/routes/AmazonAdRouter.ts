@@ -34,6 +34,7 @@ export class AmazonAdRouter implements SubRouterI {
       (req: Request<{}, {}, {}, { batchSize: string }>, res) =>
         this.controller.getForScraping(req, res)
     );
+    this.router.post("/batch", (req, res) => this.controller.applyBatch(req, res));
     this.router.put("/:id", (req, res) => this.controller.update(req, res));
     this.router.use(this.selectable.build().router);
     this.router.use(this.creatable.build().router);

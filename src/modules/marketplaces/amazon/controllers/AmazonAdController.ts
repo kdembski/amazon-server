@@ -5,6 +5,7 @@ import { SelectableController } from "@/shared/crud/controllers/SelectableContro
 import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
 import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
 import { AmazonAdPriceCreateDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
+import { AmazonAdBatchDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 
 export class AmazonAdController {
   private service;
@@ -55,6 +56,15 @@ export class AmazonAdController {
       const data = request.body;
 
       const results = await this.service.updatePrices(id, data.prices);
+      response.json(results);
+    } catch (error: any) {
+      new ResponseErrorService(response).send(error);
+    }
+  }
+
+  async applyBatch(request: Request<{}, {}, AmazonAdBatchDto>, response: Response) {
+    try {
+      const results = await this.service.applyBatch(request.body);
       response.json(results);
     } catch (error: any) {
       new ResponseErrorService(response).send(error);

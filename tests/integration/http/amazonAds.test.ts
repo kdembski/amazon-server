@@ -75,6 +75,31 @@ describe("PUT /amazon/ads/:id", () => {
   });
 });
 
+describe("POST /amazon/ads/batch", () => {
+  it("stores prices and deletes ads and is not shadowed by /:id", async () => {
+    const scraped = await seedAd();
+    const gone = await seedAd();
+    const { countryId } = await seedAmazonCountry();
+
+    const res = await request(app)
+      .post("/amazon/ads/batch")
+      .send({
+        prices: [
+          {
+            id: scraped.id,
+            prices: [{ adId: scraped.id, countryId, value: 40, dispatchFrom: "Amazon" }],
+          },
+        ],
+        deleted: [gone.id],
+      })
+      .expect(200);
+
+    expect(res.body).toEqual({ prices: 1, deleted: 1 });
+    expect(await prisma.amazonAdPrice.count({ where: { adId: scraped.id } })).toBe(1);
+    expect(await prisma.amazonAd.count({ where: { id: gone.id } })).toBe(0);
+  });
+});
+
 describe("CRUD /amazon/ads", () => {
   it("GET / lists ads and GET /:id returns one with its category", async () => {
     const category = await seedCategory({ name: "audio", active: true });
