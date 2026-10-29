@@ -22,6 +22,7 @@ import {
 import { UpdatableService } from "@/shared/crud/services/UpdatableService";
 import { AmazonAdPriceCreateDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
+import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
 
 export class AmazonAdService {
   private repository;
@@ -31,6 +32,7 @@ export class AmazonAdService {
   private priceMapper;
   private logger;
   private categoryRepository;
+  private idempotencyCache;
   private static isGetting = false;
   selectable;
   deletable;
@@ -51,7 +53,8 @@ export class AmazonAdService {
     updatable = new UpdatableService(repository, new AmazonAdUpdateMapper()),
     priceMapper = new AmazonAdListingPriceMapper(),
     logger = SystemLogService.getInstance(),
-    categoryRepository = new AmazonAdCategoryRepository()
+    categoryRepository = new AmazonAdCategoryRepository(),
+    idempotencyCache = IdempotencyCache.getInstance()
   ) {
     this.logger = logger;
     this.repository = repository;
@@ -64,6 +67,7 @@ export class AmazonAdService {
     this.updatable = updatable;
     this.priceMapper = priceMapper;
     this.categoryRepository = categoryRepository;
+    this.idempotencyCache = idempotencyCache;
   }
 
   getAll() {
@@ -104,21 +108,26 @@ export class AmazonAdService {
     this.afterPricesStored(ad, prices);
   }
 
-  async applyBatch({ prices, deleted }: AmazonAdBatchDto) {
+  async applyBatch({ prices, deleted }: AmazonAdBatchDto, key?: string) {
     if (prices.length) {
-      const ads = await this.repository.getByIds(prices.map((ad) => ad.id));
-      await this.priceService
-        .createMany(prices.flatMap((ad) => ad.prices))
-        .catch(async () => {
-          for (const ad of prices) await this.createPricesOneByOne(ad.id, ad.prices);
-        });
-      ads.forEach((ad) =>
-        this.afterPricesStored(ad, prices.find((item) => item.id === ad.id)!.prices)
-      );
+      const store = () => this.storeBatchPrices(prices);
+      await (key ? this.idempotencyCache.run(key, store) : store());
     }
 
     const deletedCount = deleted.length ? await this.repository.deleteMany(deleted) : 0;
     return { prices: prices.length, deleted: deletedCount };
+  }
+
+  private async storeBatchPrices(prices: AmazonAdBatchDto["prices"]) {
+    const ads = await this.repository.getByIds(prices.map((ad) => ad.id));
+    await this.priceService
+      .createMany(prices.flatMap((ad) => ad.prices))
+      .catch(async () => {
+        for (const ad of prices) await this.createPricesOneByOne(ad.id, ad.prices);
+      });
+    ads.forEach((ad) =>
+      this.afterPricesStored(ad, prices.find((item) => item.id === ad.id)!.prices)
+    );
   }
 
   private afterPricesStored(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {

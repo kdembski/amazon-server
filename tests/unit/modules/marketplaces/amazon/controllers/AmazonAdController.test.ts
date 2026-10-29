@@ -91,8 +91,15 @@ describe("AmazonAdController", () => {
     const body = { prices: [{ id: 2, prices: [] }], deleted: [3, 4] };
 
     await controller.applyBatch(fakeRequest({ body }), response);
+    await controller.applyBatch(
+      fakeRequest({ body, headers: { "idempotency-key": "batch-1" } }),
+      response
+    );
 
-    expect(service.applyBatch).toHaveBeenCalledWith(body);
+    expect(service.applyBatch.mock.calls).toEqual([
+      [body, undefined],
+      [body, "batch-1"],
+    ]);
     expect(json).toHaveBeenCalledWith({ prices: 1, deleted: 2 });
   });
 

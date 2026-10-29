@@ -117,12 +117,14 @@ export function fakeRequest(
     params?: Record<string, string>;
     query?: Record<string, string>;
     body?: unknown;
+    headers?: Record<string, string>;
   } = {}
 ) {
   return {
     params: {},
     query: {},
     body: undefined,
+    headers: {},
     ...overrides,
   } as unknown as Request<any, any, any, any>;
 }

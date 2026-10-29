@@ -82,7 +82,11 @@ export class AmazonAdController {
 
   async applyBatch(request: Request<{}, {}, AmazonAdBatchDto>, response: Response) {
     try {
-      const results = await this.service.applyBatch(request.body);
+      const key = request.headers["idempotency-key"];
+      const results = await this.service.applyBatch(
+        request.body,
+        typeof key === "string" ? key : undefined
+      );
       response.json(results);
     } catch (error: any) {
       new ResponseErrorService(response).send(error);

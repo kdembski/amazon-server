@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, Mock } from "vitest";
 import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
 import { AmazonAdPriceService } from "@/modules/marketplaces/amazon/services/AmazonAdPriceService";
@@ -7,6 +7,7 @@ import { CountryOutlierManager } from "@/modules/anomalies/country-outlier/Count
 import { PriceDropManager } from "@/modules/anomalies/price-drop/PriceDropManager";
 import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingPriceMapper";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
+import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
 import {
   buildAd,
   buildListingPrice,
@@ -15,6 +16,7 @@ import {
 import {
   deferred,
   fakeActivityCountService,
+  resetSingleton,
   unitLogger,
 } from "../../../../../support/fakes";
 
@@ -81,6 +83,66 @@ describe("AmazonAdService delegation", () => {
 
     expect(repository.getAll).toHaveBeenCalled();
     expect(repository.getCount).toHaveBeenCalledWith(from, to);
+  });
+});
+
+describe("AmazonAdService.applyBatch with an idempotency key", () => {
+  const price = { value: 1, adId: 1, countryId: 1, dispatchFrom: "Amazon" };
+  const batch = { prices: [{ id: 1, prices: [price] }], deleted: [5] };
+
+  const setupBatch = () => {
+    resetSingleton(IdempotencyCache);
+    const context = setup();
+    Object.assign(context.repository, {
+      getByIds: vi.fn().mockResolvedValue([buildAd({ id: 1 })]),
+      deleteMany: vi.fn().mockResolvedValue(1),
+    });
+    return context as typeof context & {
+      repository: { getByIds: Mock; deleteMany: Mock };
+    };
+  };
+
+  it("stores the prices of a key once and deletes again", async () => {
+    const { service, repository, priceService, counter } = setupBatch();
+
+    await service.applyBatch(batch, "key");
+    await service.applyBatch(batch, "key");
+
+    expect(priceService.createMany).toHaveBeenCalledTimes(1);
+    expect(counter.increment).toHaveBeenCalledTimes(1);
+    expect(repository.deleteMany).toHaveBeenCalledTimes(2);
+  });
+
+  it("stores the prices again for another key or without one", async () => {
+    const { service, priceService } = setupBatch();
+
+    await service.applyBatch(batch, "a");
+    await service.applyBatch(batch, "b");
+    await service.applyBatch(batch);
+    await service.applyBatch(batch);
+
+    expect(priceService.createMany).toHaveBeenCalledTimes(4);
+  });
+
+  it("does not store the prices again when the retry follows a failed delete", async () => {
+    const { service, repository, priceService } = setupBatch();
+    repository.deleteMany.mockRejectedValueOnce(new Error("lock"));
+
+    await expect(service.applyBatch(batch, "key")).rejects.toThrow("lock");
+    await service.applyBatch(batch, "key");
+
+    expect(priceService.createMany).toHaveBeenCalledTimes(1);
+    expect(repository.deleteMany).toHaveBeenCalledTimes(2);
+  });
+
+  it("stores the prices on retry when storing them failed", async () => {
+    const { service, repository, priceService } = setupBatch();
+    repository.getByIds.mockRejectedValueOnce(new Error("down"));
+
+    await expect(service.applyBatch(batch, "key")).rejects.toThrow("down");
+    await service.applyBatch(batch, "key");
+
+    expect(priceService.createMany).toHaveBeenCalledTimes(1);
   });
 });
 

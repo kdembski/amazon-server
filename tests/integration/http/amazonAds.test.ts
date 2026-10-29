@@ -99,6 +99,32 @@ describe("POST /amazon/ads/batch", () => {
     expect(await prisma.amazonAd.count({ where: { id: gone.id } })).toBe(0);
   });
 
+  it("stores the prices of a retried batch once and still deletes", async () => {
+    const scraped = await seedAd();
+    const { countryId } = await seedAmazonCountry();
+    const body = {
+      prices: [
+        {
+          id: scraped.id,
+          prices: [{ adId: scraped.id, countryId, value: 40, dispatchFrom: "Amazon" }],
+        },
+      ],
+      deleted: [],
+    };
+    const send = () =>
+      request(app)
+        .post("/amazon/ads/batch")
+        .set("Idempotency-Key", `retry-${scraped.id}`)
+        .send(body)
+        .expect(200);
+
+    await send();
+    await send();
+
+    expect(await prisma.amazonAdPrice.count({ where: { adId: scraped.id } })).toBe(1);
+    expect(ActivityCounter.getInstance().counts.get("ad_scraped:amazon")?.count).toBe(1);
+  });
+
   it("accepts a body over 100 kB", async () => {
     const { countryId } = await seedAmazonCountry();
     const ads = await Promise.all(Array.from({ length: 300 }, () => seedAd()));
