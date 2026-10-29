@@ -35,6 +35,11 @@ export class ExclusionRuleParser {
 
   private parsePhrase(value: string, rawPhrase: string): SearchPhrase {
     let text = rawPhrase.trim();
+    if (text.startsWith("!")) {
+      throw new Error(
+        `Exclusion rule "${value}" can have ! only before the first phrase of a + member`
+      );
+    }
     const wordStart = !text.startsWith(WILDCARD);
     if (!wordStart) text = text.slice(1);
     const wordEnd = !text.endsWith(WILDCARD);
