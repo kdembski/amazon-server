@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
 import { ScraperMetricRepository } from "@/modules/monitoring/repositories/ScraperMetricRepository";
 import { ScraperMetricCreateMapper } from "@/modules/monitoring/mappers/ScraperMetricCreateMapper";
+import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
+import { resetSingleton } from "../../../../support/fakes";
 
 const setup = () => {
   const repository = {
@@ -14,6 +16,7 @@ const setup = () => {
   const mapper = {
     toCreateInputs: vi.fn().mockReturnValue([{ a: 1 }, { a: 2 }]),
   };
+  resetSingleton(IdempotencyCache);
   return {
     repository,
     mapper,
@@ -40,6 +43,17 @@ describe("ScraperMetricService", () => {
 
     expect(mapper.toCreateInputs).toHaveBeenCalledWith("amazon-pdp", body);
     expect(repository.createMany).toHaveBeenCalledWith([{ a: 1 }, { a: 2 }]);
+  });
+
+  it("add stores the metrics of a key once", async () => {
+    const { service, repository } = setup();
+    const body = dto([{ metric: "requests", value: 1 }]);
+
+    expect(await service.add("amazon-pdp", body, "metrics-1")).toBe(2);
+    expect(await service.add("amazon-pdp", body, "metrics-1")).toBe(2);
+    await service.add("amazon-pdp", body, "metrics-2");
+
+    expect(repository.createMany).toHaveBeenCalledTimes(2);
   });
 
   it("add returns 0 without touching the repository when there are no metrics", async () => {

@@ -8,25 +8,30 @@ import {
 import { TimeRange, toHourIso } from "@/modules/monitoring/helpers/parseTimeRange";
 import { ScraperMetricCreateMapper } from "@/modules/monitoring/mappers/ScraperMetricCreateMapper";
 import { ScraperMetricRepository } from "@/modules/monitoring/repositories/ScraperMetricRepository";
+import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
 
 export class ScraperMetricService {
   private repository;
   private mapper;
+  private idempotencyCache;
 
   constructor(
     repository = new ScraperMetricRepository(),
-    mapper = new ScraperMetricCreateMapper()
+    mapper = new ScraperMetricCreateMapper(),
+    idempotencyCache = IdempotencyCache.getInstance()
   ) {
     this.repository = repository;
     this.mapper = mapper;
+    this.idempotencyCache = idempotencyCache;
   }
 
-  async add(scraper: string, dto: ScraperMetricsDto) {
+  async add(scraper: string, dto: ScraperMetricsDto, key?: string) {
     const rows = this.mapper.toCreateInputs(scraper, dto);
     if (rows.length === 0) {
       return 0;
     }
-    return this.repository.createMany(rows);
+    const store = () => this.repository.createMany(rows);
+    return key ? this.idempotencyCache.run(key, store) : store();
   }
 
   async getSummaries(from: Date, to: Date): Promise<ScraperMetricSummary[]> {

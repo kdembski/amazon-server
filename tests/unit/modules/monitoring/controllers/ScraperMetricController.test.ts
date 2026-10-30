@@ -29,8 +29,24 @@ describe("ScraperMetricController", () => {
       response
     );
 
-    expect(add).toHaveBeenCalledWith("amazon-pdp", body);
+    expect(add).toHaveBeenCalledWith("amazon-pdp", body, undefined);
     expect(json).toHaveBeenCalledWith({ stored: 3 });
+  });
+
+  it("addMetrics passes the Idempotency-Key header", async () => {
+    const { controller, add } = setup();
+    const { response } = fakeResponse();
+
+    await controller.addMetrics(
+      fakeRequest({
+        params: { name: "amazon-pdp" },
+        body,
+        headers: { "idempotency-key": "metrics-1" },
+      }),
+      response
+    );
+
+    expect(add).toHaveBeenCalledWith("amazon-pdp", body, "metrics-1");
   });
 
   it("answers 400 and stores nothing for an invalid body", async () => {
