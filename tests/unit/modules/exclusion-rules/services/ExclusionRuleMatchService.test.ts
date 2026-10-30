@@ -11,7 +11,7 @@ const global = (...values: string[]): Rule[] =>
 const fakeTarget = (rules: Rule[] = []) => ({
   getExclusionRules: vi.fn().mockResolvedValue(rules),
   getActiveScopes: vi.fn().mockResolvedValue([1, 2]),
-  matchExclusionRules: vi.fn().mockResolvedValue({ excluded: 0, included: 0 }),
+  matchExclusionRules: vi.fn().mockResolvedValue({ excluded: 0, included: 0, scanned: 0 }),
 });
 
 const setup = (rulesA: Rule[] = [], rulesB: Rule[] = []) => {
@@ -53,8 +53,8 @@ describe("ExclusionRuleMatchService.sync", () => {
       global("drill"),
       global("bose")
     );
-    targetA.matchExclusionRules.mockResolvedValue({ excluded: 2, included: 1 });
-    targetB.matchExclusionRules.mockResolvedValue({ excluded: 2, included: 1 });
+    targetA.matchExclusionRules.mockResolvedValue({ excluded: 2, included: 1, scanned: 5 });
+    targetB.matchExclusionRules.mockResolvedValue({ excluded: 2, included: 1, scanned: 5 });
 
     await service.sync();
 
@@ -69,6 +69,7 @@ describe("ExclusionRuleMatchService.sync", () => {
         scopes: null,
         excluded: 2,
         included: 1,
+        scanned: 5,
         durationMs: expect.any(Number),
       });
     }
@@ -77,7 +78,7 @@ describe("ExclusionRuleMatchService.sync", () => {
 
   it("runs the targets one after another", async () => {
     const { service, targetA, targetB, info } = setup(global("drill"));
-    const first = deferred<{ excluded: number; included: number }>();
+    const first = deferred<{ excluded: number; included: number; scanned: number }>();
     targetA.matchExclusionRules.mockReturnValueOnce(first.promise);
 
     const running = service.sync();
@@ -86,7 +87,7 @@ describe("ExclusionRuleMatchService.sync", () => {
     );
     expect(targetB.matchExclusionRules).not.toHaveBeenCalled();
 
-    first.resolve({ excluded: 0, included: 0 });
+    first.resolve({ excluded: 0, included: 0, scanned: 0 });
     await running;
 
     expect(targetB.matchExclusionRules).toHaveBeenCalledTimes(1);
@@ -278,7 +279,7 @@ describe("ExclusionRuleMatchService.sync", () => {
 
   it("skips a run while the previous one is still running", async () => {
     const { service, targetA, info } = setup(global("drill"));
-    const first = deferred<{ excluded: number; included: number }>();
+    const first = deferred<{ excluded: number; included: number; scanned: number }>();
     targetA.matchExclusionRules.mockReturnValueOnce(first.promise);
 
     const running = service.sync();
@@ -287,7 +288,7 @@ describe("ExclusionRuleMatchService.sync", () => {
       expect(targetA.matchExclusionRules).toHaveBeenCalledTimes(1)
     );
 
-    first.resolve({ excluded: 0, included: 0 });
+    first.resolve({ excluded: 0, included: 0, scanned: 0 });
     await running;
     await service.sync();
 

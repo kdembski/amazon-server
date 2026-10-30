@@ -5,5 +5,5 @@ export interface ExclusionRuleTarget {
   matchExclusionRules(
     isExcluded: (name: string, scope: number | null) => boolean,
     only?: "new" | number[]
-  ): Promise<{ excluded: number; included: number }>;
+  ): Promise<{ excluded: number; included: number; scanned: number }>;
 }

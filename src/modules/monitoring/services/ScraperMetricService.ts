@@ -98,7 +98,7 @@ export class ScraperMetricService {
     const wasted =
       requests -
       this.total(sums, "requests", ["ok", "http_404"]) +
-      this.total(sums, "responses", ["captcha", "invalid", "empty"]);
+      this.total(sums, "responses", ["captcha", "invalid", "empty", "parse_error"]);
 
     return {
       itemsPerSecond: this.itemsPerSecond(sums, from, to),

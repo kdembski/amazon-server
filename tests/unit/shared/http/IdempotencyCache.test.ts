@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
-import { deferred, resetSingleton } from "../../../support/fakes";
+import { deferred, resetSingleton, unitLogger } from "../../../support/fakes";
 
 const setup = () => {
   resetSingleton(IdempotencyCache);
@@ -66,6 +66,36 @@ describe("IdempotencyCache", () => {
     vi.advanceTimersByTime(1);
     await cache.run("key", callback);
     expect(callback).toHaveBeenCalledTimes(2);
+  });
+
+  it("logs a reused key with its age and whether its work still runs", async () => {
+    const cache = setup();
+    const work = deferred<number>();
+    cache.run("key", () => work.promise);
+
+    vi.advanceTimersByTime(1500);
+    cache.run("key", vi.fn());
+    work.resolve(1);
+    await work.promise;
+    cache.run("key", vi.fn());
+
+    expect(unitLogger().info.mock.calls).toEqual([
+      ["IdempotencyCache", "Idempotency-Key key was reused", { key: "key", ageMs: 1500, pending: true }],
+      ["IdempotencyCache", "Idempotency-Key key was reused", { key: "key", ageMs: 1500, pending: false }],
+    ]);
+  });
+
+  it("keeps a newer entry when an expired callback of the key fails later", async () => {
+    const cache = setup();
+    const old = deferred<number>();
+    cache.run("key", () => old.promise);
+    vi.advanceTimersByTime(10 * 60 * 1000);
+    await cache.run("key", vi.fn().mockResolvedValue(2));
+
+    old.reject(new Error("late"));
+    await old.promise.catch(() => undefined);
+
+    expect(await cache.run("key", vi.fn())).toBe(2);
   });
 
   it("drops expired keys when a new one is added", async () => {

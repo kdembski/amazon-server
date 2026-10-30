@@ -98,7 +98,7 @@ describe("AmazonAdRepository (MySQL)", () => {
 
       const result = await repository.matchExclusionRules(excludes);
 
-      expect(result).toEqual({ excluded: 2, included: 1 });
+      expect(result).toEqual({ excluded: 2, included: 1, scanned: 3 });
       expect(await flags()).toEqual([
         ["Sony WH-1000XM5", true],
         ["Bose QC45", true],
@@ -145,7 +145,7 @@ describe("AmazonAdRepository (MySQL)", () => {
       await seedAd({ name: "Bose QC45", excluded: null });
       const excludes = rules();
 
-      expect(await repository.matchExclusionRules(excludes)).toEqual({ excluded: 0, included: 2 });
+      expect(await repository.matchExclusionRules(excludes)).toEqual({ excluded: 0, included: 2, scanned: 2 });
       expect(await flags()).toEqual([
         ["Sony WH-1000XM5", false],
         ["Bose QC45", false],
@@ -191,7 +191,7 @@ describe("AmazonAdRepository (MySQL)", () => {
       await seedAd({ name: "Bose QC45", excluded: false });
       const excludes = rules("bose");
 
-      expect(await repository.matchExclusionRules(excludes)).toEqual({ excluded: 1, included: 1 });
+      expect(await repository.matchExclusionRules(excludes)).toEqual({ excluded: 1, included: 1, scanned: 2 });
       expect(await flags()).toEqual([
         ["Sony WH-1000XM5", false],
         ["Bose QC45", true],
@@ -207,7 +207,7 @@ describe("AmazonAdRepository (MySQL)", () => {
       await seedAd({ name: "Sony 5", excluded: true });
       const excludes = rules("sony");
 
-      expect(await batched.matchExclusionRules(excludes)).toEqual({ excluded: 2, included: 2 });
+      expect(await batched.matchExclusionRules(excludes)).toEqual({ excluded: 2, included: 2, scanned: 5 });
       expect(await flags()).toEqual([
         ["Sony 1", true],
         ["Bose 2", false],
@@ -230,6 +230,7 @@ describe("AmazonAdRepository (MySQL)", () => {
       expect(await batched.matchExclusionRules(excludes, [audio.id])).toEqual({
         excluded: 1,
         included: 1,
+        scanned: 2,
       });
       expect(await flags()).toEqual([
         ["Sony 1", true],
@@ -246,7 +247,7 @@ describe("AmazonAdRepository (MySQL)", () => {
       await seedAd({ name: "Sony new", excluded: null });
       const excludes = rules("bose");
 
-      expect(await repository.matchExclusionRules(excludes, "new")).toEqual({ excluded: 1, included: 1 });
+      expect(await repository.matchExclusionRules(excludes, "new")).toEqual({ excluded: 1, included: 1, scanned: 2 });
       expect(await flags()).toEqual([
         ["Sony stale true", true],
         ["Bose stale false", false],

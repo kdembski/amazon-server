@@ -4,21 +4,28 @@ import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { CountryOutlierStrategy } from "@/modules/anomalies/country-outlier/CountryOutlierStrategy";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
 import { MIN_COUNTRY_OUTLIER_PRICES } from "@/shared/utils/countryOutlier";
+import { SystemLogService } from "@/shared/logging/services/SystemLogService";
+
+const MISSING_RATE_WARNING_INTERVAL_MS = 60 * 60 * 1000;
 
 export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
   private reporter;
   private exchangeRateService;
   private strategy;
+  private logger;
   private minPriceDrop = 0.05;
+  private missingRateWarnedAt = new Map<number, number>();
 
   constructor(
     reporter: CountryOutlierReporter<T>,
     exchangeRateService = new CurrencyExchangeRateService(),
-    strategy = new CountryOutlierStrategy()
+    strategy = new CountryOutlierStrategy(),
+    logger = SystemLogService.getInstance()
   ) {
     this.reporter = reporter;
     this.exchangeRateService = exchangeRateService;
     this.strategy = strategy;
+    this.logger = logger;
   }
 
   async check(listing: T, allCountryPrices: ListingPrice[][]) {
@@ -53,10 +60,27 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     return prices.map((price) => {
       const { currencyId } = price.country;
       const rate = rates.find((rate) => rate.sourceId === currencyId);
-      if (!rate) return price;
+      if (!rate) {
+        this.warnMissingRate(price);
+        return price;
+      }
 
       return { ...price, value: price.value.times(rate.value) };
     });
+  }
+
+  // At most once an hour per currency
+  private warnMissingRate({ country }: ListingPrice) {
+    const now = Date.now();
+    const warnedAt = this.missingRateWarnedAt.get(country.currencyId);
+    if (warnedAt !== undefined && now - warnedAt < MISSING_RATE_WARNING_INTERVAL_MS) return;
+
+    this.missingRateWarnedAt.set(country.currencyId, now);
+    this.logger.warn(
+      "CountryOutlierManager",
+      `No PLN exchange rate for ${country.currencyCode}, compared without conversion`,
+      { currencyId: country.currencyId, currencyCode: country.currencyCode, country: country.code }
+    );
   }
 
   private sortPrices(prices: ListingPrice[]) {

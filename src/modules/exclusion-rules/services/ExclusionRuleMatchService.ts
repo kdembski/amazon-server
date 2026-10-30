@@ -54,7 +54,7 @@ export class ExclusionRuleMatchService {
       this.parseExclusionRules(exclusionRules)
     );
 
-    const { excluded, included } = await target.matchExclusionRules(
+    const { excluded, included, scanned } = await target.matchExclusionRules(
       (name, scope) =>
         (scope !== null && !active.has(scope)) || matcher.excludes(name, scope),
       only
@@ -72,6 +72,7 @@ export class ExclusionRuleMatchService {
           scopes: only ?? null,
           excluded,
           included,
+          scanned,
           durationMs: Date.now() - startedAt,
         }
       );

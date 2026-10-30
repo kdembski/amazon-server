@@ -8,6 +8,7 @@ import {
   buildListingPrice,
   buildRate,
 } from "../../../../support/factories";
+import { fakeSystemLogService } from "../../../../support/fakes";
 
 const setup = (channels = ["1", "4"]) => {
   const reporter = { report: vi.fn().mockResolvedValue(undefined) };
@@ -97,6 +98,44 @@ describe("CountryOutlierManager", () => {
       createdAt: eurPrice.createdAt,
       country: eurPrice.country,
     });
+  });
+
+  it("warns about a currency without a PLN rate at most once an hour", async () => {
+    vi.useFakeTimers();
+    const { listing } = setup();
+    const logger = fakeSystemLogService();
+    const withLogger = new CountryOutlierManager(
+      { report: vi.fn() },
+      { getPlnRates: vi.fn().mockResolvedValue([]) } as unknown as CurrencyExchangeRateService,
+      { getMatchingRules: vi.fn().mockReturnValue([]) } as unknown as CountryOutlierStrategy,
+      logger.service
+    );
+    const sek = [[buildListingPrice({ country: { currencyId: 4, currencyCode: "SEK", code: "se" } })]];
+
+    await withLogger.check(listing, [...fourCountries(), ...sek]);
+    vi.advanceTimersByTime(60 * 60 * 1000 - 1);
+    await withLogger.check(listing, [...fourCountries(), ...sek]);
+    vi.advanceTimersByTime(1);
+    await withLogger.check(listing, fourCountries());
+    vi.useRealTimers();
+
+    expect(logger.warn.mock.calls).toEqual([
+      [
+        "CountryOutlierManager",
+        "No PLN exchange rate for PLN, compared without conversion",
+        { currencyId: 1, currencyCode: "PLN", country: "pl" },
+      ],
+      [
+        "CountryOutlierManager",
+        "No PLN exchange rate for SEK, compared without conversion",
+        { currencyId: 4, currencyCode: "SEK", country: "se" },
+      ],
+      [
+        "CountryOutlierManager",
+        "No PLN exchange rate for PLN, compared without conversion",
+        { currencyId: 1, currencyCode: "PLN", country: "pl" },
+      ],
+    ]);
   });
 
   it("does not modify the given prices", async () => {

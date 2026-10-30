@@ -96,7 +96,7 @@ export class AmazonAdRepository {
 
     const where = only ? { categoryId: { in: only } } : {};
     const { _max } = await this.delegate.aggregate({ where, _max: { id: true } });
-    const total = { excluded: 0, included: 0 };
+    const total = { excluded: 0, included: 0, scanned: 0 };
 
     for (let lastId = 0; lastId < (_max.id ?? 0); lastId += this.matchBatchSize) {
       const result = await this.updateMatches(isExcluded, {
@@ -105,6 +105,7 @@ export class AmazonAdRepository {
       });
       total.excluded += result.excluded;
       total.included += result.included;
+      total.scanned += result.scanned;
     }
 
     return total;
@@ -179,6 +180,7 @@ export class AmazonAdRepository {
     return {
       excluded: await this.setExcluded(excluded, true),
       included: includedCount,
+      scanned: ads.length,
     };
   }
 

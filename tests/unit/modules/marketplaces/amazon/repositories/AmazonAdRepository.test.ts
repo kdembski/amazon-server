@@ -126,6 +126,7 @@ describe("AmazonAdRepository", () => {
       await expect(repository.matchExclusionRules(excludes)).resolves.toEqual({
         excluded: 2,
         included: 2,
+        scanned: 6,
       });
 
       expect(delegate.aggregate).toHaveBeenCalledWith({ where: {}, _max: { id: true } });
@@ -163,6 +164,7 @@ describe("AmazonAdRepository", () => {
       await expect(repository.matchExclusionRules(excludes)).resolves.toEqual({
         excluded: 0,
         included: 0,
+        scanned: 0,
       });
 
       expect(delegate.findMany).not.toHaveBeenCalled();
@@ -180,6 +182,7 @@ describe("AmazonAdRepository", () => {
       await expect(repository.matchExclusionRules(excludes, "new")).resolves.toEqual({
         excluded: 1,
         included: 1,
+        scanned: 2,
       });
 
       expect(delegate.aggregate).not.toHaveBeenCalled();

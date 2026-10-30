@@ -101,6 +101,7 @@ describe("ScraperMetricService", () => {
       sum("responses", "no_data", 50, scraper),
       sum("responses", "captcha", 40, scraper),
       sum("responses", "invalid", 10, scraper),
+      sum("responses", "parse_error", 10, scraper),
       sum("connections", null, 200, scraper),
       sum("bytes_in", null, 20_480_000, scraper),
       sum("bytes_out", null, 1_024_000, scraper),
@@ -137,7 +138,7 @@ describe("ScraperMetricService", () => {
       expect(summary.itemsPerSecond).toBeCloseTo(860 / 3600);
       expect(summary.itemsPerSecondDiff).toBeCloseTo(140 / 3600);
       expect(summary.requests).toBe(1000);
-      expect(summary.wastedPercent).toBeCloseTo(12);
+      expect(summary.wastedPercent).toBeCloseTo(13);
       expect(summary.captchaPercent).toBeCloseTo(4);
       expect(summary.kbPerItem).toBeCloseTo(26.25);
       expect(summary.reusePercent).toBeCloseTo(80);
