@@ -8,7 +8,7 @@ export class ExclusionRuleMatchService {
   private targets;
   private parser;
   private logger;
-  private fingerprints = new Map<ExclusionRuleTarget, string>();
+  private fingerprints = new Map<ExclusionRuleTarget, Map<string, string>>();
   private isRunning = false;
 
   constructor(
@@ -21,8 +21,9 @@ export class ExclusionRuleMatchService {
     this.logger = logger;
   }
 
-  // Rematches every ad of a target when its rules or active scopes differ from
-  // the last successful run, otherwise only the ads that were never checked.
+  // Rematches the ads of the scopes whose rules or active flag differ from the
+  // last successful run (every ad when a rule without a scope changed),
+  // otherwise only the ads that were never checked.
   async sync() {
     if (this.isRunning) return;
     this.isRunning = true;
@@ -45,25 +46,22 @@ export class ExclusionRuleMatchService {
   private async syncTarget(target: ExclusionRuleTarget) {
     const exclusionRules = await target.getExclusionRules();
     const activeScopes = await target.getActiveScopes();
-    const fingerprint = [
-      ...exclusionRules.map((rule) => `${rule.scope ?? ""}\t${rule.inverted}\t${rule.value}`).sort(),
-      `active\t${[...activeScopes].sort((a, b) => a - b).join(",")}`,
-    ].join("\n");
+    const fingerprint = this.getFingerprint(exclusionRules, activeScopes);
+    const only = this.getChangedScopes(this.fingerprints.get(target), fingerprint);
     const active = new Set(activeScopes);
-    const changed = fingerprint !== this.fingerprints.get(target);
     const startedAt = Date.now();
     const matcher = new ScopedExclusionRuleMatcher(
       this.parseExclusionRules(exclusionRules)
     );
 
-    const { excluded, included } = await target.matchExclusionRules(
+    const { excluded, included, scanned } = await target.matchExclusionRules(
       (name, scope) =>
         (scope !== null && !active.has(scope)) || matcher.excludes(name, scope),
-      !changed
+      only
     );
     this.fingerprints.set(target, fingerprint);
 
-    if (changed) {
+    if (only !== "new") {
       this.logger.info(
         "ExclusionRuleMatchService",
         `${exclusionRules.length} exclusion rules excluded ${excluded} and included ${included} ads`,
@@ -71,12 +69,42 @@ export class ExclusionRuleMatchService {
           target: target.constructor.name,
           rules: exclusionRules.length,
           activeScopes: [...active],
+          scopes: only ?? null,
           excluded,
           included,
+          scanned,
           durationMs: Date.now() - startedAt,
         }
       );
     }
+  }
+
+  // One fingerprint per scope; the key "" holds the rules without a scope
+  private getFingerprint(
+    rules: { value: string; scope: number | null; inverted: boolean }[],
+    activeScopes: number[]
+  ) {
+    const lines = new Map<string, string[]>();
+    const add = (key: string, line: string) => {
+      lines.set(key, [...(lines.get(key) ?? []), line]);
+    };
+    rules.forEach((rule) => add(String(rule.scope ?? ""), `${rule.inverted}\t${rule.value}`));
+    activeScopes.forEach((scope) => add(String(scope), "active"));
+    return new Map([...lines].map(([key, values]) => [key, values.sort().join("\n")]));
+  }
+
+  private getChangedScopes(
+    previous: Map<string, string> | undefined,
+    current: Map<string, string>
+  ): "new" | number[] | undefined {
+    if (!previous || previous.get("") !== current.get("")) return undefined;
+
+    const keys = new Set([...previous.keys(), ...current.keys()]);
+    const changed = [...keys]
+      .filter((key) => previous.get(key) !== current.get(key))
+      .map(Number)
+      .sort((a, b) => a - b);
+    return changed.length ? changed : "new";
   }
 
   private parseExclusionRules(

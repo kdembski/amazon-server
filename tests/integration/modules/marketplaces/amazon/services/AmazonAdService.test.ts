@@ -139,7 +139,9 @@ describe("AmazonAdService (MySQL)", () => {
       expect(ActivityCounter.getInstance().counts.get("ad_scraped:amazon")?.count).toBe(1);
       await vi.waitFor(async () =>
         expect(
-          await prisma.systemLog.count({ where: { message: `Price of ad ${ad.id} was not stored` } })
+          await prisma.systemLog.count({
+            where: { message: "Batch insert of 2 prices failed, 1 of them were not stored one by one" },
+          })
         ).toBe(1)
       );
     });

@@ -6,6 +6,8 @@ import {
 } from "discord.js";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
+const MAX_EMBED_TITLE_LENGTH = 256;
+
 export class DiscordService {
   private baseUrl = "https://discord.com/api/webhooks/";
   private _client?: WebhookClient;
@@ -27,7 +29,7 @@ export class DiscordService {
   send(options: string | MessagePayload | WebhookMessageCreateOptions) {
     if (!this._client) throw Error("Client has not been initialized");
 
-    return this.sendWithRetry(this._client, options);
+    return this.sendWithRetry(this._client, this.truncateTitles(options));
   }
 
   set client(envVarName: string) {
@@ -74,6 +76,25 @@ export class DiscordService {
       await new Promise((resolve) => setTimeout(resolve, delay));
       return this.sendWithRetry(client, options, attempt + 1);
     }
+  }
+
+  // Discord rejects the whole message when an embed title is longer than 256 characters.
+  private truncateTitles(
+    options: string | MessagePayload | WebhookMessageCreateOptions
+  ) {
+    if (typeof options === "string") return options;
+
+    const { embeds } = options as WebhookMessageCreateOptions;
+    if (!embeds) return options;
+
+    return {
+      ...options,
+      embeds: embeds.map((embed) => {
+        const { title } = embed as APIEmbed;
+        if (!title || title.length <= MAX_EMBED_TITLE_LENGTH) return embed;
+        return { ...embed, title: title.slice(0, MAX_EMBED_TITLE_LENGTH - 1) + "…" };
+      }),
+    } as WebhookMessageCreateOptions;
   }
 
   private summarize(

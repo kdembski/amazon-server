@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
 import { ScraperMetricRepository } from "@/modules/monitoring/repositories/ScraperMetricRepository";
 import { ScraperMetricCreateMapper } from "@/modules/monitoring/mappers/ScraperMetricCreateMapper";
+import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
+import { resetSingleton } from "../../../../support/fakes";
 
 const setup = () => {
   const repository = {
@@ -14,6 +16,7 @@ const setup = () => {
   const mapper = {
     toCreateInputs: vi.fn().mockReturnValue([{ a: 1 }, { a: 2 }]),
   };
+  resetSingleton(IdempotencyCache);
   return {
     repository,
     mapper,
@@ -40,6 +43,17 @@ describe("ScraperMetricService", () => {
 
     expect(mapper.toCreateInputs).toHaveBeenCalledWith("amazon-pdp", body);
     expect(repository.createMany).toHaveBeenCalledWith([{ a: 1 }, { a: 2 }]);
+  });
+
+  it("add stores the metrics of a key once", async () => {
+    const { service, repository } = setup();
+    const body = dto([{ metric: "requests", value: 1 }]);
+
+    expect(await service.add("amazon-pdp", body, "metrics-1")).toBe(2);
+    expect(await service.add("amazon-pdp", body, "metrics-1")).toBe(2);
+    await service.add("amazon-pdp", body, "metrics-2");
+
+    expect(repository.createMany).toHaveBeenCalledTimes(2);
   });
 
   it("add returns 0 without touching the repository when there are no metrics", async () => {
@@ -87,6 +101,7 @@ describe("ScraperMetricService", () => {
       sum("responses", "no_data", 50, scraper),
       sum("responses", "captcha", 40, scraper),
       sum("responses", "invalid", 10, scraper),
+      sum("responses", "parse_error", 10, scraper),
       sum("connections", null, 200, scraper),
       sum("bytes_in", null, 20_480_000, scraper),
       sum("bytes_out", null, 1_024_000, scraper),
@@ -123,7 +138,7 @@ describe("ScraperMetricService", () => {
       expect(summary.itemsPerSecond).toBeCloseTo(860 / 3600);
       expect(summary.itemsPerSecondDiff).toBeCloseTo(140 / 3600);
       expect(summary.requests).toBe(1000);
-      expect(summary.wastedPercent).toBeCloseTo(12);
+      expect(summary.wastedPercent).toBeCloseTo(13);
       expect(summary.captchaPercent).toBeCloseTo(4);
       expect(summary.kbPerItem).toBeCloseTo(26.25);
       expect(summary.reusePercent).toBeCloseTo(80);

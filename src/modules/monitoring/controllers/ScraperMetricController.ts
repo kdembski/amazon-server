@@ -20,7 +20,12 @@ export class ScraperMetricController {
       const { name } = request.params;
       assertScraperName(name);
       const dto = parseScraperMetrics(request.body);
-      const stored = await this.service.add(name, dto);
+      const key = request.headers["idempotency-key"];
+      const stored = await this.service.add(
+        name,
+        dto,
+        typeof key === "string" ? key : undefined
+      );
       response.json({ stored });
     } catch (error: any) {
       new ResponseErrorService(response).send(error);

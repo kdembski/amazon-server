@@ -98,7 +98,7 @@ describe("AmazonAdRepository", () => {
       delegate.updateMany.mockResolvedValue({ count: 1 });
       const scoped = vi.fn().mockReturnValue(true);
 
-      await repository.matchExclusionRules(scoped, true);
+      await repository.matchExclusionRules(scoped, "new");
 
       expect(scoped).toHaveBeenCalledWith("Bosch drill", 7);
     });
@@ -126,9 +126,10 @@ describe("AmazonAdRepository", () => {
       await expect(repository.matchExclusionRules(excludes)).resolves.toEqual({
         excluded: 2,
         included: 2,
+        scanned: 6,
       });
 
-      expect(delegate.aggregate).toHaveBeenCalledWith({ _max: { id: true } });
+      expect(delegate.aggregate).toHaveBeenCalledWith({ where: {}, _max: { id: true } });
       expect(delegate.findMany.mock.calls).toEqual([
         [{ where: { id: { gt: 0, lte: 10 } }, select }],
         [{ where: { id: { gt: 10, lte: 20 } }, select }],
@@ -141,6 +142,21 @@ describe("AmazonAdRepository", () => {
       ]);
     });
 
+    it("with scope ids walks only the ads of these scopes", async () => {
+      const { repository, delegate } = setup(10);
+      delegate.aggregate.mockResolvedValue({ _max: { id: 15 } });
+      delegate.findMany.mockResolvedValue([]);
+      const where = { categoryId: { in: [7, 8] } };
+
+      await repository.matchExclusionRules(excludes, [7, 8]);
+
+      expect(delegate.aggregate).toHaveBeenCalledWith({ where, _max: { id: true } });
+      expect(delegate.findMany.mock.calls).toEqual([
+        [{ where: { ...where, id: { gt: 0, lte: 10 } }, select }],
+        [{ where: { ...where, id: { gt: 10, lte: 20 } }, select }],
+      ]);
+    });
+
     it("updates nothing on an empty table", async () => {
       const { repository, delegate } = setup();
       delegate.aggregate.mockResolvedValue({ _max: { id: null } });
@@ -148,13 +164,14 @@ describe("AmazonAdRepository", () => {
       await expect(repository.matchExclusionRules(excludes)).resolves.toEqual({
         excluded: 0,
         included: 0,
+        scanned: 0,
       });
 
       expect(delegate.findMany).not.toHaveBeenCalled();
       expect(delegate.updateMany).not.toHaveBeenCalled();
     });
 
-    it("with onlyNew checks the never checked ads in one go", async () => {
+    it("with only = \"new\" checks the never checked ads in one go", async () => {
       const { repository, delegate } = setup();
       delegate.findMany.mockResolvedValue([
         ad(1, "Bosch drill", null),
@@ -162,9 +179,10 @@ describe("AmazonAdRepository", () => {
       ]);
       delegate.updateMany.mockResolvedValue({ count: 1 });
 
-      await expect(repository.matchExclusionRules(excludes, true)).resolves.toEqual({
+      await expect(repository.matchExclusionRules(excludes, "new")).resolves.toEqual({
         excluded: 1,
         included: 1,
+        scanned: 2,
       });
 
       expect(delegate.aggregate).not.toHaveBeenCalled();

@@ -9,6 +9,7 @@ import { PriceDropManager } from "@/modules/anomalies/price-drop/PriceDropManage
 import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingPriceMapper";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
+import { ConcurrencyQueue } from "@/shared/utils/ConcurrencyQueue";
 import {
   buildAd,
   buildListingPrice,
@@ -29,7 +30,7 @@ vi.mock("discord.js", async (importOriginal) => {
 
 type ScrapAd = { id: number; asin: string; name: string };
 
-const setup = () => {
+const setup = (anomalyCheckQueue?: ConcurrencyQueue) => {
   const repository = {
     getById: vi.fn(),
     getAll: vi.fn().mockResolvedValue([]),
@@ -59,7 +60,11 @@ const setup = () => {
     undefined,
     undefined,
     undefined,
-    priceMapper as unknown as AmazonAdListingPriceMapper
+    priceMapper as unknown as AmazonAdListingPriceMapper,
+    undefined,
+    undefined,
+    undefined,
+    anomalyCheckQueue
   );
 
   return {
@@ -191,9 +196,166 @@ describe("AmazonAdService.applyBatch anomaly checks", () => {
 });
 
 describe("AmazonAdService.applyBatch", () => {
+  const price = (adId: number, countryId = 1) => ({
+    value: 1,
+    adId,
+    countryId,
+    dispatchFrom: "Amazon",
+  });
+
+  const setupBatch = (adIds: number[]) => {
+    resetSingleton(IdempotencyCache);
+    const context = setup();
+    Object.assign(context.repository, {
+      getByIds: vi.fn().mockResolvedValue(adIds.map((id) => buildAd({ id }))),
+      deleteMany: vi.fn().mockResolvedValue(0),
+    });
+    return context;
+  };
+
+  it.each([
+    ["code", { code: "P2024" }],
+    ["errorCode", { errorCode: "P1001" }],
+  ])(
+    "rejects without storing one by one when the database cannot be reached (%s)",
+    async (_field, fields) => {
+      const { service, priceService, counter } = setupBatch([1]);
+      const error = Object.assign(new Error("pool"), fields);
+      priceService.createMany.mockRejectedValueOnce(error);
+      const batch = { prices: [{ id: 1, prices: [price(1)] }], deleted: [] };
+
+      await expect(service.applyBatch(batch, "key")).rejects.toBe(error);
+      expect(priceService.creatable.create).not.toHaveBeenCalled();
+      expect(counter.increment).not.toHaveBeenCalled();
+
+      await service.applyBatch(batch, "key");
+      expect(priceService.createMany).toHaveBeenCalledTimes(2);
+    }
+  );
+
+  it("skips the prices of ads missing in the database", async () => {
+    const { service, priceService, counter, anomalyManager } = setupBatch([1]);
+
+    await service.applyBatch({
+      prices: [
+        { id: 1, prices: [price(1)] },
+        { id: 2, prices: [price(2)] },
+        { id: 3, prices: [price(3)] },
+      ],
+      deleted: [],
+    });
+
+    expect(priceService.createMany).toHaveBeenCalledWith([price(1)]);
+    expect(counter.increment).toHaveBeenCalledTimes(1);
+    expect(unitLogger().warn).toHaveBeenCalledWith(
+      "AmazonAdService",
+      "Skipped the prices of 2 ads missing in the database",
+      { adIds: [2, 3] }
+    );
+    await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalledTimes(1));
+  });
+
+  it("warns once per batch when every price was stored one by one", async () => {
+    const { service, priceService } = setupBatch([1, 2]);
+    const error = new Error("FK");
+    priceService.createMany.mockRejectedValue(error);
+
+    await service.applyBatch({
+      prices: [
+        { id: 1, prices: [price(1), price(1, 2)] },
+        { id: 2, prices: [price(2)] },
+      ],
+      deleted: [],
+    });
+
+    expect(unitLogger().error).not.toHaveBeenCalled();
+    expect(unitLogger().warn).toHaveBeenCalledWith(
+      "AmazonAdService",
+      "Batch insert of 3 prices failed, 0 of them were not stored one by one",
+      { error, prices: 3, failed: 0, failedAdIds: [], failedError: undefined }
+    );
+  });
+
+  it("logs one error per batch with the prices that were not stored", async () => {
+    const { service, priceService } = setupBatch([1, 2]);
+    const error = new Error("FK");
+    const first = new Error("row 1");
+    priceService.createMany.mockRejectedValue(error);
+    priceService.creatable.create
+      .mockRejectedValueOnce(first)
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error("row 2"));
+
+    await service.applyBatch({
+      prices: [
+        { id: 1, prices: [price(1), price(1, 2)] },
+        { id: 2, prices: [price(2)] },
+      ],
+      deleted: [],
+    });
+
+    expect(unitLogger().error).toHaveBeenCalledTimes(1);
+    expect(unitLogger().error).toHaveBeenCalledWith(
+      "AmazonAdService",
+      "Batch insert of 3 prices failed, 2 of them were not stored one by one",
+      { error, prices: 3, failed: 2, failedAdIds: [1, 2], failedError: first }
+    );
+  });
+
+  it("warns about a batch that took over 10 s", async () => {
+    const { service } = setupBatch([1]);
+    const now = vi.spyOn(Date, "now").mockReturnValueOnce(0).mockReturnValue(10_001);
+
+    await service.applyBatch({ prices: [{ id: 1, prices: [price(1), price(1, 2)] }], deleted: [7] }, "key");
+    now.mockRestore();
+
+    expect(unitLogger().warn).toHaveBeenCalledWith(
+      "AmazonAdService",
+      "Batch of 1 ads took 10001 ms",
+      { ads: 1, prices: 2, deleted: 1, durationMs: 10_001, key: "key", queuedAnomalyChecks: 0 }
+    );
+  });
+
+  it("does not warn about a batch of 10 s", async () => {
+    const { service } = setupBatch([]);
+    const now = vi.spyOn(Date, "now").mockReturnValueOnce(0).mockReturnValue(10_000);
+
+    await service.applyBatch({ prices: [], deleted: [7] });
+    now.mockRestore();
+
+    expect(unitLogger().warn).not.toHaveBeenCalled();
+  });
+
+  it("warns at most once a minute when anomaly checks wait a minute or longer", async () => {
+    const waits = [59_999, 60_000, 120_000];
+    const queue = {
+      size: 4,
+      add: vi.fn((run: (waitedMs: number) => Promise<unknown>) => run(waits.shift()!)),
+    };
+    const { service, repository } = setup(queue as unknown as ConcurrencyQueue);
+    repository.getById.mockResolvedValue(buildAd());
+    const now = vi.spyOn(Date, "now").mockReturnValue(100_000);
+
+    await service.updatePrices(1, [price(1)]);
+    await service.updatePrices(1, [price(1)]);
+    now.mockReturnValue(159_999);
+    await service.updatePrices(1, [price(1)]);
+    now.mockRestore();
+
+    expect(unitLogger().warn.mock.calls).toEqual([
+      [
+        "AmazonAdService",
+        "Anomaly checks run 60 s after the prices were stored",
+        { waitedMs: 60_000, queuedAnomalyChecks: 4 },
+      ],
+    ]);
+  });
+
   it("stores the prices of one ad after another when the batch insert fails", async () => {
     const { service, repository, priceService } = setup();
-    Object.assign(repository, { getByIds: vi.fn().mockResolvedValue([]) });
+    Object.assign(repository, {
+      getByIds: vi.fn().mockResolvedValue([buildAd({ id: 1 }), buildAd({ id: 2 })]),
+    });
     priceService.createMany.mockRejectedValue(new Error("FK"));
     const first = deferred<object>();
     priceService.creatable.create
@@ -265,7 +427,8 @@ describe("AmazonAdService.updatePrices", () => {
   it("stores the prices one by one when the batch fails, logging the failed ones", async () => {
     const { service, repository, priceService, counter } = setup();
     repository.getById.mockResolvedValue(buildAd());
-    priceService.createMany.mockRejectedValue(new Error("batch"));
+    const batchError = new Error("batch");
+    priceService.createMany.mockRejectedValue(batchError);
     const error = new Error("dup");
     priceService.creatable.create.mockRejectedValueOnce(error);
     const prices = [
@@ -279,8 +442,8 @@ describe("AmazonAdService.updatePrices", () => {
     expect(unitLogger().error).toHaveBeenCalledTimes(1);
     expect(unitLogger().error).toHaveBeenCalledWith(
       "AmazonAdService",
-      "Price of ad 1 was not stored",
-      { error, adId: 1, price: prices[0] }
+      "Batch insert of 2 prices failed, 1 of them were not stored one by one",
+      { error: batchError, prices: 2, failed: 1, failedAdIds: [1], failedError: error }
     );
     expect(counter.increment).toHaveBeenCalledWith("ad_scraped", "amazon", [1, 2]);
   });

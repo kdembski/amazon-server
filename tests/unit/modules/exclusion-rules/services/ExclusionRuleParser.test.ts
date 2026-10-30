@@ -25,8 +25,14 @@ describe("ExclusionRuleParser.parse", () => {
   });
 
   it("rejects a rule without a phrase outside !", () => {
-    expect(() => parseExclusionRule("!etui|!kabel")).toThrow(
-      'Exclusion rule "!etui|!kabel" needs at least one phrase without !'
+    expect(() => parseExclusionRule("!etui|kabel")).toThrow(
+      'Exclusion rule "!etui|kabel" needs at least one phrase without !'
+    );
+  });
+
+  it.each(["x+!a|!b", "x|!a", "!!a+x"])("rejects ! after the start of a member in %j", (value) => {
+    expect(() => parseExclusionRule(value)).toThrow(
+      `Exclusion rule "${value}" can have ! only before the first phrase of a + member`
     );
   });
 

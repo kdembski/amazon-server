@@ -1,11 +1,18 @@
+import { SystemLogService } from "@/shared/logging/services/SystemLogService";
+
 const TTL = 10 * 60 * 1000;
+
+type Entry = { createdAt: number; result: Promise<unknown>; pending: boolean };
 
 // Results of work keyed by an Idempotency-Key, so a retried request reuses them; lost on restart
 export class IdempotencyCache {
   private static instance: IdempotencyCache;
-  entries = new Map<string, { expiresAt: number; result: Promise<unknown> }>();
+  private logger;
+  entries = new Map<string, Entry>();
 
-  private constructor() {}
+  private constructor(logger = SystemLogService.getInstance()) {
+    this.logger = logger;
+  }
 
   public static getInstance(): IdempotencyCache {
     if (!IdempotencyCache.instance) {
@@ -18,20 +25,33 @@ export class IdempotencyCache {
   run<T>(key: string, callback: () => Promise<T>): Promise<T> {
     const now = Date.now();
     const entry = this.entries.get(key);
-    if (entry && entry.expiresAt > now) return entry.result as Promise<T>;
+    if (entry && entry.createdAt + TTL > now) {
+      this.logger.info("IdempotencyCache", `Idempotency-Key ${key} was reused`, {
+        key,
+        ageMs: now - entry.createdAt,
+        pending: entry.pending,
+      });
+      return entry.result as Promise<T>;
+    }
 
     this.dropExpired(now);
     const result = callback();
-    this.entries.set(key, { expiresAt: now + TTL, result });
-    result.catch(() => {
-      if (this.entries.get(key)?.result === result) this.entries.delete(key);
-    });
+    const created: Entry = { createdAt: now, result, pending: true };
+    this.entries.set(key, created);
+    result.then(
+      () => {
+        created.pending = false;
+      },
+      () => {
+        if (this.entries.get(key) === created) this.entries.delete(key);
+      }
+    );
     return result;
   }
 
   private dropExpired(now: number) {
     this.entries.forEach((entry, key) => {
-      if (entry.expiresAt <= now) this.entries.delete(key);
+      if (entry.createdAt + TTL <= now) this.entries.delete(key);
     });
   }
 }

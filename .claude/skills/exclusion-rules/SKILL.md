@@ -31,8 +31,11 @@ Parsed by `ExclusionRuleParser`, same for every marketplace.
 - `a + b`: name contains `a` and `b`.
 - `a|b`: contains `a` or `b`.
 - `!a` inside a rule: exception, names containing `a` are not excluded; a rule of only `!` members is invalid (400).
+- `!` once per `+` member, before its first phrase: `x + !a|b|c` excepts `a`, `b` and `c`. `!a|!b` is invalid (400).
 - `word`: whole word (letters and digits form words); multi-word or punctuated phrase matches as a whole.
-- `word*` / `*word` / `*word*`: starts with / ends with / contains; `*` only at a phrase edge.
+- `word*` / `*word` / `*word*`: starts with / ends with / contains; `*` only at a phrase edge, so a multi-word
+  phrase takes `*` only before its first or after its last word (`łańcuszek na smocz*`, `łańcusz* + smocz*`;
+  not `łańcusz* na smocz*`).
 - Case and diacritics folded on both sides.
 - Max 63 characters (`VarChar(63)`); values unique per category.
 - Rules cannot see prices; exclude cheap items by product-type words.
@@ -83,7 +86,7 @@ npx vite-node $K/check-rules.js which <rules.txt> [--category id] "<ad name>"
 4. Edit rules, rerun the check until no `TOO LONG`, `DUPLICATE`, `PARSE ERROR`, `JUNK KEPT`, `KEEP EXCLUDED`, and
    the user accepted every in-demand product excluded.
 5. Apply the difference in one `POST <exclusion-rules>/batch` call, never one call per rule (each change rematches
-   all ads):
+   the ads of its category, a rule without a category all ads):
    - `{"create": [{"value", "categoryId", "inverted"?}], "update": [{"id", "value"?, "categoryId"?, "inverted"?}],
      "delete": [id]}`; omitted lists are empty; `inverted: true` also needs `categoryId` in the same item.
    - One transaction (deletes, updates, creates); any error rolls back: 400 invalid rule, id or inverted, 422 duplicate or

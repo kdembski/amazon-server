@@ -23,8 +23,14 @@ import { UpdatableService } from "@/shared/crud/services/UpdatableService";
 import { AmazonAdPriceCreateDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
+import { ConcurrencyQueue } from "@/shared/utils/ConcurrencyQueue";
 
-const ANOMALY_CHECK_CHUNK = 10;
+const ANOMALY_CHECK_CONCURRENCY = 10;
+const ANOMALY_CHECK_LAG_MS = 60_000;
+const LAG_WARNING_INTERVAL_MS = 60_000;
+const SLOW_BATCH_MS = 10_000;
+// Prisma codes of an unreachable or busy database, not of an invalid row
+const CONNECTION_ERROR_CODES = ["P1001", "P1002", "P1008", "P1017", "P2024"];
 
 export class AmazonAdService {
   private repository;
@@ -35,6 +41,8 @@ export class AmazonAdService {
   private logger;
   private categoryRepository;
   private idempotencyCache;
+  private anomalyCheckQueue;
+  private lastLagWarningAt = 0;
   private static isGetting = false;
   selectable;
   deletable;
@@ -56,7 +64,8 @@ export class AmazonAdService {
     priceMapper = new AmazonAdListingPriceMapper(),
     logger = SystemLogService.getInstance(),
     categoryRepository = new AmazonAdCategoryRepository(),
-    idempotencyCache = IdempotencyCache.getInstance()
+    idempotencyCache = IdempotencyCache.getInstance(),
+    anomalyCheckQueue = new ConcurrencyQueue(ANOMALY_CHECK_CONCURRENCY)
   ) {
     this.logger = logger;
     this.repository = repository;
@@ -70,6 +79,7 @@ export class AmazonAdService {
     this.priceMapper = priceMapper;
     this.categoryRepository = categoryRepository;
     this.idempotencyCache = idempotencyCache;
+    this.anomalyCheckQueue = anomalyCheckQueue;
   }
 
   getAll() {
@@ -104,44 +114,80 @@ export class AmazonAdService {
 
   async updatePrices(id: number, prices: AmazonAdPriceCreateDto[]) {
     const ad = await this.selectable.getById(id);
-    await this.priceService
-      .createMany(prices)
-      .catch(() => this.createPricesOneByOne(id, prices));
+    await this.storePrices(prices);
     this.countScraped(prices);
-    this.checkAnomalies(ad, prices);
+    this.queueAnomalyCheck(ad, prices);
   }
 
   async applyBatch({ prices, deleted }: AmazonAdBatchDto, key?: string) {
+    const startedAt = Date.now();
     if (prices.length) {
       const store = () => this.storeBatchPrices(prices);
       await (key ? this.idempotencyCache.run(key, store) : store());
     }
 
     const deletedCount = deleted.length ? await this.repository.deleteMany(deleted) : 0;
+    const durationMs = Date.now() - startedAt;
+    if (durationMs > SLOW_BATCH_MS) {
+      this.logger.warn("AmazonAdService", `Batch of ${prices.length} ads took ${durationMs} ms`, {
+        ads: prices.length,
+        prices: _.sumBy(prices, (item) => item.prices.length),
+        deleted: deleted.length,
+        durationMs,
+        key,
+        queuedAnomalyChecks: this.anomalyCheckQueue.size,
+      });
+    }
     return { prices: prices.length, deleted: deletedCount };
   }
 
-  private async storeBatchPrices(prices: AmazonAdBatchDto["prices"]) {
-    const ads = await this.repository.getByIds(prices.map((ad) => ad.id));
-    await this.priceService
-      .createMany(prices.flatMap((ad) => ad.prices))
-      .catch(async () => {
-        for (const ad of prices) await this.createPricesOneByOne(ad.id, ad.prices);
-      });
-    const scraped = ads.map((ad) => ({
-      ad,
-      prices: prices.find((item) => item.id === ad.id)!.prices,
-    }));
-    scraped.forEach((item) => this.countScraped(item.prices));
-    this.checkAnomaliesInChunks(scraped);
+  private async storeBatchPrices(batch: AmazonAdBatchDto["prices"]) {
+    const ads = _.keyBy(await this.repository.getByIds(batch.map((item) => item.id)), "id");
+    const [found, missing] = _.partition(batch, (item) => ads[item.id]);
+    if (missing.length) {
+      this.logger.warn(
+        "AmazonAdService",
+        `Skipped the prices of ${missing.length} ads missing in the database`,
+        { adIds: missing.map((item) => item.id) }
+      );
+    }
+
+    await this.storePrices(found.flatMap((item) => item.prices));
+    found.forEach((item) => {
+      this.countScraped(item.prices);
+      this.queueAnomalyCheck(ads[item.id], item.prices);
+    });
   }
 
-  private async checkAnomaliesInChunks(
-    scraped: { ad: AmazonAdSelectDto; prices: AmazonAdPriceCreateDto[] }[]
-  ) {
-    for (const chunk of _.chunk(scraped, ANOMALY_CHECK_CHUNK)) {
-      await Promise.all(chunk.map((item) => this.checkAnomalies(item.ad, item.prices)));
+  // One INSERT; after a row error the valid prices are stored one by one. A database
+  // that cannot be reached rejects, so the scraper sends the batch again.
+  private async storePrices(prices: AmazonAdPriceCreateDto[]) {
+    try {
+      await this.priceService.createMany(prices);
+    } catch (error: any) {
+      if (CONNECTION_ERROR_CODES.includes(error?.code ?? error?.errorCode)) throw error;
+      await this.createPricesOneByOne(prices, error);
     }
+  }
+
+  private queueAnomalyCheck(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
+    this.anomalyCheckQueue.add((waitedMs) => {
+      this.warnIfLagging(waitedMs);
+      return this.checkAnomalies(ad, prices);
+    });
+  }
+
+  private warnIfLagging(waitedMs: number) {
+    const now = Date.now();
+    if (waitedMs < ANOMALY_CHECK_LAG_MS) return;
+    if (now - this.lastLagWarningAt < LAG_WARNING_INTERVAL_MS) return;
+
+    this.lastLagWarningAt = now;
+    this.logger.warn(
+      "AmazonAdService",
+      `Anomaly checks run ${Math.round(waitedMs / 1000)} s after the prices were stored`,
+      { waitedMs, queuedAnomalyChecks: this.anomalyCheckQueue.size }
+    );
   }
 
   private countScraped(prices: AmazonAdPriceCreateDto[]) {
@@ -169,21 +215,30 @@ export class AmazonAdService {
       );
   }
 
-  // Stores the valid prices of a batch that failed as a whole
-  private async createPricesOneByOne(id: number, prices: AmazonAdPriceCreateDto[]) {
-    const promises = prices.map((price) =>
-      this.priceService.creatable.create(price)
-    );
-    const results = await Promise.allSettled(promises);
-    results.forEach((result, index) => {
-      if (result.status === "rejected") {
-        this.logger.error("AmazonAdService", `Price of ad ${id} was not stored`, {
-          error: result.reason,
-          adId: id,
-          price: prices[index],
-        });
-      }
-    });
+  // Stores the valid prices of an INSERT that failed as a whole, one ad after another
+  private async createPricesOneByOne(prices: AmazonAdPriceCreateDto[], batchError: unknown) {
+    const failed: { price: AmazonAdPriceCreateDto; error: unknown }[] = [];
+    for (const adPrices of Object.values(_.groupBy(prices, "adId"))) {
+      const results = await Promise.allSettled(
+        adPrices.map((price) => this.priceService.creatable.create(price))
+      );
+      results.forEach((result, index) => {
+        if (result.status === "rejected") {
+          failed.push({ price: adPrices[index], error: result.reason });
+        }
+      });
+    }
+
+    const message = `Batch insert of ${prices.length} prices failed, ${failed.length} of them were not stored one by one`;
+    const context = {
+      error: batchError,
+      prices: prices.length,
+      failed: failed.length,
+      failedAdIds: _.uniq(failed.map(({ price }) => price.adId)),
+      failedError: failed[0]?.error,
+    };
+    if (failed.length) this.logger.error("AmazonAdService", message, context);
+    else this.logger.warn("AmazonAdService", message, context);
   }
 
   async getForScraping(batchSize: number): Promise<{ id: number; asin: string }[]> {

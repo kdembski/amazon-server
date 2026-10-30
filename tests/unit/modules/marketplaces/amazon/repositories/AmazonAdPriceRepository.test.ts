@@ -11,6 +11,7 @@ const setup = () => {
     repository: new AmazonAdPriceRepository(db.prisma),
     delegate: db.amazonAdPrice,
     $queryRaw: db.$queryRaw,
+    $executeRaw: db.$executeRaw,
   };
 };
 
@@ -93,5 +94,18 @@ describe("AmazonAdPriceRepository", () => {
 
     expect(await repository.createMany(prices)).toBe(1);
     expect(delegate.createMany).toHaveBeenCalledWith({ data: prices });
+  });
+
+  it("deletes prices older than a date in batches until a batch comes back short", async () => {
+    const { repository, $executeRaw } = setup();
+    $executeRaw.mockResolvedValueOnce(2).mockResolvedValueOnce(2).mockResolvedValueOnce(1);
+    const date = new Date(5);
+
+    expect(await repository.deleteOlderThan(date, 2)).toBe(5);
+
+    expect($executeRaw).toHaveBeenCalledTimes(3);
+    const [strings, ...values] = $executeRaw.mock.calls[0];
+    expect(strings.join("?")).toBe("DELETE FROM AmazonAdPrice WHERE createdAt < ? LIMIT ?");
+    expect(values).toEqual([date, 2]);
   });
 });

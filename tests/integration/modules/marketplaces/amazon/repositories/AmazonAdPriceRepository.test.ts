@@ -94,4 +94,18 @@ describe("AmazonAdPriceRepository (MySQL)", () => {
 
     expect(await prisma.amazonAdPrice.count()).toBe(2);
   });
+
+  it("deleteOlderThan removes rows strictly before the date across batches", async () => {
+    await seedPrice({ createdAt: minute(0) });
+    await seedPrice({ createdAt: minute(1) });
+    await seedPrice({ createdAt: minute(2) });
+    const boundary = await seedPrice({ createdAt: minute(3) });
+    const later = await seedPrice({ createdAt: minute(4) });
+
+    expect(await repository.deleteOlderThan(minute(3), 2)).toBe(3);
+    expect((await prisma.amazonAdPrice.findMany()).map((r) => r.id)).toEqual([
+      boundary.id,
+      later.id,
+    ]);
+  });
 });
