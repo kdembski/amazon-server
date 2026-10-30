@@ -40,6 +40,22 @@ describe("AmazonCountryOutlierDiscordService", () => {
     });
   });
 
+  it("shows the drop of the first price in percent", async () => {
+    const discord = fakeDiscordService();
+    const service = new AmazonCountryOutlierDiscordService(discord.service);
+    const prices = [
+      buildListingPrice({ value: 60, url: "de" }),
+      buildListingPrice({ value: 100, url: "pl" }),
+    ];
+
+    await service.send(buildAd(), prices, -40);
+
+    const values = discord.send.mock.calls[0][0].embeds[0].fields.map(
+      (field: { value: string }) => field.value
+    );
+    expect(values).toEqual(["[60.00 PLN](de) *(-40%)*", "[100.00 PLN](pl)"]);
+  });
+
   it("uses the red color in development", async () => {
     vi.stubEnv("NODE_ENV", "development");
     const discord = fakeDiscordService();

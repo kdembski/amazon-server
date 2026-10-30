@@ -18,7 +18,12 @@ export class AmazonCountryOutlierReporter
     this.discordService = discordService;
   }
 
-  async report(ad: AmazonAdSelectDto, prices: ListingPrice[], channel: string) {
+  async report(
+    ad: AmazonAdSelectDto,
+    prices: ListingPrice[],
+    channel: string,
+    difference?: number
+  ) {
     await this.activityEventService.creatable.create({
       type: "country_outlier_sent",
       marketplace: "amazon",
@@ -34,6 +39,6 @@ export class AmazonCountryOutlierReporter
     });
 
     this.discordService.setChannel(channel);
-    await this.discordService.send(ad, prices);
+    await this.discordService.send(ad, prices, difference);
   }
 }

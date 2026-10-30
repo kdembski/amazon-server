@@ -170,8 +170,8 @@ describe("CountryOutlierManager", () => {
 
     const [matched] = getMatchingRules.mock.calls[0];
     expect(reporter.report.mock.calls).toEqual([
-      [listing, matched, "2"],
-      [listing, matched, "5"],
+      [listing, matched, "2", undefined],
+      [listing, matched, "5", undefined],
     ]);
   });
 
@@ -218,6 +218,19 @@ describe("CountryOutlierManager", () => {
     ]);
 
     expect(reporter.report).toHaveBeenCalledTimes(1);
+  });
+
+  it("passes the drop of the cheapest price in percent", async () => {
+    const { manager, reporter, listing } = setup(["1"]);
+
+    await manager.check(listing, [
+      history(300, 300),
+      history(60, 100),
+      history(400, 400),
+      history(500, 500),
+    ]);
+
+    expect(reporter.report.mock.calls[0][3]).toBe(-40);
   });
 
   it("picks the cheapest country after converting to PLN", async () => {
