@@ -61,7 +61,7 @@ describe("createAmazonModule", () => {
   it("schedules the price cleanup", () => {
     const module = createAmazonModule();
 
-    expect(module.crons).toEqual([
+    expect(module.workerCrons).toEqual([
       vi.mocked(AmazonAdPriceCleanupCronService).mock.results.at(-1)!.value,
     ]);
   });

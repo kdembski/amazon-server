@@ -15,7 +15,7 @@ export function createCurrencyModule(): AppModule & {
       new CurrencyRouter(),
       new CurrencyExchangeRateRouter(),
     ],
-    crons: [new CurrencyExchangeRateCronService()],
+    workerCrons: [new CurrencyExchangeRateCronService()],
     dailyReportSection: new ExchangeRateDailyReportSection(),
   };
 }
