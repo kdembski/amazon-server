@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createAmazonModule } from "@/modules/marketplaces/amazon";
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
 import { AmazonAdDailyReportSection } from "@/modules/marketplaces/amazon/services/AmazonAdDailyReportSection";
+import { AmazonAdPriceCleanupCronService } from "@/modules/marketplaces/amazon/cron/AmazonAdPriceCleanupCronService";
 
 vi.mock("@/modules/marketplaces/amazon/routes/AmazonAdCategoryRouter", () => ({
   AmazonAdCategoryRouter: vi.fn(function () {
@@ -38,9 +39,14 @@ vi.mock("@/modules/marketplaces/amazon/services/AmazonAdDailyReportSection", () 
     return { id: "ad-section" };
   }),
 }));
+vi.mock("@/modules/marketplaces/amazon/cron/AmazonAdPriceCleanupCronService", () => ({
+  AmazonAdPriceCleanupCronService: vi.fn(function () {
+    return { id: "price-cleanup" };
+  }),
+}));
 
 describe("createAmazonModule", () => {
-  it("mounts the category, ad, price, exclusion rule and country routers in order without crons", () => {
+  it("mounts the category, ad, price, exclusion rule and country routers in order", () => {
     const module = createAmazonModule();
 
     expect(module.routers!.map((r) => r.path)).toEqual([
@@ -50,7 +56,14 @@ describe("createAmazonModule", () => {
       "/amazon/exclusion-rules",
       "/amazon/countries",
     ]);
-    expect(module.crons).toBeUndefined();
+  });
+
+  it("schedules the price cleanup", () => {
+    const module = createAmazonModule();
+
+    expect(module.crons).toEqual([
+      vi.mocked(AmazonAdPriceCleanupCronService).mock.results.at(-1)!.value,
+    ]);
   });
 
   it("matches exclusion rules through the ad repository", () => {

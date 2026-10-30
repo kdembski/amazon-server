@@ -10,6 +10,7 @@ const setup = () => {
     createMany: vi.fn().mockResolvedValue(1),
     update: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue({}),
+    deleteOlderThan: vi.fn().mockResolvedValue(3),
   };
   const service = new AmazonAdPriceService(
     repository as unknown as AmazonAdPriceRepository
@@ -22,6 +23,14 @@ describe("AmazonAdPriceService", () => {
     const { service, repository } = setup();
     await service.getRecentByAd(1);
     expect(repository.getRecentByAd).toHaveBeenCalledWith(1);
+  });
+
+  it("delegates deleteOlderThan", async () => {
+    const { service, repository } = setup();
+    const date = new Date(5);
+
+    expect(await service.deleteOlderThan(date)).toBe(3);
+    expect(repository.deleteOlderThan).toHaveBeenCalledWith(date);
   });
 
   it("wires creatable, updatable and deletable to the repository", async () => {

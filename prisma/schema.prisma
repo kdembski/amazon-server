@@ -48,6 +48,7 @@ model AmazonAdPrice {
 
   @@index([countryId], map: "amazon_ad_price_country_id_fk")
   @@index([adId, countryId, createdAt], map: "amazon_ad_price_ad_id_country_id_created_at_idx")
+  @@index([createdAt], map: "amazon_ad_price_created_at_idx")
 }
 
 model Country {

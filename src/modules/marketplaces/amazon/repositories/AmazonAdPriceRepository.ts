@@ -84,4 +84,17 @@ export class AmazonAdPriceRepository {
   delete(id: number) {
     return this.delegate.delete({ where: { id } });
   }
+
+  async deleteOlderThan(date: Date, batchSize = 10_000) {
+    let total = 0;
+    let deleted;
+
+    do {
+      deleted = await this.prisma
+        .$executeRaw`DELETE FROM AmazonAdPrice WHERE createdAt < ${date} LIMIT ${batchSize}`;
+      total += deleted;
+    } while (deleted === batchSize);
+
+    return total;
+  }
 }

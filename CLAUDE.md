@@ -101,7 +101,8 @@ npm run test:integration  # tests/integration, needs a running Docker
 - Amazon countries: keep Amazon's countries in `AmazonCountry` (`countryId` = `Country.id`, `tld`, `scraped`, `active`, `proxyType` = `datacenter` | `isp`, `pdpSource` = comma-separated list of `aod` | `twister` | `awd` (PDP from the AOD fragment, the twister fragment or the mobile product page; a 404 moves to the next one, e.g. `twister,awd`; fits `VarChar(15)`), `priority`),
   changed through `GET|POST /amazon/countries` and `PUT /amazon/countries/:id`; never delete rows, set `scraped = false`
   instead. `GET /amazon/countries/scrap` hands out `countryId`, `tld`, `active`, `proxyType`, `pdpSource` and `priority` of `scraped` countries.
-  `AmazonAdPrice.countryId` references `AmazonCountry`. Build
+  `AmazonAdPrice.countryId` references `AmazonCountry`; `AmazonAdPriceCleanupCronService` deletes prices 90 days after
+  `createdAt` (daily 04:00). Build
   listing URLs as `https://www.amazon.<tld>/dp/<asin>` (`ListingPrice.url`). Report anomalies only for countries with
   `AmazonCountry.active = true` (`ListingPrice.country.active`).
 - Scraper metrics: scrapers send `POST /scrapers/:name/metrics` every minute; rows go to the `ScraperMetric`

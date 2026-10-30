@@ -40,4 +40,8 @@ export class AmazonAdPriceService {
       dtos.map((dto) => this.createMapper.toCreateManyInput(dto))
     );
   }
+
+  deleteOlderThan(date: Date) {
+    return this.repository.deleteOlderThan(date);
+  }
 }
