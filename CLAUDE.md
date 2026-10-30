@@ -10,7 +10,7 @@ and reports them to Discord webhooks.
 npm start                 # run src/index.ts (vite-node); `npm run watch` with file watching
 npm run worker            # run src/worker.ts (crons without HTTP)
 npm run build             # bundle to dist/ (pkgroll)
-npx prisma generate       # after editing prisma/schema.prisma and before tests
+npx prisma generate       # after editing prisma/schema/*.prisma and before tests
 npx tsc --noEmit          # type-check; there is no linter
 npm run test:unit         # tests/unit, no database
 npm run test:coverage     # unit tests with coverage
@@ -46,6 +46,8 @@ npm run test:integration  # tests/integration, needs a running Docker
   `vite.config.ts`.
 - Write error messages in English.
 - Start the names of methods that read and return data with `get` (`getCount`, `getSumByTypeChannelAndHour`).
+- Put Prisma models in `prisma/schema/<module>.prisma` (marketplaces: `<name>.prisma`); `generator`,
+  `datasource` and shared enums go in `main.prisma`.
 - Set `createdAt`/`updatedAt` in mappers. Do not add Prisma migrations or column defaults.
 - The app reads env vars only from the runtime environment, never from `.env` files.
 

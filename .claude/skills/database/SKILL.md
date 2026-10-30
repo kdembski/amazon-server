@@ -24,7 +24,7 @@ bash .claude/skills/database/scripts/query.sh --raw "SELECT ..." > out.txt   # b
 
 ## Schema
 
-- Read `prisma/schema.prisma` before writing queries. Table names equal Prisma model names and are
+- Read `prisma/schema/*.prisma` before writing queries. Table names equal Prisma model names and are
   case-sensitive (`AmazonAd`, not `amazonad`); column names equal field names.
 - `DESCRIBE <Table>;` or `SHOW INDEX FROM <Table>;` for the live structure.
 

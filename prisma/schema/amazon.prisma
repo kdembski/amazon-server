@@ -1,0 +1,68 @@
+model AmazonAdCategory {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique(map: "name_UNIQUE") @db.VarChar(63)
+  createdAt DateTime   @db.Timestamp(2)
+  updatedAt DateTime   @db.Timestamp(2)
+  scrapedAt DateTime?  @db.Timestamp(2)
+  active      Boolean            @default(false)
+  ads         AmazonAd[]
+  exclusionRules AmazonExclusionRule[]
+}
+
+model AmazonAd {
+  id            Int              @id @default(autoincrement())
+  asin          String           @unique(map: "asin_UNIQUE") @db.VarChar(63)
+  categoryId    Int
+  createdAt     DateTime         @db.Timestamp(2)
+  updatedAt     DateTime         @db.Timestamp(2)
+  scrapedAt     DateTime?        @db.Timestamp(2)
+  image         String           @db.VarChar(255)
+  name          String           @db.VarChar(512)
+  excluded      Boolean?
+  category      AmazonAdCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "amazon_ad_category_id_fk")
+  AmazonAdPrice AmazonAdPrice[]
+
+  @@index([categoryId], map: "amazon_ad_category_id_fk_idx")
+  @@index([excluded, scrapedAt], map: "amazon_ad_excluded_scraped_at_idx")
+}
+
+model AmazonAdPrice {
+  id           Int      @id @default(autoincrement())
+  adId         Int
+  countryId    Int
+  value        Decimal  @db.Decimal(9, 2)
+  dispatchFrom String?  @db.VarChar(63)
+  createdAt    DateTime @db.Timestamp(2)
+  updatedAt    DateTime @db.Timestamp(2)
+  ad           AmazonAd      @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_ad_price_ad_id_fk")
+  country      AmazonCountry @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "amazon_ad_price_amazon_country_id_fk")
+
+  @@index([countryId], map: "amazon_ad_price_country_id_fk")
+  @@index([adId, countryId, createdAt], map: "amazon_ad_price_ad_id_country_id_created_at_idx")
+  @@index([createdAt], map: "amazon_ad_price_created_at_idx")
+}
+
+model AmazonCountry {
+  countryId     Int             @id
+  tld           String          @db.VarChar(15)
+  scraped       Boolean
+  active        Boolean
+  proxyType     String          @db.VarChar(15)
+  pdpSource     String          @db.VarChar(15)
+  priority      Int
+  createdAt     DateTime        @db.Timestamp(2)
+  updatedAt     DateTime        @db.Timestamp(2)
+  country       Country         @relation(fields: [countryId], references: [id], onDelete: Cascade, map: "amazon_country_country_id_fk")
+  AmazonAdPrice AmazonAdPrice[]
+}
+
+model AmazonExclusionRule {
+  id         Int               @id @default(autoincrement())
+  value      String            @db.VarChar(63)
+  categoryId Int?
+  inverted   Boolean
+  createdAt  DateTime          @db.Timestamp(2)
+  category   AmazonAdCategory? @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "amazon_exclusion_rule_category_id_fk")
+
+  @@unique([value, categoryId], map: "amazon_exclusion_rule_value_category_UNIQUE")
+}
