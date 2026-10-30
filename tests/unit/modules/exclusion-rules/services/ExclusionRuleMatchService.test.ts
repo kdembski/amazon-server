@@ -1,14 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 import { ExclusionRuleMatchService } from "@/modules/exclusion-rules/services/ExclusionRuleMatchService";
 import { ExclusionRuleTarget } from "@/modules/exclusion-rules/interfaces/ExclusionRuleTarget";
-import { deferred, fakeSystemLogService } from "../../../../support/fakes";
+import {
+  deferred,
+  fakeExclusionRuleFingerprintRepository,
+  fakeSystemLogService,
+} from "../../../../support/fakes";
 
 type Rule = { value: string; scope: number | null; inverted?: boolean };
 
 const global = (...values: string[]): Rule[] =>
   values.map((value) => ({ value, scope: null, inverted: false }));
 
-const fakeTarget = (rules: Rule[] = []) => ({
+const fakeTarget = (rules: Rule[] = [], marketplace = "amazon") => ({
+  marketplace,
   getExclusionRules: vi.fn().mockResolvedValue(rules),
   getActiveScopes: vi.fn().mockResolvedValue([1, 2]),
   matchExclusionRules: vi.fn().mockResolvedValue({ excluded: 0, included: 0, scanned: 0 }),
@@ -16,14 +21,24 @@ const fakeTarget = (rules: Rule[] = []) => ({
 
 const setup = (rulesA: Rule[] = [], rulesB: Rule[] = []) => {
   const targetA = fakeTarget(rulesA);
-  const targetB = fakeTarget(rulesB);
+  const targetB = fakeTarget(rulesB, "other");
   const logger = fakeSystemLogService();
+  const fingerprints = fakeExclusionRuleFingerprintRepository();
   const service = new ExclusionRuleMatchService(
-    [targetA, targetB] as ExclusionRuleTarget[],
+    [targetA, targetB] as unknown as ExclusionRuleTarget[],
     undefined,
-    logger.service
+    logger.service,
+    fingerprints.repository
   );
-  return { service, targetA, targetB, info: logger.info, warn: logger.warn };
+  return {
+    service,
+    targetA,
+    targetB,
+    fingerprints,
+    info: logger.info,
+    warn: logger.warn,
+    error: logger.error,
+  };
 };
 
 const onlyArgs = (target: ReturnType<typeof fakeTarget>) =>
@@ -262,9 +277,10 @@ describe("ExclusionRuleMatchService.sync", () => {
     const error = new Error("db down");
     targetA.getExclusionRules.mockRejectedValueOnce(error);
     const service = new ExclusionRuleMatchService(
-      [targetA, targetB] as ExclusionRuleTarget[],
+      [targetA, targetB] as unknown as ExclusionRuleTarget[],
       undefined,
-      logger.service
+      logger.service,
+      fakeExclusionRuleFingerprintRepository().repository
     );
 
     await expect(service.sync()).resolves.toBeUndefined();
@@ -275,6 +291,91 @@ describe("ExclusionRuleMatchService.sync", () => {
       "Exclusion rule matching of Object failed",
       { error, target: "Object" }
     );
+  });
+
+  it("stores the fingerprint after a rematch and not after a run of new ads", async () => {
+    const { service, fingerprints, info } = setup([
+      { value: "drill", scope: 1, inverted: false },
+    ]);
+
+    await service.sync();
+    await service.sync();
+
+    expect(fingerprints.set).toHaveBeenCalledTimes(2);
+    expect(fingerprints.set).toHaveBeenCalledWith(
+      "amazon",
+      new Map([
+        ["1", "active\nfalse\tdrill"],
+        ["2", "active"],
+      ])
+    );
+    expect(fingerprints.set).toHaveBeenCalledWith(
+      "other",
+      new Map([
+        ["1", "active"],
+        ["2", "active"],
+      ])
+    );
+    info.mockRestore();
+  });
+
+  it("starts from the stored fingerprint after a restart", async () => {
+    const rules = [
+      { value: "drill", scope: 1 },
+      { value: "saw", scope: 2 },
+    ];
+    const before = setup(rules);
+    await before.service.sync();
+    before.info.mockRestore();
+
+    const targetA = fakeTarget([rules[0], { value: "hammer", scope: 2 }]);
+    const targetB = fakeTarget([], "other");
+    const logger = fakeSystemLogService();
+    const service = new ExclusionRuleMatchService(
+      [targetA, targetB] as unknown as ExclusionRuleTarget[],
+      undefined,
+      logger.service,
+      before.fingerprints.repository
+    );
+
+    await service.sync();
+    await service.sync();
+
+    expect(onlyArgs(targetA)).toEqual([[2], "new"]);
+    expect(onlyArgs(targetB)).toEqual(["new", "new"]);
+  });
+
+  it("rematches every ad when the stored fingerprint cannot be read", async () => {
+    const { service, targetA, fingerprints, info, warn } = setup(global("drill"));
+    const error = new Error("db down");
+    fingerprints.getByMarketplace.mockRejectedValueOnce(error);
+
+    await service.sync();
+
+    expect(onlyArgs(targetA)).toEqual([undefined]);
+    expect(warn).toHaveBeenCalledWith(
+      "ExclusionRuleMatchService",
+      "Reading the exclusion rule fingerprint of amazon failed",
+      { error, marketplace: "amazon" }
+    );
+    info.mockRestore();
+  });
+
+  it("logs a failed store and keeps the fingerprint in memory", async () => {
+    const { service, targetA, fingerprints, info, error } = setup(global("drill"));
+    const failure = new Error("db down");
+    fingerprints.set.mockRejectedValueOnce(failure);
+
+    await service.sync();
+    await service.sync();
+
+    expect(onlyArgs(targetA)).toEqual([undefined, "new"]);
+    expect(error).toHaveBeenCalledWith(
+      "ExclusionRuleMatchService",
+      "Storing the exclusion rule fingerprint of amazon failed",
+      { error: failure, marketplace: "amazon" }
+    );
+    info.mockRestore();
   });
 
   it("skips a run while the previous one is still running", async () => {

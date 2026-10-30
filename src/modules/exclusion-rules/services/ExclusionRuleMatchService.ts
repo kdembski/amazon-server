@@ -1,4 +1,5 @@
 import { ExclusionRuleTarget } from "@/modules/exclusion-rules/interfaces/ExclusionRuleTarget";
+import { ExclusionRuleFingerprintRepository } from "@/modules/exclusion-rules/repositories/ExclusionRuleFingerprintRepository";
 import { ScopedExclusionRule } from "@/modules/exclusion-rules/interfaces/ScopedExclusionRule";
 import { ExclusionRuleParser } from "@/modules/exclusion-rules/services/ExclusionRuleParser";
 import { ScopedExclusionRuleMatcher } from "@/modules/exclusion-rules/services/ScopedExclusionRuleMatcher";
@@ -8,22 +9,25 @@ export class ExclusionRuleMatchService {
   private targets;
   private parser;
   private logger;
+  private fingerprintRepository;
   private fingerprints = new Map<ExclusionRuleTarget, Map<string, string>>();
   private isRunning = false;
 
   constructor(
     targets: ExclusionRuleTarget[],
     parser = new ExclusionRuleParser(),
-    logger = SystemLogService.getInstance()
+    logger = SystemLogService.getInstance(),
+    fingerprintRepository = new ExclusionRuleFingerprintRepository()
   ) {
     this.targets = targets;
     this.parser = parser;
     this.logger = logger;
+    this.fingerprintRepository = fingerprintRepository;
   }
 
   // Rematches the ads of the scopes whose rules or active flag differ from the
-  // last successful run (every ad when a rule without a scope changed),
-  // otherwise only the ads that were never checked.
+  // last successful run, kept across restarts (every ad when a rule without a
+  // scope changed), otherwise only the ads that were never checked.
   async sync() {
     if (this.isRunning) return;
     this.isRunning = true;
@@ -47,7 +51,9 @@ export class ExclusionRuleMatchService {
     const exclusionRules = await target.getExclusionRules();
     const activeScopes = await target.getActiveScopes();
     const fingerprint = this.getFingerprint(exclusionRules, activeScopes);
-    const only = this.getChangedScopes(this.fingerprints.get(target), fingerprint);
+    const previous =
+      this.fingerprints.get(target) ?? (await this.getStoredFingerprint(target));
+    const only = this.getChangedScopes(previous, fingerprint);
     const active = new Set(activeScopes);
     const startedAt = Date.now();
     const matcher = new ScopedExclusionRuleMatcher(
@@ -62,6 +68,7 @@ export class ExclusionRuleMatchService {
     this.fingerprints.set(target, fingerprint);
 
     if (only !== "new") {
+      await this.storeFingerprint(target, fingerprint);
       this.logger.info(
         "ExclusionRuleMatchService",
         `${exclusionRules.length} exclusion rules excluded ${excluded} and included ${included} ads`,
@@ -75,6 +82,35 @@ export class ExclusionRuleMatchService {
           scanned,
           durationMs: Date.now() - startedAt,
         }
+      );
+    }
+  }
+
+  // Without a stored fingerprint every ad is rematched
+  private async getStoredFingerprint(target: ExclusionRuleTarget) {
+    try {
+      return await this.fingerprintRepository.getByMarketplace(target.marketplace);
+    } catch (error) {
+      this.logger.warn(
+        "ExclusionRuleMatchService",
+        `Reading the exclusion rule fingerprint of ${target.marketplace} failed`,
+        { error, marketplace: target.marketplace }
+      );
+      return undefined;
+    }
+  }
+
+  private async storeFingerprint(
+    target: ExclusionRuleTarget,
+    fingerprint: Map<string, string>
+  ) {
+    try {
+      await this.fingerprintRepository.set(target.marketplace, fingerprint);
+    } catch (error) {
+      this.logger.error(
+        "ExclusionRuleMatchService",
+        `Storing the exclusion rule fingerprint of ${target.marketplace} failed`,
+        { error, marketplace: target.marketplace }
       );
     }
   }

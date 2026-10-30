@@ -19,7 +19,7 @@ describe("createExclusionRulesModule", () => {
   it("runs the given targets from one match cron", () => {
     const targets = [
       { getExclusionRules: vi.fn(), getActiveScopes: vi.fn(), matchExclusionRules: vi.fn() },
-    ] as ExclusionRuleTarget[];
+    ] as unknown as ExclusionRuleTarget[];
 
     const module = createExclusionRulesModule(targets);
 
