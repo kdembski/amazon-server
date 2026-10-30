@@ -1,11 +1,12 @@
 import { setImmediate } from "node:timers/promises";
-import { Prisma } from "@prisma/client";
+import { Marketplace, Prisma } from "@prisma/client";
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { AmazonExclusionRuleRepository } from "@/modules/marketplaces/amazon/repositories/AmazonExclusionRuleRepository";
 
 const MATCH_YIELD_EVERY = 100;
 
 export class AmazonAdRepository {
+  readonly marketplace = Marketplace.amazon;
   private delegate;
   private prisma;
   private structure = {

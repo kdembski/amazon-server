@@ -9,6 +9,7 @@ import type { DiscordService } from "@/shared/discord/DiscordService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import type { AmazonCountryOutlierDiscordService } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierDiscordService";
 import type { AmazonPriceDropDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPriceDropDiscordService";
+import type { ExclusionRuleFingerprintRepository } from "@/modules/exclusion-rules/repositories/ExclusionRuleFingerprintRepository";
 
 export function fakeActivityEventService() {
   const create = vi.fn().mockResolvedValue({ id: 1 });
@@ -198,6 +199,7 @@ export function fakePrisma() {
       groupBy: vi.fn(),
     },
     scraperConfig: { upsert: vi.fn() },
+    exclusionRuleFingerprint: { findUnique: vi.fn(), upsert: vi.fn() },
   };
   const $executeRaw = vi.fn().mockResolvedValue(1);
   const $queryRaw = vi.fn().mockResolvedValue([]);
@@ -218,4 +220,16 @@ export function deferred<T>() {
 
 export function resetSingleton(klass: unknown) {
   (klass as { instance?: unknown }).instance = undefined;
+}
+
+// Keeps the stored fingerprints in memory, like the table would
+export function fakeExclusionRuleFingerprintRepository(
+  stored = new Map<string, Map<string, string>>()
+) {
+  const getByMarketplace = vi.fn(async (marketplace: string) => stored.get(marketplace));
+  const set = vi.fn(async (marketplace: string, fingerprint: Map<string, string>) => {
+    stored.set(marketplace, fingerprint);
+  });
+  const repository = { getByMarketplace, set } as unknown as ExclusionRuleFingerprintRepository;
+  return { repository, stored, getByMarketplace, set };
 }

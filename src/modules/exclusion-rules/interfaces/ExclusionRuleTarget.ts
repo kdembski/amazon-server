@@ -1,4 +1,7 @@
+import { Marketplace } from "@prisma/client";
+
 export interface ExclusionRuleTarget {
+  readonly marketplace: Marketplace;
   getExclusionRules(): Promise<{ value: string; scope: number | null; inverted: boolean }[]>;
   getActiveScopes(): Promise<number[]>;
   // only: "new" = ads never checked, scope ids = every ad of these scopes, none = every ad

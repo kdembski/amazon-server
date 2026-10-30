@@ -154,6 +154,12 @@ model AmazonExclusionRule {
   @@unique([value, categoryId], map: "amazon_exclusion_rule_value_category_UNIQUE")
 }
 
+model ExclusionRuleFingerprint {
+  marketplace Marketplace @id
+  scopes      Json
+  updatedAt   DateTime    @updatedAt @db.Timestamp(2)
+}
+
 model ScraperMetric {
   id          Int         @id @default(autoincrement())
   scraper     String      @db.VarChar(63)

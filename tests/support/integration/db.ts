@@ -15,6 +15,7 @@ export const TABLES = [
   "ActivityEvent",
   "ScraperMetric",
   "ScraperConfig",
+  "ExclusionRuleFingerprint",
   "SystemLog",
 ] as const;
 

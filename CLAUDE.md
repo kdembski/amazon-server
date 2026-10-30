@@ -88,7 +88,7 @@ npm run test:integration  # tests/integration, needs a running Docker
   `excluded = false`. `ExclusionRuleMatchCronService`
   runs every minute: it rematches the ads of each category whose rules (value or inverted) or active flag
   (`getActiveScopes`) changed since the last run, every ad of an `ExclusionRuleTarget` when one of its rules without a
-  category changed (and after each restart), otherwise only ads with `excluded = null`. New ads start with `excluded: null`. Rule
+  category changed (or its marketplace has no row in `ExclusionRuleFingerprint`), otherwise only ads with `excluded = null`. Store the fingerprint of rules and active scopes per marketplace in `ExclusionRuleFingerprint` after every rematch and compare against it after a restart. New ads start with `excluded: null`. Rule
   syntax lives in `ExclusionRuleParser` (`src/modules/exclusion-rules/services/`; `+` and, `|` or, `!` marks an
   exception inside a rule; a rule of only `!` members is invalid; phrases match whole words, `*` at a phrase edge
   matches part of a word). Match rules in JS with `ScopedExclusionRuleMatcher`, not in SQL.
