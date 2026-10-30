@@ -40,9 +40,17 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     )!;
     if (!this.hasDropped(cheapest)) return;
 
+    const difference = this.getDifference(cheapest);
     for (const rule of this.strategy.getMatchingRules(prices)) {
-      await this.reporter.report(listing, prices, rule.channel);
+      await this.reporter.report(listing, prices, rule.channel, difference);
     }
+  }
+
+  private getDifference([newest, previous]: ListingPrice[]) {
+    if (!previous) return;
+
+    const previousValue = previous.value.toNumber();
+    return Math.round(((newest.value.toNumber() - previousValue) * 100) / previousValue);
   }
 
   // Compares raw prices: PLN values move with exchange rates.

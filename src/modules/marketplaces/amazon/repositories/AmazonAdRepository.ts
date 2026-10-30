@@ -1,6 +1,9 @@
+import { setImmediate } from "node:timers/promises";
 import { Prisma } from "@prisma/client";
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { AmazonExclusionRuleRepository } from "@/modules/marketplaces/amazon/repositories/AmazonExclusionRuleRepository";
+
+const MATCH_YIELD_EVERY = 100;
 
 export class AmazonAdRepository {
   private delegate;
@@ -170,7 +173,9 @@ export class AmazonAdRepository {
     const excluded: number[] = [];
     const included: number[] = [];
 
-    for (const ad of ads) {
+    for (const [index, ad] of ads.entries()) {
+      // Matching is synchronous; yield so requests are not blocked for a whole batch
+      if (index % MATCH_YIELD_EVERY === 0) await setImmediate();
       const excludes = isExcluded(ad.name, ad.categoryId);
       if (excludes && ad.excluded !== true) excluded.push(ad.id);
       if (!excludes && ad.excluded !== false) included.push(ad.id);

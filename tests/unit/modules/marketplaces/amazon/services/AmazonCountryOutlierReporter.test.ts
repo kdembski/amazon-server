@@ -25,7 +25,7 @@ describe("AmazonCountryOutlierReporter", () => {
       buildListingPrice({ value: 500, country: { code: "pl" } }),
     ];
 
-    await reporter.report(ad, prices, "3");
+    await reporter.report(ad, prices, "3", -40);
 
     expect(log.create).toHaveBeenCalledWith({
       type: "country_outlier_sent",
@@ -41,7 +41,7 @@ describe("AmazonCountryOutlierReporter", () => {
       },
     });
     expect(discord.setChannel).toHaveBeenCalledWith("3");
-    expect(discord.send).toHaveBeenCalledWith(ad, prices);
+    expect(discord.send).toHaveBeenCalledWith(ad, prices, -40);
   });
 
   it("rejects when the embed cannot be sent", async () => {

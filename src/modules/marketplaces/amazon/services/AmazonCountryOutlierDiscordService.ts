@@ -10,7 +10,7 @@ export class AmazonCountryOutlierDiscordService {
     this.service = service;
   }
 
-  async send(ad: AmazonAdSelectDto, prices: ListingPrice[]) {
+  async send(ad: AmazonAdSelectDto, prices: ListingPrice[], difference?: number) {
     const embed = {
       title: ad.name,
       description: ad.asin,
@@ -19,10 +19,11 @@ export class AmazonCountryOutlierDiscordService {
         height: 200,
       },
       fields: [
-        ...prices.map((price) => {
+        ...prices.map((price, i) => {
+          const link = `[${roundToTwoDecimals(price.value)} PLN](${price.url})`;
           return {
             name: price.country.name,
-            value: `[${roundToTwoDecimals(price.value)} PLN](${price.url})`,
+            value: i === 0 && difference ? `${link} *(${difference}%)*` : link,
           };
         }),
       ],
