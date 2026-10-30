@@ -153,9 +153,9 @@ describe("AmazonAdService.applyBatch with an idempotency key", () => {
 });
 
 describe("AmazonAdService.applyBatch anomaly checks", () => {
-  it("counts every ad at once and checks anomalies 10 ads at a time", async () => {
+  it("counts every ad at once and checks anomalies 40 ads at a time", async () => {
     const { service, repository, priceService, counter, anomalyManager } = setup();
-    const ids = _.range(1, 26);
+    const ids = _.range(1, 101);
     Object.assign(repository, {
       getByIds: vi.fn().mockResolvedValue(ids.map((id) => buildAd({ id }))),
     });
@@ -168,14 +168,14 @@ describe("AmazonAdService.applyBatch anomaly checks", () => {
       deleted: [],
     });
 
-    expect(counter.increment).toHaveBeenCalledTimes(25);
-    expect(priceService.getRecentByAd).toHaveBeenCalledTimes(10);
+    expect(counter.increment).toHaveBeenCalledTimes(100);
+    expect(priceService.getRecentByAd).toHaveBeenCalledTimes(40);
 
-    recent.slice(0, 10).forEach((item) => item.resolve([]));
-    await vi.waitFor(() => expect(priceService.getRecentByAd).toHaveBeenCalledTimes(20));
+    recent.slice(0, 40).forEach((item) => item.resolve([]));
+    await vi.waitFor(() => expect(priceService.getRecentByAd).toHaveBeenCalledTimes(80));
 
-    recent.slice(10).forEach((item) => item.resolve([]));
-    await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalledTimes(25));
+    recent.slice(40).forEach((item) => item.resolve([]));
+    await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalledTimes(100));
   });
 
   it("goes on with the next ads when one check fails", async () => {

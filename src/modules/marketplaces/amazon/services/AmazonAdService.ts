@@ -25,7 +25,7 @@ import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
 import { ConcurrencyQueue } from "@/shared/utils/ConcurrencyQueue";
 
-const ANOMALY_CHECK_CONCURRENCY = 10;
+const ANOMALY_CHECK_CONCURRENCY = 40;
 const ANOMALY_CHECK_LAG_MS = 60_000;
 const LAG_WARNING_INTERVAL_MS = 60_000;
 const SLOW_BATCH_MS = 10_000;
