@@ -116,4 +116,33 @@ describe("DiscordService", () => {
       }
     );
   });
+
+  it("truncates embed titles longer than 256 characters", async () => {
+    vi.stubEnv("DISCORD_LOGS_TOKEN", "123/abc");
+    webhookSend.mockResolvedValueOnce(undefined);
+
+    await new DiscordService("DISCORD_LOGS_TOKEN").send({
+      content: "c",
+      embeds: [{ title: "a".repeat(300), description: "d" }, { title: "b".repeat(256) }, {}],
+    });
+
+    expect(webhookSend).toHaveBeenCalledWith({
+      content: "c",
+      embeds: [
+        { title: "a".repeat(255) + "…", description: "d" },
+        { title: "b".repeat(256) },
+        {},
+      ],
+    });
+  });
+
+  it("sends options without embeds unchanged", async () => {
+    vi.stubEnv("DISCORD_LOGS_TOKEN", "123/abc");
+    webhookSend.mockResolvedValueOnce(undefined);
+    const options = { content: "c" };
+
+    await new DiscordService("DISCORD_LOGS_TOKEN").send(options);
+
+    expect(webhookSend).toHaveBeenCalledWith(options);
+  });
 });
