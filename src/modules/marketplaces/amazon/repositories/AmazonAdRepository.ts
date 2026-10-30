@@ -66,8 +66,8 @@ export class AmazonAdRepository {
     });
   }
 
-  // Ads with excluded = null have not been checked yet; onlyNew limits the
-  // check to them. A full rematch walks the table in id ranges so each UPDATE
+  // Ads with excluded = null have not been checked yet; only = "new" limits
+  // the check to them. A full rematch walks the table in id ranges so each UPDATE
   // commits quickly and only briefly locks the rows /scrap stamps.
   async getExclusionRules() {
     const rules = await this.exclusionRuleRepository.getAll();
@@ -88,17 +88,19 @@ export class AmazonAdRepository {
 
   async matchExclusionRules(
     isExcluded: (name: string, scope: number | null) => boolean,
-    onlyNew = false
+    only?: "new" | number[]
   ) {
-    if (onlyNew) {
+    if (only === "new") {
       return this.updateMatches(isExcluded, { excluded: null });
     }
 
-    const { _max } = await this.delegate.aggregate({ _max: { id: true } });
+    const where = only ? { categoryId: { in: only } } : {};
+    const { _max } = await this.delegate.aggregate({ where, _max: { id: true } });
     const total = { excluded: 0, included: 0 };
 
     for (let lastId = 0; lastId < (_max.id ?? 0); lastId += this.matchBatchSize) {
       const result = await this.updateMatches(isExcluded, {
+        ...where,
         id: { gt: lastId, lte: lastId + this.matchBatchSize },
       });
       total.excluded += result.excluded;

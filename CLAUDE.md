@@ -86,9 +86,9 @@ npm run test:integration  # tests/integration, needs a running Docker
   them; never filter it by `name LIKE` or by category. An ad of an inactive category or matching a rule of its
   category or a rule without one, or matching none of its category's inverted rules, gets `excluded = true`; otherwise
   `excluded = false`. `ExclusionRuleMatchCronService`
-  runs every minute: it rematches every ad of an `ExclusionRuleTarget` when its rules (value, category or inverted) or its
-  active scopes (`getActiveScopes`) changed since the last run (and after each restart), otherwise only ads with
-  `excluded = null`. New ads start with `excluded: null`. Rule
+  runs every minute: it rematches the ads of each category whose rules (value or inverted) or active flag
+  (`getActiveScopes`) changed since the last run, every ad of an `ExclusionRuleTarget` when one of its rules without a
+  category changed (and after each restart), otherwise only ads with `excluded = null`. New ads start with `excluded: null`. Rule
   syntax lives in `ExclusionRuleParser` (`src/modules/exclusion-rules/services/`; `+` and, `|` or, `!` marks an
   exception inside a rule; a rule of only `!` members is invalid; phrases match whole words, `*` at a phrase edge
   matches part of a word). Match rules in JS with `ScopedExclusionRuleMatcher`, not in SQL.

@@ -217,14 +217,36 @@ describe("AmazonAdRepository (MySQL)", () => {
       ]);
     });
 
-    it("with onlyNew checks only ads that were never checked", async () => {
+    it("with scope ids rematches only the ads of these categories", async () => {
+      const batched = new AmazonAdRepository(prisma, 2);
+      const audio = await seedCategory();
+      const tools = await seedCategory();
+      await seedAd({ name: "Sony 1", categoryId: audio.id, excluded: false });
+      await seedAd({ name: "Sony 2", categoryId: tools.id, excluded: false });
+      await seedAd({ name: "Bose 3", categoryId: audio.id, excluded: true });
+      await seedAd({ name: "Bose 4", categoryId: tools.id, excluded: true });
+      const excludes = rules("sony");
+
+      expect(await batched.matchExclusionRules(excludes, [audio.id])).toEqual({
+        excluded: 1,
+        included: 1,
+      });
+      expect(await flags()).toEqual([
+        ["Sony 1", true],
+        ["Sony 2", false],
+        ["Bose 3", false],
+        ["Bose 4", true],
+      ]);
+    });
+
+    it("with only = \"new\" checks only ads that were never checked", async () => {
       await seedAd({ name: "Sony stale true", excluded: true });
       await seedAd({ name: "Bose stale false", excluded: false });
       await seedAd({ name: "Bose new", excluded: null });
       await seedAd({ name: "Sony new", excluded: null });
       const excludes = rules("bose");
 
-      expect(await repository.matchExclusionRules(excludes, true)).toEqual({ excluded: 1, included: 1 });
+      expect(await repository.matchExclusionRules(excludes, "new")).toEqual({ excluded: 1, included: 1 });
       expect(await flags()).toEqual([
         ["Sony stale true", true],
         ["Bose stale false", false],

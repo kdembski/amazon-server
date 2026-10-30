@@ -26,7 +26,7 @@ const setup = (rulesA: Rule[] = [], rulesB: Rule[] = []) => {
   return { service, targetA, targetB, info: logger.info, warn: logger.warn };
 };
 
-const onlyNewFlags = (target: ReturnType<typeof fakeTarget>) =>
+const onlyArgs = (target: ReturnType<typeof fakeTarget>) =>
   target.matchExclusionRules.mock.calls.map((call) => call[1]);
 
 describe("ExclusionRuleMatchService.sync", () => {
@@ -37,10 +37,10 @@ describe("ExclusionRuleMatchService.sync", () => {
 
     await service.sync();
 
-    const [matchesA, onlyNewA] = targetA.matchExclusionRules.mock.calls[0];
-    const [matchesB, onlyNewB] = targetB.matchExclusionRules.mock.calls[0];
-    expect(onlyNewA).toBe(false);
-    expect(onlyNewB).toBe(false);
+    const [matchesA, onlyA] = targetA.matchExclusionRules.mock.calls[0];
+    const [matchesB, onlyB] = targetB.matchExclusionRules.mock.calls[0];
+    expect(onlyA).toBeUndefined();
+    expect(onlyB).toBeUndefined();
     expect(matchesA("Bosch drill", 1)).toBe(true);
     expect(matchesA("Bose QC45", 2)).toBe(false);
     expect(matchesB("Bose QC45", 2)).toBe(true);
@@ -66,6 +66,7 @@ describe("ExclusionRuleMatchService.sync", () => {
         target: "Object",
         rules: 1,
         activeScopes: [1, 2],
+        scopes: null,
         excluded: 2,
         included: 1,
         durationMs: expect.any(Number),
@@ -140,7 +141,7 @@ describe("ExclusionRuleMatchService.sync", () => {
     info.mockRestore();
   });
 
-  it("rematches when the active scopes change, not when only their order does", async () => {
+  it("rematches the scopes whose active flag changed, not when only their order does", async () => {
     const { service, targetA, info } = setup();
     targetA.getActiveScopes
       .mockResolvedValueOnce([1, 2])
@@ -151,11 +152,11 @@ describe("ExclusionRuleMatchService.sync", () => {
     await service.sync();
     await service.sync();
 
-    expect(onlyNewFlags(targetA)).toEqual([false, true, false]);
+    expect(onlyArgs(targetA)).toEqual([undefined, "new", [1]]);
     info.mockRestore();
   });
 
-  it("passes onlyNew = true while the rules are unchanged, in any order", async () => {
+  it("passes only = \"new\" while the rules are unchanged, in any order", async () => {
     const { service, targetA, info } = setup();
     targetA.getExclusionRules
       .mockResolvedValueOnce(global("sony", "bose"))
@@ -165,7 +166,7 @@ describe("ExclusionRuleMatchService.sync", () => {
     info.mockClear();
     await service.sync();
 
-    expect(onlyNewFlags(targetA)).toEqual([false, true]);
+    expect(onlyArgs(targetA)).toEqual([undefined, "new"]);
     expect(info).not.toHaveBeenCalled();
     info.mockRestore();
   });
@@ -182,12 +183,12 @@ describe("ExclusionRuleMatchService.sync", () => {
     await service.sync();
     await service.sync();
 
-    expect(onlyNewFlags(targetA)).toEqual([false, true]);
-    expect(onlyNewFlags(targetB)).toEqual([false, false]);
+    expect(onlyArgs(targetA)).toEqual([undefined, "new"]);
+    expect(onlyArgs(targetB)).toEqual([undefined, undefined]);
     info.mockRestore();
   });
 
-  it("rematches when only the scope of a rule changed", async () => {
+  it("rematches every ad when a rule moves out of the global scope", async () => {
     const { service, targetA, info } = setup();
     targetA.getExclusionRules
       .mockResolvedValueOnce([{ value: "drill", scope: null }])
@@ -196,7 +197,29 @@ describe("ExclusionRuleMatchService.sync", () => {
     await service.sync();
     await service.sync();
 
-    expect(onlyNewFlags(targetA)).toEqual([false, false]);
+    expect(onlyArgs(targetA)).toEqual([undefined, undefined]);
+    info.mockRestore();
+  });
+
+  it("rematches only the scopes whose rules changed", async () => {
+    const { service, targetA, info } = setup();
+    targetA.getExclusionRules
+      .mockResolvedValueOnce([
+        { value: "drill", scope: 1 },
+        { value: "saw", scope: 2 },
+        { value: "bose", scope: null },
+      ])
+      .mockResolvedValueOnce([
+        { value: "drill", scope: 1 },
+        { value: "hammer", scope: 3 },
+        { value: "bose", scope: null },
+      ]);
+
+    await service.sync();
+    await service.sync();
+
+    expect(onlyArgs(targetA)).toEqual([undefined, [2, 3]]);
+    expect(info.mock.lastCall?.[2]).toMatchObject({ scopes: [2, 3] });
     info.mockRestore();
   });
 
@@ -209,7 +232,7 @@ describe("ExclusionRuleMatchService.sync", () => {
     await service.sync();
     await service.sync();
 
-    expect(onlyNewFlags(targetA)).toEqual([false, false]);
+    expect(onlyArgs(targetA)).toEqual([undefined, [1]]);
     const [matches] = targetA.matchExclusionRules.mock.calls[1];
     expect(matches("Bosch drill", 1)).toBe(false);
     expect(matches("Bosch saw", 1)).toBe(true);
@@ -226,8 +249,8 @@ describe("ExclusionRuleMatchService.sync", () => {
     await service.sync();
     await service.sync();
 
-    expect(onlyNewFlags(targetA)).toEqual([false, true]);
-    expect(onlyNewFlags(targetB)).toEqual([false, false]);
+    expect(onlyArgs(targetA)).toEqual([undefined, "new"]);
+    expect(onlyArgs(targetB)).toEqual([undefined, undefined]);
     info.mockRestore();
   });
 

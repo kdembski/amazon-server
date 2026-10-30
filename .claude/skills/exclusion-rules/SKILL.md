@@ -86,7 +86,7 @@ npx vite-node $K/check-rules.js which <rules.txt> [--category id] "<ad name>"
 4. Edit rules, rerun the check until no `TOO LONG`, `DUPLICATE`, `PARSE ERROR`, `JUNK KEPT`, `KEEP EXCLUDED`, and
    the user accepted every in-demand product excluded.
 5. Apply the difference in one `POST <exclusion-rules>/batch` call, never one call per rule (each change rematches
-   all ads):
+   the ads of its category, a rule without a category all ads):
    - `{"create": [{"value", "categoryId", "inverted"?}], "update": [{"id", "value"?, "categoryId"?, "inverted"?}],
      "delete": [id]}`; omitted lists are empty; `inverted: true` also needs `categoryId` in the same item.
    - One transaction (deletes, updates, creates); any error rolls back: 400 invalid rule, id or inverted, 422 duplicate or
