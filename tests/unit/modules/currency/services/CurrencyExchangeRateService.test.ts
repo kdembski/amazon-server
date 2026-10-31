@@ -70,6 +70,21 @@ describe("CurrencyExchangeRateService", () => {
     expect(repository.getByTargetCode).toHaveBeenCalledWith("PLN");
   });
 
+  it("getPlnRates refetches after an hour", async () => {
+    const { service, repository } = setup();
+    const now = vi.spyOn(Date, "now").mockReturnValue(0);
+    await service.getPlnRates();
+
+    now.mockReturnValue(60 * 60 * 1000 - 1);
+    await service.getPlnRates();
+    expect(repository.getByTargetCode).toHaveBeenCalledTimes(1);
+
+    now.mockReturnValue(60 * 60 * 1000);
+    await service.getPlnRates();
+    expect(repository.getByTargetCode).toHaveBeenCalledTimes(2);
+    now.mockRestore();
+  });
+
   it("refreshPlnRates replaces the cached rates", async () => {
     const { service, repository } = setup();
     const oldRates = [buildRate({ value: 4 })];

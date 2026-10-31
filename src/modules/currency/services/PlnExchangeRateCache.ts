@@ -3,6 +3,7 @@ import { CurrencyExchangeRateSelectDto } from "@/modules/currency/dtos/CurrencyE
 export class PlnExchangeRateCache {
   private static instance: PlnExchangeRateCache;
   rates?: CurrencyExchangeRateSelectDto[];
+  refreshedAt?: number;
 
   private constructor() {}
 
