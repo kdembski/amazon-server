@@ -248,17 +248,25 @@ describe("CountryOutlierManager", () => {
     expect(reporter.setReportedPrice).not.toHaveBeenCalled();
   });
 
-  it("passes the drop of the cheapest price in percent", async () => {
-    const { manager, reporter, listing } = setup(["1"]);
+  it("passes the drop of the cheapest price since the last report in percent", async () => {
+    const { manager, reporter, listing } = setup(["1"], 100);
 
     await manager.check(listing, [
       history(300, 300),
-      history(60, 100),
+      history(60, 60),
       history(400, 400),
       history(500, 500),
     ]);
 
     expect(reporter.report.mock.calls[0][3]).toBe(-40);
+  });
+
+  it("passes no drop for a listing never reported before", async () => {
+    const { manager, reporter, listing } = setup(["1"]);
+
+    await manager.check(listing, [history(300), history(60, 100), history(400), history(500)]);
+
+    expect(reporter.report.mock.calls[0][3]).toBeUndefined();
   });
 
   it("picks the cheapest country after converting to PLN", async () => {

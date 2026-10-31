@@ -38,7 +38,8 @@ The same listing costs much less in one country than in the others once all pric
    at least 5% below the reported price (`minPriceDrop`); otherwise it stops. Changes of the other countries and of
    the previous scrape never pass it.
 7. For each matched channel (at most two, one per group) the marketplace's `CountryOutlierReporter.report` gets the
-   listing, the sorted PLN prices and the channel; it stores a `country_outlier_sent` event and posts to that
+   listing, the sorted PLN prices, the channel and the change of the cheapest price against the reported one in percent
+   (none for a listing never reported; shown next to the cheapest price on Discord); it stores a `country_outlier_sent` event and posts to that
    channel's Discord webhook (Amazon: `DISCORD_COUNTRY_OUTLIER_<channel>_TOKEN`). Then `setReportedPrice` stores
    the cheapest price in its own currency (Amazon: `AmazonCountryOutlierReport`, one row per ad and country).
 
