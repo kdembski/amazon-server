@@ -18,8 +18,8 @@ describe("createCurrencyModule", () => {
       "/currencies",
       "/currencies/rates",
     ]);
-    expect(module.crons).toHaveLength(1);
-    expect(module.crons![0]).toBeInstanceOf(CurrencyExchangeRateCronService);
+    expect(module.workerCrons).toHaveLength(1);
+    expect(module.workerCrons![0]).toBeInstanceOf(CurrencyExchangeRateCronService);
     expect(module.dailyReportSection).toBeInstanceOf(
       ExchangeRateDailyReportSection
     );

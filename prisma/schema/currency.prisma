@@ -1,0 +1,38 @@
+model Country {
+  id            Int             @id @default(autoincrement())
+  name          String          @db.VarChar(63)
+  code          String          @unique(map: "country_code_UNIQUE") @db.VarChar(63)
+  currencyId    Int
+  createdAt     DateTime        @db.Timestamp(2)
+  updatedAt     DateTime        @db.Timestamp(2)
+  AmazonCountry AmazonCountry?
+  currency      Currency        @relation(fields: [currencyId], references: [id], onDelete: Cascade, map: "country_currency_id_fk")
+
+  @@index([currencyId], map: "country_currency_id_fk")
+}
+
+model Currency {
+  id                 Int                    @id @default(autoincrement())
+  name               String                 @db.VarChar(63)
+  code               String                 @unique(map: "currency_code_UNIQUE") @db.VarChar(63)
+  symbol             String                 @db.VarChar(63)
+  createdAt          DateTime               @db.Timestamp(2)
+  updatedAt          DateTime               @db.Timestamp(2)
+  country            Country[]
+  exchangeRateSource CurrencyExchangeRate[] @relation("ExchangeRateSource")
+  exchangeRateTarget CurrencyExchangeRate[] @relation("ExchangeRateTarget")
+}
+
+model CurrencyExchangeRate {
+  id        Int      @id @default(autoincrement())
+  sourceId  Int
+  targetId  Int
+  createdAt DateTime @db.Timestamp(2)
+  updatedAt DateTime @db.Timestamp(2)
+  value     Decimal  @db.Decimal(12, 6)
+  source    Currency @relation("ExchangeRateSource", fields: [sourceId], references: [id], onDelete: Cascade, map: "currency_exchange_rate_source_id_fk")
+  target    Currency @relation("ExchangeRateTarget", fields: [targetId], references: [id], onDelete: Cascade, map: "currency_exchange_rate_target_id_fk")
+
+  @@unique([sourceId, targetId], map: "unique_exchange_rate_idx")
+  @@index([targetId], map: "currency_exchange_rate_target_id_fk")
+}

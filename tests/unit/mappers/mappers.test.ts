@@ -357,7 +357,7 @@ describe("AmazonAdListingPriceMapper", () => {
     ).toEqual([[true, true], [true], [false]]);
   });
 
-  it("copies value, createdAt, country fields and currency code and builds the url from the tld", () => {
+  it("copies value, createdAt, country id and fields and currency code and builds the url from the tld", () => {
     const eur = buildCurrency({ code: "EUR" });
     const price = buildPrice({
       value: 12.5,
@@ -383,6 +383,7 @@ describe("AmazonAdListingPriceMapper", () => {
           reportable: true,
           url: "https://www.amazon.de/dp/B0X",
           country: {
+            id: price.country.country.id,
             name: "Germany",
             code: "de",
             active: false,

@@ -8,8 +8,9 @@ and reports them to Discord webhooks.
 
 ```bash
 npm start                 # run src/index.ts (vite-node); `npm run watch` with file watching
+npm run worker            # run src/worker.ts (crons without HTTP)
 npm run build             # bundle to dist/ (pkgroll)
-npx prisma generate       # after editing prisma/schema.prisma and before tests
+npx prisma generate       # after editing prisma/schema/*.prisma and before tests
 npx tsc --noEmit          # type-check; there is no linter
 npm run test:unit         # tests/unit, no database
 npm run test:coverage     # unit tests with coverage
@@ -45,6 +46,8 @@ npm run test:integration  # tests/integration, needs a running Docker
   `vite.config.ts`.
 - Write error messages in English.
 - Start the names of methods that read and return data with `get` (`getCount`, `getSumByTypeChannelAndHour`).
+- Put Prisma models in `prisma/schema/<module>.prisma` (marketplaces: `<name>.prisma`); `generator`,
+  `datasource` and shared enums go in `main.prisma`.
 - Set `createdAt`/`updatedAt` in mappers. Do not add Prisma migrations or column defaults.
 - The app reads env vars only from the runtime environment, never from `.env` files.
 
@@ -60,7 +63,7 @@ npm run test:integration  # tests/integration, needs a running Docker
   (`GET /scrap` before `GET /:id`).
 - Write logic as classes (services, repositories, mappers, matchers, validators) with dependencies as
   defaulted constructor params. `helpers/` hold only small stateless functions those classes use.
-- Export `create<Name>Module()` from `src/modules/<name>/index.ts` (returns `AppModule`: `routers`, `crons`);
+- Export `create<Name>Module()` from `src/modules/<name>/index.ts` (returns `AppModule`: `routers`, `crons` for the api process, `workerCrons` for the worker);
   marketplaces live at `src/modules/marketplaces/<name>/index.ts` and return `MarketplaceModule`.
   Register it in `createModules()` in `src/modules.ts`.
 - Dependency direction: `marketplaces/*` → `anomalies`, `exclusion-rules`, `monitoring`, `currency` → `shared`;
@@ -69,7 +72,7 @@ npm run test:integration  # tests/integration, needs a running Docker
   `src/modules/marketplaces`; pass marketplace implementations in from `src/modules.ts`.
 - Add a marketplace: (1) Prisma models and a `src/modules/marketplaces/<name>/` folder with the layers;
   (2) a mapper to `ListingPrice`, implementations of `CountryOutlierReporter`/`PriceDropReporter` that
-  store an event and post to Discord, and a call to `AnomalyManager([...])` with the managers of the chosen
+  store an event and post to Discord (`CountryOutlierReporter` also stores the reported price per listing and country), and a call to `AnomalyManager([...])` with the managers of the chosen
   detectors after storing prices; (3) implementations of `ExclusionRuleTarget` and `DailyReportSection`;
   (4) `create<Name>Module()` returning `MarketplaceModule`, added to `marketplaces` in `src/modules.ts`.
 - Anomaly detectors work on `ListingPrice` only; each marketplace passes its reporters to the managers. Rule matching goes through `ExclusionRuleTarget`; the daily Discord report gets its
@@ -127,4 +130,8 @@ npm run test:integration  # tests/integration, needs a running Docker
   (second 30). Read `ad_scraped` only through `ActivityCountService.getCount` (sums `data.count`, a row without it
   counts as 1); store `*_sent` as single events.
 - `src/app.ts` builds the express app and mounts the routers of all modules; `src/index.ts` adds `listen`
-  and calls `schedule()` on the crons of all modules.
+  and calls `schedule()` on `crons` of all modules; `src/worker.ts` (docker-compose service `worker`, same image)
+  calls `schedule()` on `workerCrons`. Put a cron in `crons` only when it reads memory filled by HTTP requests
+  (`ActivityCountFlushCronService`); every other cron goes to `workerCrons`.
+- Process metrics: `ProcessMetricsCronService` (one per process, role `api` | `worker`) logs CPU, event loop delay
+  and heap of its process to `SystemLog` every minute (second 45) via `ProcessMetricsService` (`src/shared/system`).

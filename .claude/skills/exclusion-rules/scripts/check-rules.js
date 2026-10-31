@@ -26,7 +26,7 @@ const createExcludes = (rules) => {
   return (name) => matcher.excludes(name);
 };
 
-const MAX_RULE_LENGTH = 63;
+const MAX_RULE_LENGTH = 512;
 const CHEAP = 40;
 
 const lines = (file) =>

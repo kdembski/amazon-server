@@ -5,6 +5,6 @@ import { ExclusionRuleMatchCronService } from "@/modules/exclusion-rules/cron/Ex
 
 export function createExclusionRulesModule(targets: ExclusionRuleTarget[]): AppModule {
   return {
-    crons: [new ExclusionRuleMatchCronService(new ExclusionRuleMatchService(targets))],
+    workerCrons: [new ExclusionRuleMatchCronService(new ExclusionRuleMatchService(targets))],
   };
 }

@@ -8,6 +8,7 @@ import { ActivityCountFlushCronService } from "@/modules/monitoring/cron/Activit
 import { ActivityEventCleanupCronService } from "@/modules/monitoring/cron/ActivityEventCleanupCronService";
 import { ScraperMetricCleanupCronService } from "@/modules/monitoring/cron/ScraperMetricCleanupCronService";
 import { SystemLogCleanupCronService } from "@/modules/monitoring/cron/SystemLogCleanupCronService";
+import { ProcessMetricsCronService } from "@/modules/monitoring/cron/ProcessMetricsCronService";
 import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 
@@ -17,7 +18,7 @@ vi.mock("discord.js", async (importOriginal) => {
 });
 
 describe("createMonitoringModule", () => {
-  it("exposes the scraper and stats routers and the stats, flush and cleanup crons", () => {
+  it("runs the flush and process metrics in the api and the reports and cleanups in the worker", () => {
     vi.stubEnv("DISCORD_LOGS_TOKEN", "t");
 
     const module = createMonitoringModule([]);
@@ -27,12 +28,16 @@ describe("createMonitoringModule", () => {
     expect(module.routers![0].path).toBe("/scrapers");
     expect(module.routers![1]).toBeInstanceOf(StatsRouter);
     expect(module.crons!.map((c) => c.constructor)).toEqual([
+      ActivityCountFlushCronService,
+      ProcessMetricsCronService,
+    ]);
+    expect(module.workerCrons!.map((c) => c.constructor)).toEqual([
       HourlyStatsCronService,
       DailyStatsCronService,
-      ActivityCountFlushCronService,
       ActivityEventCleanupCronService,
       ScraperMetricCleanupCronService,
       SystemLogCleanupCronService,
+      ProcessMetricsCronService,
     ]);
   });
 
@@ -47,7 +52,7 @@ describe("createMonitoringModule", () => {
     const section = { getField: vi.fn().mockResolvedValue(field) };
 
     const module = createMonitoringModule([section]);
-    const daily = module.crons!.find(
+    const daily = module.workerCrons!.find(
       (c) => c instanceof DailyStatsCronService
     ) as DailyStatsCronService;
     await daily.run();

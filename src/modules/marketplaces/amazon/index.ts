@@ -17,7 +17,7 @@ export function createAmazonModule(): MarketplaceModule {
       new AmazonExclusionRuleRouter(),
       new AmazonCountryRouter(),
     ],
-    crons: [new AmazonAdPriceCleanupCronService()],
+    workerCrons: [new AmazonAdPriceCleanupCronService()],
     exclusionRuleTarget: new AmazonAdRepository(),
     dailyReportSection: new AmazonAdDailyReportSection(),
   };

@@ -26,7 +26,7 @@ describe("createExclusionRulesModule", () => {
     expect(ExclusionRuleMatchService).toHaveBeenCalledWith(targets);
     const matchService = vi.mocked(ExclusionRuleMatchService).mock.results[0].value;
     expect(ExclusionRuleMatchCronService).toHaveBeenCalledWith(matchService);
-    expect(module.crons).toEqual([
+    expect(module.workerCrons).toEqual([
       vi.mocked(ExclusionRuleMatchCronService).mock.results[0].value,
     ]);
     expect(module.routers).toBeUndefined();

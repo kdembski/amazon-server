@@ -37,7 +37,7 @@ Parsed by `ExclusionRuleParser`, same for every marketplace.
   phrase takes `*` only before its first or after its last word (`łańcuszek na smocz*`, `łańcusz* + smocz*`;
   not `łańcusz* na smocz*`).
 - Case and diacritics folded on both sides.
-- Max 63 characters (`VarChar(63)`); values unique per category.
+- Max 512 characters (`VarChar(512)`); values unique per category.
 - Rules cannot see prices; exclude cheap items by product-type words.
 
 ## Tools

@@ -35,7 +35,7 @@ describe("HourlyStatsCronService (MySQL)", () => {
 
     await service.run();
 
-    // [ad_scraped, ce1, ce2, ce3, ce4, ce5, ce6, price_drop, 4+ prices]
+    // [ad_scraped, ce1, ce2, ce3, ce4, ce5, ce6, price_drop, 3+ prices]
     expect(sendHourly).toHaveBeenCalledWith([6, 1, 0, 0, 0, 0, 2, 1, 2], []);
   });
 

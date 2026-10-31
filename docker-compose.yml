@@ -30,5 +30,15 @@ services:
       - "5001:5001"
     logging: *logging
 
+  worker:
+    build: .
+    command: ["npm", "run", "worker"]
+    restart: unless-stopped
+    env_file: .env.production
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *logging
+
 volumes:
   db_data:

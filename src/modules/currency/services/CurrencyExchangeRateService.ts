@@ -7,6 +7,9 @@ import { CreatableService } from "@/shared/crud/services/CreatableService";
 import { DeletableService } from "@/shared/crud/services/DeletableService";
 import { UpdatableService } from "@/shared/crud/services/UpdatableService";
 
+// The api process does not run CurrencyExchangeRateCronService, so it rereads the rates the worker stores.
+const PLN_RATE_TTL_MS = 60 * 60 * 1000;
+
 export class CurrencyExchangeRateService {
   private repository;
   deletable;
@@ -39,13 +42,15 @@ export class CurrencyExchangeRateService {
   }
 
   async getPlnRates() {
-    if (!this.plnRateCache.rates) await this.refreshPlnRates();
+    const { rates, refreshedAt = 0 } = this.plnRateCache;
+    if (!rates || Date.now() - refreshedAt >= PLN_RATE_TTL_MS) await this.refreshPlnRates();
 
     return this.plnRateCache.rates!;
   }
 
   async refreshPlnRates() {
     this.plnRateCache.rates = await this.getByTargetCode("PLN");
+    this.plnRateCache.refreshedAt = Date.now();
   }
 
   updateBySourceAndTarget(

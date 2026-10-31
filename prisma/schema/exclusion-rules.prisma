@@ -1,0 +1,5 @@
+model ExclusionRuleFingerprint {
+  marketplace Marketplace @id
+  scopes      Json
+  updatedAt   DateTime    @updatedAt @db.Timestamp(2)
+}

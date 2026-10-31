@@ -35,15 +35,29 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     const newestPrices = countryPrices.map((prices) => prices[0]);
     const prices = await this.toPln(newestPrices);
     this.sortPrices(prices);
+    const rules = this.strategy.getMatchingRules(prices);
+    if (!rules.length) return;
+
     const cheapest = countryPrices.find(
       ([price]) => price.country === prices[0].country
     )!;
-    if (!this.hasDropped(cheapest)) return;
+    if (!(await this.isNewPrice(listing, cheapest[0]))) return;
 
     const difference = this.getDifference(cheapest);
-    for (const rule of this.strategy.getMatchingRules(prices)) {
+    for (const rule of rules) {
       await this.reporter.report(listing, prices, rule.channel, difference);
     }
+    await this.reporter.setReportedPrice(listing, cheapest[0]);
+  }
+
+  // Compares raw prices of the cheapest country only: PLN values move with exchange rates and
+  // changes of the other countries never report a listing again.
+  private async isNewPrice(listing: T, cheapest: ListingPrice) {
+    const reported = await this.reporter.getReportedPrice(listing, cheapest);
+    if (!reported) return true;
+
+    const drop = reported.minus(cheapest.value);
+    return drop.gte(reported.times(this.minPriceDrop));
   }
 
   private getDifference([newest, previous]: ListingPrice[]) {
@@ -51,14 +65,6 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
 
     const previousValue = previous.value.toNumber();
     return Math.round(((newest.value.toNumber() - previousValue) * 100) / previousValue);
-  }
-
-  // Compares raw prices: PLN values move with exchange rates.
-  private hasDropped([newest, previous]: ListingPrice[]) {
-    if (!previous) return true;
-
-    const drop = previous.value.minus(newest.value);
-    return drop.gte(previous.value.times(this.minPriceDrop));
   }
 
   // Returns copies: the same price objects are passed to the other error managers.

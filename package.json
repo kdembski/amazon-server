@@ -8,6 +8,7 @@
   "scripts": {
     "start": "vite-node src/index.ts",
     "watch": "vite-node --watch src/index.ts",
+    "worker": "vite-node src/worker.ts",
     "build": "pkgroll",
     "test:unit": "vitest run --project unit",
     "test:coverage": "vitest run --coverage --project unit",

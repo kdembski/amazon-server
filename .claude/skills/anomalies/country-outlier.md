@@ -14,15 +14,13 @@ The same listing costs much less in one country than in the others once all pric
 ## Steps (`src/modules/anomalies/country-outlier/`)
 
 1. `CountryOutlierManager.check` drops countries missing from this scrape (`scraped = false`) and stops with fewer
-   than 4 countries left.
+   than 3 countries left.
 2. Takes the newest price of each country and converts it to PLN (`CurrencyExchangeRateService.getPlnRates`); the
    copies keep the original `country` object.
 3. Sorts the PLN prices ascending; the first one is the cheapest.
-4. Duplicate check (`hasDropped`) on the cheapest country, in its own currency: it goes on when that country has no
-   previous price or its newest price is at least 5% below the previous one (`minPriceDrop`); otherwise it stops.
-5. `CountryOutlierStrategy.getMatchingRules` returns nothing unless the cheapest price is reportable (country
+4. `CountryOutlierStrategy.getMatchingRules` returns nothing unless the cheapest price is reportable (country
    `active` and `reportable`).
-6. `CountryOutlierEvaluator.isOverPercentageDifference` compares the cheapest price with the weighted median of all
+5. `CountryOutlierEvaluator.isOverPercentageDifference` compares the cheapest price with the weighted median of all
    other PLN prices: sorted ascending with weights `n`..`1` from the cheapest, it is the first price whose cumulative
    weight passes half (mean with the next one when it is exactly half). Each rule group reports its first matching rule:
 
@@ -35,13 +33,18 @@ The same listing costs much less in one country than in the others once all pric
    | | 50-200 PLN | `5` |
    | | over 200 PLN | `6` |
 
+6. Duplicate check (`isNewPrice`) on the cheapest country, in its own currency, only when a rule matched: it goes on
+   when the reporter has no reported price for the listing and country (`getReportedPrice`) or the newest price is
+   at least 5% below the reported price (`minPriceDrop`); otherwise it stops. Changes of the other countries and of
+   the previous scrape never pass it.
 7. For each matched channel (at most two, one per group) the marketplace's `CountryOutlierReporter.report` gets the
    listing, the sorted PLN prices and the channel; it stores a `country_outlier_sent` event and posts to that
-   channel's Discord webhook (Amazon: `DISCORD_COUNTRY_OUTLIER_<channel>_TOKEN`).
+   channel's Discord webhook (Amazon: `DISCORD_COUNTRY_OUTLIER_<channel>_TOKEN`). Then `setReportedPrice` stores
+   the cheapest price in its own currency (Amazon: `AmazonCountryOutlierReport`, one row per ad and country).
 
 ## Known limits
 
-- When the cheapest price stays within 5% and the rule starts to match for another reason (exchange rate, another
-  country's price, a country appearing or disappearing, a rule change), the listing is not reported until the cheapest
-  price drops by 5%.
+- A listing that matches for the first time is reported even when its cheapest price did not change (a fourth country
+  appeared, other countries rose). After that it is reported again only when its cheapest price is 5% below the
+  reported one; a price that rises and comes back is not reported again.
 - PLN prices in the event drift with exchange rates; the duplicate check uses the original currency.

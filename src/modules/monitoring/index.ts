@@ -7,6 +7,7 @@ import { ActivityCountFlushCronService } from "@/modules/monitoring/cron/Activit
 import { ActivityEventCleanupCronService } from "@/modules/monitoring/cron/ActivityEventCleanupCronService";
 import { ScraperMetricCleanupCronService } from "@/modules/monitoring/cron/ScraperMetricCleanupCronService";
 import { SystemLogCleanupCronService } from "@/modules/monitoring/cron/SystemLogCleanupCronService";
+import { ProcessMetricsCronService } from "@/modules/monitoring/cron/ProcessMetricsCronService";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
 
 export function createMonitoringModule(
@@ -14,13 +15,15 @@ export function createMonitoringModule(
 ): AppModule {
   return {
     routers: [new ScraperRouter(), new StatsRouter()],
-    crons: [
+    // the activity counts live in the memory of the api process
+    crons: [new ActivityCountFlushCronService(), new ProcessMetricsCronService("api")],
+    workerCrons: [
       new HourlyStatsCronService(),
       new DailyStatsCronService(sections),
-      new ActivityCountFlushCronService(),
       new ActivityEventCleanupCronService(),
       new ScraperMetricCleanupCronService(),
       new SystemLogCleanupCronService(),
+      new ProcessMetricsCronService("worker"),
     ],
   };
 }

@@ -94,7 +94,7 @@ describe("HourlyStatsCronService", () => {
     const from = new Date("2026-06-01T09:00:00Z");
     const to = new Date("2026-06-01T10:00:00Z");
     expect(counter.getCount).toHaveBeenCalledWith("ad_scraped", from, to);
-    expect(counter.getCountWithMinPrices).toHaveBeenCalledWith("ad_scraped", 4, from, to);
+    expect(counter.getCountWithMinPrices).toHaveBeenCalledWith("ad_scraped", 3, from, to);
     COUNTS.slice(1).forEach(([type, channel]) =>
       expect(log.getCount).toHaveBeenCalledWith(type, from, to, channel)
     );

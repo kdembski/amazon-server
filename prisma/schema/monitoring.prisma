@@ -1,0 +1,57 @@
+enum ActivityEventType {
+  ad_scraped
+  country_outlier_sent
+  price_drop_sent
+}
+
+model ActivityEvent {
+  id          Int               @id @default(autoincrement())
+  type        ActivityEventType
+  marketplace Marketplace
+  data        Json
+  createdAt   DateTime          @db.Timestamp(2)
+
+  @@index([type, createdAt])
+}
+
+enum SystemLogLevel {
+  error
+  warn
+  info
+}
+
+model SystemLog {
+  id        Int            @id @default(autoincrement())
+  level     SystemLogLevel
+  source    String         @db.VarChar(63)
+  message   String         @db.Text
+  context   Json?
+  createdAt DateTime       @db.Timestamp(2)
+
+  @@index([createdAt])
+  @@index([level, createdAt])
+  @@index([source, createdAt])
+}
+
+model ScraperMetric {
+  id          Int         @id @default(autoincrement())
+  scraper     String      @db.VarChar(63)
+  marketplace Marketplace
+  flow        String      @db.VarChar(15)
+  metric      String      @db.VarChar(63)
+  country     String?     @db.VarChar(7)
+  outcome     String?     @db.VarChar(31)
+  value       Float
+  periodStart DateTime    @db.Timestamp(2)
+  createdAt   DateTime    @db.Timestamp(2)
+
+  @@index([periodStart, metric])
+}
+
+model ScraperConfig {
+  scraper     String   @id @db.VarChar(63)
+  concurrency Int      @default(10)
+  rps         Int      @default(0)
+  batchSize   Int      @default(50)
+  updatedAt   DateTime @updatedAt @db.Timestamp(2)
+}
