@@ -1,4 +1,4 @@
-import { ActivityEventType } from "@prisma/client";
+import { BusinessLogType } from "@prisma/client";
 
 export interface TimePoint {
   t: string;
@@ -6,15 +6,15 @@ export interface TimePoint {
 }
 
 export interface ActivitySeries {
-  type: ActivityEventType;
+  type: BusinessLogType;
   channel: string | null;
   points: TimePoint[];
 }
 
 export interface ActivityStatsDto {
   series: ActivitySeries[];
-  totals: Record<ActivityEventType, number>;
-  previousTotals: Record<ActivityEventType, number>;
+  totals: Record<BusinessLogType, number>;
+  previousTotals: Record<BusinessLogType, number>;
 }
 
 export type LogLevelCounts = { error: number; warn: number };

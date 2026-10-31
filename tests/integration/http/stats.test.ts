@@ -3,7 +3,7 @@ import request from "supertest";
 import type { Express } from "express";
 import { createTestApp } from "../../support/integration/app";
 import { prisma } from "../../support/integration/db";
-import { seedActivityEvent } from "../../support/integration/seed";
+import { seedBusinessLog } from "../../support/integration/seed";
 
 let app: Express;
 beforeAll(() => {
@@ -20,8 +20,8 @@ describe("/stats", () => {
   });
 
   it("GET /activity returns hourly series and totals of the range and the previous one", async () => {
-    await seedActivityEvent({ data: { count: 3 }, createdAt: new Date("2026-10-26T10:15:00Z") });
-    await seedActivityEvent({ data: { count: 5 }, createdAt: new Date("2026-10-26T09:00:00Z") });
+    await seedBusinessLog({ data: { count: 3 }, createdAt: new Date("2026-10-26T10:15:00Z") });
+    await seedBusinessLog({ data: { count: 5 }, createdAt: new Date("2026-10-26T09:00:00Z") });
 
     const response = await request(app).get("/stats/activity").query(range).expect(200);
 

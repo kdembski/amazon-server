@@ -3,21 +3,21 @@ import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { AmazonCountryOutlierDiscordService } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierDiscordService";
 import { AmazonCountryOutlierReportRepository } from "@/modules/marketplaces/amazon/repositories/AmazonCountryOutlierReportRepository";
-import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
+import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
 
 export class AmazonCountryOutlierReporter
   implements CountryOutlierReporter<AmazonAdSelectDto>
 {
-  private activityEventService;
+  private businessLogService;
   private discordService;
   private reportRepository;
 
   constructor(
-    activityEventService = new ActivityEventService(),
+    businessLogService = new BusinessLogService(),
     discordService = new AmazonCountryOutlierDiscordService(),
     reportRepository = new AmazonCountryOutlierReportRepository()
   ) {
-    this.activityEventService = activityEventService;
+    this.businessLogService = businessLogService;
     this.discordService = discordService;
     this.reportRepository = reportRepository;
   }
@@ -36,7 +36,7 @@ export class AmazonCountryOutlierReporter
     channel: string,
     difference?: number
   ) {
-    await this.activityEventService.creatable.create({
+    await this.businessLogService.creatable.create({
       type: "country_outlier_sent",
       marketplace: "amazon",
       data: {

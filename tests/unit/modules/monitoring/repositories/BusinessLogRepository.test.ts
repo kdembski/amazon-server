@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { ActivityEventRepository } from "@/modules/monitoring/repositories/ActivityEventRepository";
+import { BusinessLogRepository } from "@/modules/monitoring/repositories/BusinessLogRepository";
 import { fakePrisma } from "../../../../support/fakes";
 
 const setup = () => {
   const db = fakePrisma();
-  return { repository: new ActivityEventRepository(db.prisma), delegate: db.activityEvent };
+  return { repository: new BusinessLogRepository(db.prisma), delegate: db.businessLog };
 };
 
-describe("ActivityEventRepository", () => {
+describe("BusinessLogRepository", () => {
   it("filters by type and time window", async () => {
     const { repository, delegate } = setup();
     const from = new Date(1);
@@ -50,7 +50,7 @@ describe("ActivityEventRepository", () => {
 
   it("deletes events older than a date in batches until a batch comes back short", async () => {
     const db = fakePrisma();
-    const repository = new ActivityEventRepository(db.prisma);
+    const repository = new BusinessLogRepository(db.prisma);
     db.$executeRaw
       .mockResolvedValueOnce(2)
       .mockResolvedValueOnce(2)
@@ -62,7 +62,7 @@ describe("ActivityEventRepository", () => {
     expect(db.$executeRaw).toHaveBeenCalledTimes(3);
     const [strings, ...values] = db.$executeRaw.mock.calls[0];
     expect(strings.join("?")).toBe(
-      "DELETE FROM ActivityEvent WHERE createdAt < ? LIMIT ?"
+      "DELETE FROM BusinessLog WHERE createdAt < ? LIMIT ?"
     );
     expect(values).toEqual([date, 2]);
   });
@@ -96,7 +96,7 @@ describe("ActivityEventRepository", () => {
 
   it("getSum returns the summed counts of a type in a time window as a number", async () => {
     const db = fakePrisma();
-    const repository = new ActivityEventRepository(db.prisma);
+    const repository = new BusinessLogRepository(db.prisma);
     db.$queryRaw.mockResolvedValue([{ total: 12n }]);
     const from = new Date(1);
     const to = new Date(2);
@@ -108,7 +108,7 @@ describe("ActivityEventRepository", () => {
 
   it("getSumByTypeChannelAndHour converts the raw numbers", async () => {
     const db = fakePrisma();
-    const repository = new ActivityEventRepository(db.prisma);
+    const repository = new BusinessLogRepository(db.prisma);
     db.$queryRaw.mockResolvedValue([
       { type: "ad_scraped", channel: null, hour: 3600n, value: 4n },
     ]);

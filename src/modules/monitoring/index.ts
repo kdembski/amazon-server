@@ -4,7 +4,7 @@ import { StatsRouter } from "@/modules/monitoring/routes/StatsRouter";
 import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCronService";
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
 import { ActivityCountFlushCronService } from "@/modules/monitoring/cron/ActivityCountFlushCronService";
-import { ActivityEventCleanupCronService } from "@/modules/monitoring/cron/ActivityEventCleanupCronService";
+import { BusinessLogCleanupCronService } from "@/modules/monitoring/cron/BusinessLogCleanupCronService";
 import { ScraperMetricCleanupCronService } from "@/modules/monitoring/cron/ScraperMetricCleanupCronService";
 import { SystemLogCleanupCronService } from "@/modules/monitoring/cron/SystemLogCleanupCronService";
 import { ProcessMetricsCronService } from "@/modules/monitoring/cron/ProcessMetricsCronService";
@@ -20,7 +20,7 @@ export function createMonitoringModule(
     workerCrons: [
       new HourlyStatsCronService(),
       new DailyStatsCronService(sections),
-      new ActivityEventCleanupCronService(),
+      new BusinessLogCleanupCronService(),
       new ScraperMetricCleanupCronService(),
       new SystemLogCleanupCronService(),
       new ProcessMetricsCronService("worker"),

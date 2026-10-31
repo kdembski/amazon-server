@@ -1,28 +1,28 @@
 import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
-import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
+import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
-import { ActivityEventType } from "@prisma/client";
+import { BusinessLogType } from "@prisma/client";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { MIN_COUNTRY_OUTLIER_PRICES } from "@/shared/utils/countryOutlier";
 import { CronJob } from "cron";
 
 export class HourlyStatsCronService {
   private discordService;
-  private activityEventService;
+  private businessLogService;
   private metricService;
   private logger;
   private activityCountService;
 
   constructor(
     discordService = new DiscordLogService(),
-    activityEventService = new ActivityEventService(),
+    businessLogService = new BusinessLogService(),
     metricService = new ScraperMetricService(),
     logger = SystemLogService.getInstance(),
     activityCountService = new ActivityCountService()
   ) {
     this.discordService = discordService;
-    this.activityEventService = activityEventService;
+    this.businessLogService = businessLogService;
     this.metricService = metricService;
     this.logger = logger;
     this.activityCountService = activityCountService;
@@ -73,8 +73,8 @@ export class HourlyStatsCronService {
     });
   }
 
-  getCount(type: ActivityEventType, channel?: string) {
-    return this.activityEventService.getCount(type, ...this.getLastHour(), channel);
+  getCount(type: BusinessLogType, channel?: string) {
+    return this.businessLogService.getCount(type, ...this.getLastHour(), channel);
   }
 
   private getLastHour(): [Date, Date] {

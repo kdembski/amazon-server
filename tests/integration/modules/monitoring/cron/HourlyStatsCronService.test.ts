@@ -4,13 +4,13 @@ import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogServi
 import { SystemService } from "@/shared/system/SystemService";
 import { messagesSentTo } from "../../../../support/integration/discordInbox";
 import {
-  seedActivityEvent,
+  seedBusinessLog,
   seedScraperMetric,
 } from "../../../../support/integration/seed";
 
 const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000);
 const countryOutlier = (channel: string, createdAt: Date) =>
-  seedActivityEvent({
+  seedBusinessLog({
     type: "country_outlier_sent",
     data: { asin: "B000SEED00", channel, prices: [] },
     createdAt,
@@ -22,16 +22,16 @@ describe("HourlyStatsCronService (MySQL)", () => {
     const service = new HourlyStatsCronService(
       { sendHourly } as unknown as DiscordLogService
     );
-    await seedActivityEvent({ type: "ad_scraped", data: { count: 3, prices: { 2: 1, 4: 1, 5: 1 } }, createdAt: minutesAgo(30) });
-    await seedActivityEvent({ type: "ad_scraped", data: { count: 2 }, createdAt: minutesAgo(50) });
-    await seedActivityEvent({ type: "ad_scraped", data: { count: 7, prices: { 4: 7 } }, createdAt: minutesAgo(120) });
+    await seedBusinessLog({ type: "ad_scraped", data: { count: 3, prices: { 2: 1, 4: 1, 5: 1 } }, createdAt: minutesAgo(30) });
+    await seedBusinessLog({ type: "ad_scraped", data: { count: 2 }, createdAt: minutesAgo(50) });
+    await seedBusinessLog({ type: "ad_scraped", data: { count: 7, prices: { 4: 7 } }, createdAt: minutesAgo(120) });
     // A single event from before the counts
-    await seedActivityEvent({ type: "ad_scraped", createdAt: minutesAgo(20) });
+    await seedBusinessLog({ type: "ad_scraped", createdAt: minutesAgo(20) });
     await countryOutlier("1", minutesAgo(59));
     await countryOutlier("6", minutesAgo(5));
     await countryOutlier("6", minutesAgo(6));
     await countryOutlier("2", minutesAgo(90));
-    await seedActivityEvent({ type: "price_drop_sent", createdAt: minutesAgo(10) });
+    await seedBusinessLog({ type: "price_drop_sent", createdAt: minutesAgo(10) });
 
     await service.run();
 

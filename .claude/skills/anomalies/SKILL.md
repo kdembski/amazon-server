@@ -5,7 +5,7 @@ description: Use when asked how country outliers or price drops work, why a list
 
 # Anomalies
 
-Price anomalies found after a marketplace stores scraped prices, reported as `ActivityEvent`s and Discord messages.
+Price anomalies found after a marketplace stores scraped prices, reported as `BusinessLog` rows and Discord messages.
 
 - [country-outlier.md](country-outlier.md): one country is much cheaper than the others after conversion to PLN.
 - [price-drop.md](price-drop.md): a country's price dropped sharply against its own recent history.
@@ -13,4 +13,4 @@ Price anomalies found after a marketplace stores scraped prices, reported as `Ac
 Read the file of the detector in question; read both before changing the marketplace input (its price update, the
 recent-prices query, the `ListingPrice` mapper). Detectors in `src/modules/anomalies` work on `ListingPrice` only;
 each marketplace in `src/modules/marketplaces/<name>` supplies the prices and the reporters. Check production
-behaviour with the `database` skill (`ActivityEvent` types `country_outlier_sent`, `price_drop_sent`, `ad_scraped` — one row per minute, sum `data.count`).
+behaviour with the `database` skill (`BusinessLog` types `country_outlier_sent`, `price_drop_sent`, `ad_scraped` — one row per minute, sum `data.count`).

@@ -3,11 +3,11 @@ import { AmazonPriceDropReporter } from "@/modules/marketplaces/amazon/services/
 import { buildAd, buildListingPrice } from "../../../../../support/factories";
 import {
   fakeAmazonPriceDropDiscordService,
-  fakeActivityEventService,
+  fakeBusinessLogService,
 } from "../../../../../support/fakes";
 
 const setup = () => {
-  const log = fakeActivityEventService();
+  const log = fakeBusinessLogService();
   const discord = fakeAmazonPriceDropDiscordService();
   const reporter = new AmazonPriceDropReporter(log.service, discord.service);
   return { reporter, log, discord };

@@ -1,19 +1,19 @@
 import _ from "lodash";
-import { ActivityEventType } from "@prisma/client";
+import { BusinessLogType } from "@prisma/client";
 import { ActivityStatsDto } from "@/modules/monitoring/dtos/StatsDtos";
 import {
   previousRange,
   TimeRange,
   toHourIso,
 } from "@/modules/monitoring/helpers/parseTimeRange";
-import { ActivityEventRepository } from "@/modules/monitoring/repositories/ActivityEventRepository";
+import { BusinessLogRepository } from "@/modules/monitoring/repositories/BusinessLogRepository";
 
-type Row = Awaited<ReturnType<ActivityEventRepository["getSumByTypeChannelAndHour"]>>[number];
+type Row = Awaited<ReturnType<BusinessLogRepository["getSumByTypeChannelAndHour"]>>[number];
 
 export class ActivityStatsService {
   private repository;
 
-  constructor(repository = new ActivityEventRepository()) {
+  constructor(repository = new BusinessLogRepository()) {
     this.repository = repository;
   }
 
@@ -37,8 +37,8 @@ export class ActivityStatsService {
 
   private totals(rows: Row[]) {
     const totals = Object.fromEntries(
-      Object.values(ActivityEventType).map((type) => [type, 0])
-    ) as Record<ActivityEventType, number>;
+      Object.values(BusinessLogType).map((type) => [type, 0])
+    ) as Record<BusinessLogType, number>;
     rows.forEach((row) => (totals[row.type] += row.value));
     return totals;
   }

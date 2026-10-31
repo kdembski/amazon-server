@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
-import { ActivityEventRepository } from "@/modules/monitoring/repositories/ActivityEventRepository";
+import { BusinessLogRepository } from "@/modules/monitoring/repositories/BusinessLogRepository";
 import { ActivityCount, ActivityCounter } from "@/modules/monitoring/services/ActivityCounter";
 import { deferred } from "../../../../support/fakes";
 
@@ -12,7 +12,7 @@ const setup = () => {
   };
   const counter = { counts: new Map<string, ActivityCount>() };
   const service = new ActivityCountService(
-    repository as unknown as ActivityEventRepository,
+    repository as unknown as BusinessLogRepository,
     counter as unknown as ActivityCounter
   );
   return { service, repository, counter };

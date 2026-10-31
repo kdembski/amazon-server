@@ -1,26 +1,26 @@
 import _ from "lodash";
-import { ActivityEventCreateMapper } from "@/modules/monitoring/mappers/ActivityEventCreateMapper";
-import { ActivityEventRepository } from "@/modules/monitoring/repositories/ActivityEventRepository";
+import { BusinessLogCreateMapper } from "@/modules/monitoring/mappers/BusinessLogCreateMapper";
+import { BusinessLogRepository } from "@/modules/monitoring/repositories/BusinessLogRepository";
 import { ActivityCount, ActivityCounter } from "@/modules/monitoring/services/ActivityCounter";
-import { ActivityEventType, Marketplace } from "@prisma/client";
+import { BusinessLogType, Marketplace } from "@prisma/client";
 
-// Counts high-volume events in memory; flush stores one ActivityEvent per type and marketplace with data.count
+// Counts high-volume events in memory; flush stores one BusinessLog per type and marketplace with data.count
 export class ActivityCountService {
   private repository;
   private counter;
   private mapper;
 
   constructor(
-    repository = new ActivityEventRepository(),
+    repository = new BusinessLogRepository(),
     counter = ActivityCounter.getInstance(),
-    mapper = new ActivityEventCreateMapper(),
+    mapper = new BusinessLogCreateMapper(),
   ) {
     this.repository = repository;
     this.counter = counter;
     this.mapper = mapper;
   }
 
-  increment(type: ActivityEventType, marketplace: Marketplace, countryIds: number[] = []) {
+  increment(type: BusinessLogType, marketplace: Marketplace, countryIds: number[] = []) {
     const ids = _.uniq(countryIds);
     this.add({
       type,
@@ -53,11 +53,11 @@ export class ActivityCountService {
     }
   }
 
-  getCount(type: ActivityEventType, from: Date, to: Date) {
+  getCount(type: BusinessLogType, from: Date, to: Date) {
     return this.repository.getSum(type, from, to);
   }
 
-  async getCountWithMinPrices(type: ActivityEventType, minPrices: number, from: Date, to: Date) {
+  async getCountWithMinPrices(type: BusinessLogType, minPrices: number, from: Date, to: Date) {
     const rows = await this.repository.getData(type, from, to);
     return _.sumBy(rows, (data) => {
       const { prices = {} } = data as { prices?: Record<string, number> };

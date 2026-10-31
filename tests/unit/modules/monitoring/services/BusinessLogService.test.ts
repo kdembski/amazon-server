@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
-import { ActivityEventRepository } from "@/modules/monitoring/repositories/ActivityEventRepository";
+import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
+import { BusinessLogRepository } from "@/modules/monitoring/repositories/BusinessLogRepository";
 
 const setup = () => {
   const repository = {
@@ -9,11 +9,11 @@ const setup = () => {
     create: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue({}),
   };
-  const service = new ActivityEventService(repository as unknown as ActivityEventRepository);
+  const service = new BusinessLogService(repository as unknown as BusinessLogRepository);
   return { service, repository };
 };
 
-describe("ActivityEventService", () => {
+describe("BusinessLogService", () => {
   it("delegates getCount", async () => {
     const { service, repository } = setup();
     const from = new Date(1);

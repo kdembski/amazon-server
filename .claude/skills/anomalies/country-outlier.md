@@ -4,7 +4,7 @@ The same listing costs much less in one country than in the others once all pric
 
 ## Input (marketplace)
 
-1. The marketplace's price update stores the scraped prices and counts `ad_scraped` (flushed once a minute as an `ActivityEvent` with `data.count`), then runs the detectors
+1. The marketplace's price update stores the scraped prices and counts `ad_scraped` (flushed once a minute as a `BusinessLog` row with `data.count`), then runs the detectors
    asynchronously.
 2. It loads the 5 newest prices of each country of the listing, grouped per country, newest first.
 3. Its `ListingPrice` mapper sets `scraped` for prices of countries in this scrape and `reportable` only for those the

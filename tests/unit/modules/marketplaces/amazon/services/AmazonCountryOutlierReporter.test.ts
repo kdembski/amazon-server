@@ -5,11 +5,11 @@ import { AmazonCountryOutlierReporter } from "@/modules/marketplaces/amazon/serv
 import { buildAd, buildListingPrice } from "../../../../../support/factories";
 import {
   fakeAmazonCountryOutlierDiscordService,
-  fakeActivityEventService,
+  fakeBusinessLogService,
 } from "../../../../../support/fakes";
 
 const setup = () => {
-  const log = fakeActivityEventService();
+  const log = fakeBusinessLogService();
   const discord = fakeAmazonCountryOutlierDiscordService();
   const repository = {
     getValue: vi.fn().mockResolvedValue(new Decimal(95)),

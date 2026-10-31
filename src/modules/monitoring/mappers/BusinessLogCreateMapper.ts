@@ -1,12 +1,12 @@
-import { ActivityEventCreateDto } from "@/modules/monitoring/dtos/ActivityEventDtos";
+import { BusinessLogCreateDto } from "@/modules/monitoring/dtos/BusinessLogDtos";
 import { ToCreateInputMapperI } from "@/shared/crud/interfaces/CRUDMapper";
 import { Prisma } from "@prisma/client";
 
-export class ActivityEventCreateMapper
+export class BusinessLogCreateMapper
   implements
-    ToCreateInputMapperI<ActivityEventCreateDto, Prisma.ActivityEventCreateInput>
+    ToCreateInputMapperI<BusinessLogCreateDto, Prisma.BusinessLogCreateInput>
 {
-  toCreateInput(dto: ActivityEventCreateDto) {
+  toCreateInput(dto: BusinessLogCreateDto) {
     return {
       type: dto.type,
       marketplace: dto.marketplace,
