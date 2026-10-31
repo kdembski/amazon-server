@@ -10,13 +10,29 @@ if [ "${1:-}" = "--raw" ]; then format="--batch --raw --skip-column-names"; shif
 
 cnf="$HOME/.mysql-readonly.cnf"
 [ -f "$cnf" ] || { echo "Missing $cnf ([client] host/port/user/password/database)." >&2; exit 1; }
-if ! (exec 3<>/dev/tcp/127.0.0.1/3308) 2>/dev/null; then
-  # Background ssh must not hold the caller's stdout/stderr, or the caller waits for it to exit.
-  ssh -f -N -o BatchMode=yes amazon-db </dev/null >/dev/null 2>&1 || {
-    echo "Tunnel closed and \`ssh -f -N amazon-db\` failed (see ~/.ssh/config, key ~/.ssh/amazon_db)." >&2
-    exit 1
-  }
+port_open() { (exec 3<>/dev/tcp/127.0.0.1/3308) 2>/dev/null; }
+
+# msys `kill` does not stop a hung ssh; taskkill on its Windows pid does.
+# shortcut: also closes the tunnel of a query running in parallel, run queries one at a time.
+close_tunnel() {
+  local pid
+  for pid in $(ps -ef | awk '/[s]sh .*-N .*amazon-db/ {print $2}'); do
+    taskkill //F //PID "$(cat "/proc/$pid/winpid")" >/dev/null 2>&1 || true
+  done
+}
+
+# A tunnel left open (possibly dead) holds the port; replace it.
+if port_open; then
+  close_tunnel
+  sleep 1
+  port_open && { echo "Port 3308 is held by a process other than the amazon-db tunnel." >&2; exit 1; }
 fi
+# Background ssh must not hold the caller's stdout/stderr, or the caller waits for it to exit.
+ssh -f -N -o BatchMode=yes -o ExitOnForwardFailure=yes amazon-db </dev/null >/dev/null 2>&1 || {
+  echo "\`ssh -f -N amazon-db\` failed (see ~/.ssh/config, key ~/.ssh/amazon_db)." >&2
+  exit 1
+}
+trap close_tunnel EXIT
 
 sql="${1:-$(cat)}"
 cnf_win="$(cygpath -w "$cnf" 2>/dev/null || echo "$cnf")"
