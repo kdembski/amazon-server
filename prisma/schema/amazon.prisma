@@ -58,7 +58,7 @@ model AmazonCountry {
 
 model AmazonExclusionRule {
   id         Int               @id @default(autoincrement())
-  value      String            @db.VarChar(63)
+  value      String            @db.VarChar(512)
   categoryId Int?
   inverted   Boolean
   createdAt  DateTime          @db.Timestamp(2)

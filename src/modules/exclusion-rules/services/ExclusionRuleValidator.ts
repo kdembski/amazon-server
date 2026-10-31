@@ -1,6 +1,6 @@
 import { ExclusionRuleParser } from "@/modules/exclusion-rules/services/ExclusionRuleParser";
 
-export const MAX_EXCLUSION_RULE_LENGTH = 63;
+export const MAX_EXCLUSION_RULE_LENGTH = 512;
 
 const invalid = (error: Error) => Object.assign(error, { status: 400 });
 
