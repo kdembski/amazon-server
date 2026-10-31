@@ -1,3 +1,4 @@
+import { Decimal } from "@prisma/client/runtime/library";
 import { AnomalyManagerI } from "@/modules/anomalies/interfaces/AnomalyManagerI";
 import { CountryOutlierReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
@@ -38,33 +39,28 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     const rules = this.strategy.getMatchingRules(prices);
     if (!rules.length) return;
 
-    const cheapest = countryPrices.find(
-      ([price]) => price.country === prices[0].country
+    const cheapest = newestPrices.find(
+      (price) => price.country === prices[0].country
     )!;
-    if (!(await this.isNewPrice(listing, cheapest[0]))) return;
+    const reported = await this.reporter.getReportedPrice(listing, cheapest);
+    if (reported && !this.isBelowReported(cheapest.value, reported)) return;
 
-    const difference = this.getDifference(cheapest);
+    const difference = reported && this.getDifference(cheapest.value, reported);
     for (const rule of rules) {
       await this.reporter.report(listing, prices, rule.channel, difference);
     }
-    await this.reporter.setReportedPrice(listing, cheapest[0]);
+    await this.reporter.setReportedPrice(listing, cheapest);
   }
 
   // Compares raw prices of the cheapest country only: PLN values move with exchange rates and
   // changes of the other countries never report a listing again.
-  private async isNewPrice(listing: T, cheapest: ListingPrice) {
-    const reported = await this.reporter.getReportedPrice(listing, cheapest);
-    if (!reported) return true;
-
-    const drop = reported.minus(cheapest.value);
-    return drop.gte(reported.times(this.minPriceDrop));
+  private isBelowReported(value: Decimal, reported: Decimal) {
+    return reported.minus(value).gte(reported.times(this.minPriceDrop));
   }
 
-  private getDifference([newest, previous]: ListingPrice[]) {
-    if (!previous) return;
-
-    const previousValue = previous.value.toNumber();
-    return Math.round(((newest.value.toNumber() - previousValue) * 100) / previousValue);
+  private getDifference(value: Decimal, reported: Decimal) {
+    const reportedValue = reported.toNumber();
+    return Math.round(((value.toNumber() - reportedValue) * 100) / reportedValue);
   }
 
   // Returns copies: the same price objects are passed to the other error managers.

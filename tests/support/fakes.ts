@@ -1,7 +1,7 @@
 import { vi } from "vitest";
 import type { Request, Response, Router } from "express";
 import type { PrismaClient } from "@prisma/client";
-import type { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
+import type { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
 import type { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import type { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
 import type { ScraperConfigService } from "@/modules/monitoring/services/ScraperConfigService";
@@ -11,7 +11,7 @@ import type { AmazonCountryOutlierDiscordService } from "@/modules/marketplaces/
 import type { AmazonPriceDropDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPriceDropDiscordService";
 import type { ExclusionRuleFingerprintRepository } from "@/modules/exclusion-rules/repositories/ExclusionRuleFingerprintRepository";
 
-export function fakeActivityEventService() {
+export function fakeBusinessLogService() {
   const create = vi.fn().mockResolvedValue({ id: 1 });
   const getCount = vi.fn().mockResolvedValue(0);
   const deleteOlderThan = vi.fn().mockResolvedValue(0);
@@ -19,7 +19,7 @@ export function fakeActivityEventService() {
     creatable: { create },
     getCount,
     deleteOlderThan,
-  } as unknown as ActivityEventService;
+  } as unknown as BusinessLogService;
   return { service, create, getCount, deleteOlderThan };
 }
 
@@ -190,7 +190,7 @@ export function fakePrisma() {
     country: fakeDelegate(),
     currency: fakeDelegate(),
     currencyExchangeRate: fakeDelegate(),
-    activityEvent: fakeDelegate(),
+    businessLog: fakeDelegate(),
     systemLog: { ...fakeDelegate(), groupBy: vi.fn() },
     amazonExclusionRule: fakeDelegate(),
     scraperMetric: {

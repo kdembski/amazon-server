@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ActivityStatsService } from "@/modules/monitoring/services/ActivityStatsService";
-import { ActivityEventRepository } from "@/modules/monitoring/repositories/ActivityEventRepository";
+import { BusinessLogRepository } from "@/modules/monitoring/repositories/BusinessLogRepository";
 
 const HOUR = 3600;
 const range = { from: new Date(10 * HOUR * 1000), to: new Date(12 * HOUR * 1000) };
@@ -12,7 +12,7 @@ const setup = (current: unknown[], previous: unknown[]) => {
       .mockResolvedValueOnce(current)
       .mockResolvedValueOnce(previous),
   };
-  const service = new ActivityStatsService(repository as unknown as ActivityEventRepository);
+  const service = new ActivityStatsService(repository as unknown as BusinessLogRepository);
   return { service, repository };
 };
 

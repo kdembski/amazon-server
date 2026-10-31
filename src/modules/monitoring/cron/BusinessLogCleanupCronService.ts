@@ -1,24 +1,24 @@
-import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
+import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { CronJob } from "cron";
 
-export class ActivityEventCleanupCronService {
-  private activityEventService;
+export class BusinessLogCleanupCronService {
+  private businessLogService;
   private logger;
   private retentionDays = 30;
 
   constructor(
-    activityEventService = new ActivityEventService(),
+    businessLogService = new BusinessLogService(),
     logger = SystemLogService.getInstance()
   ) {
-    this.activityEventService = activityEventService;
+    this.businessLogService = businessLogService;
     this.logger = logger;
   }
 
   schedule() {
     new CronJob("00 30 03 * * *", () =>
       this.run().catch((error) =>
-        this.logger.error("ActivityEventCleanupCronService", "Cron run failed", { error })
+        this.logger.error("BusinessLogCleanupCronService", "Cron run failed", { error })
       )
     ).start();
   }
@@ -27,9 +27,9 @@ export class ActivityEventCleanupCronService {
     const before = new Date();
     before.setDate(before.getDate() - this.retentionDays);
 
-    const deleted = await this.activityEventService.deleteOlderThan(before);
+    const deleted = await this.businessLogService.deleteOlderThan(before);
     this.logger.info(
-      "ActivityEventCleanupCronService",
+      "BusinessLogCleanupCronService",
       `Deleted ${deleted} activity events older than ${before.toISOString()}`,
       { deleted, before }
     );

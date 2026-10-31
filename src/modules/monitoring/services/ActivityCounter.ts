@@ -1,8 +1,8 @@
-import { ActivityEventType, Marketplace } from "@prisma/client";
+import { BusinessLogType, Marketplace } from "@prisma/client";
 
 // prices: number of countries of one item's prices -> items; countries: countryId -> items
 export type ActivityCount = {
-  type: ActivityEventType;
+  type: BusinessLogType;
   marketplace: Marketplace;
   count: number;
   prices: Record<string, number>;

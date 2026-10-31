@@ -20,7 +20,7 @@ bash .claude/skills/database/scripts/query.sh --raw "SELECT ..." > out.txt   # b
   stop and pass the script's message to the user.
 - Never print or read `~/.mysql-readonly.cnf` or `~/.ssh/amazon_db`.
 - Queries time out after 30 s. Always add `LIMIT` (start with 50) and filter by indexed columns or date
-  ranges; `AmazonAdPrice` and `ActivityEvent` are large. Run `COUNT(*)`/aggregates before listing rows.
+  ranges; `AmazonAdPrice` and `BusinessLog` are large. Run `COUNT(*)`/aggregates before listing rows.
 
 ## Schema
 

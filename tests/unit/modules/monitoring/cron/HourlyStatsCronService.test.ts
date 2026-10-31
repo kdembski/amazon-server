@@ -4,7 +4,7 @@ import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCro
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import {
   fakeActivityCountService,
-  fakeActivityEventService,
+  fakeBusinessLogService,
   fakeScraperMetricService,
   unitLogger,
 } from "../../../../support/fakes";
@@ -28,7 +28,7 @@ const COUNTS: [string, string?][] = [
 
 const setup = () => {
   const sendHourly = vi.fn();
-  const log = fakeActivityEventService();
+  const log = fakeBusinessLogService();
   const counter = fakeActivityCountService();
   const metrics = fakeScraperMetricService();
   const service = new HourlyStatsCronService(

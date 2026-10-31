@@ -2,24 +2,24 @@ import { PriceDropReporter } from "@/modules/anomalies/interfaces/AnomalyReporte
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { AmazonPriceDropDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPriceDropDiscordService";
-import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
+import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
 
 export class AmazonPriceDropReporter
   implements PriceDropReporter<AmazonAdSelectDto>
 {
-  private activityEventService;
+  private businessLogService;
   private discordService;
 
   constructor(
-    activityEventService = new ActivityEventService(),
+    businessLogService = new BusinessLogService(),
     discordService = new AmazonPriceDropDiscordService()
   ) {
-    this.activityEventService = activityEventService;
+    this.businessLogService = businessLogService;
     this.discordService = discordService;
   }
 
   async report(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][]) {
-    await this.activityEventService.creatable.create({
+    await this.businessLogService.creatable.create({
       type: "price_drop_sent",
       marketplace: "amazon",
       data: {

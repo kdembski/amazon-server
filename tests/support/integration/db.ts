@@ -13,7 +13,7 @@ export const TABLES = [
   "Country",
   "Currency",
   "CurrencyExchangeRate",
-  "ActivityEvent",
+  "BusinessLog",
   "ScraperMetric",
   "ScraperConfig",
   "ExclusionRuleFingerprint",

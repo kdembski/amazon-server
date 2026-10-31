@@ -1,18 +1,18 @@
-import { ActivityEventCreateMapper } from "@/modules/monitoring/mappers/ActivityEventCreateMapper";
-import { ActivityEventRepository } from "@/modules/monitoring/repositories/ActivityEventRepository";
+import { BusinessLogCreateMapper } from "@/modules/monitoring/mappers/BusinessLogCreateMapper";
+import { BusinessLogRepository } from "@/modules/monitoring/repositories/BusinessLogRepository";
 import { CreatableService } from "@/shared/crud/services/CreatableService";
 import { DeletableService } from "@/shared/crud/services/DeletableService";
-import { ActivityEventType } from "@prisma/client";
+import { BusinessLogType } from "@prisma/client";
 
-export class ActivityEventService {
+export class BusinessLogService {
   private repository;
   deletable;
   creatable;
 
   constructor(
-    repository = new ActivityEventRepository(),
+    repository = new BusinessLogRepository(),
     deletable = new DeletableService(repository),
-    creatable = new CreatableService(repository, new ActivityEventCreateMapper())
+    creatable = new CreatableService(repository, new BusinessLogCreateMapper())
   ) {
     this.repository = repository;
     this.deletable = deletable;
@@ -20,7 +20,7 @@ export class ActivityEventService {
   }
 
   getCount(
-    type: ActivityEventType,
+    type: BusinessLogType,
     from?: Date,
     to?: Date,
     channel?: string

@@ -111,7 +111,7 @@ describe("AmazonAdService (MySQL)", () => {
       expect(ActivityCounter.getInstance().counts.get("ad_scraped:amazon")?.count).toBe(1);
       // The anomaly managers run after updatePrices resolves.
       await vi.waitFor(() => expect(pricing.send).toHaveBeenCalledTimes(1));
-      const priceDrops = await prisma.activityEvent.findMany({
+      const priceDrops = await prisma.businessLog.findMany({
         where: { type: "price_drop_sent" },
       });
       expect(priceDrops).toHaveLength(1);
@@ -164,7 +164,7 @@ describe("AmazonAdService (MySQL)", () => {
       // 40 PLN (se) vs the median 1290 PLN (de): channel 3 (90 %) and channel 4 (0-50 PLN).
       await vi.waitFor(() => expect(conversion.send).toHaveBeenCalledTimes(2));
       expect(conversion.setChannel.mock.calls.map((c) => c[0]).sort()).toEqual(["3", "4"]);
-      const events = await prisma.activityEvent.findMany({
+      const events = await prisma.businessLog.findMany({
         where: { type: "country_outlier_sent" },
       });
       const channels = events.map((e) => (e.data as { channel: string }).channel);

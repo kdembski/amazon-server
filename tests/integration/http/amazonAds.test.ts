@@ -68,7 +68,7 @@ describe("PUT /amazon/ads/:id", () => {
     await vi.waitFor(() =>
       expect(messagesSentTo("DISCORD_PRICE_DROP_TOKEN")).toHaveLength(1)
     );
-    expect(await prisma.activityEvent.count({ where: { type: "price_drop_sent" } })).toBe(1);
+    expect(await prisma.businessLog.count({ where: { type: "price_drop_sent" } })).toBe(1);
     expect(messagesSentTo("DISCORD_PRICE_DROP_TOKEN")[0].options).toMatchObject({
       embeds: [{ title: ad.name, description: ad.asin }],
     });

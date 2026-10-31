@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CronJob } from "cron";
-import { ActivityEventCleanupCronService } from "@/modules/monitoring/cron/ActivityEventCleanupCronService";
-import { fakeActivityEventService, unitLogger } from "../../../../support/fakes";
+import { BusinessLogCleanupCronService } from "@/modules/monitoring/cron/BusinessLogCleanupCronService";
+import { fakeBusinessLogService, unitLogger } from "../../../../support/fakes";
 
 vi.mock("cron", () => ({
   CronJob: vi.fn(function () {
@@ -10,12 +10,12 @@ vi.mock("cron", () => ({
 }));
 
 const setup = () => {
-  const log = fakeActivityEventService();
-  const service = new ActivityEventCleanupCronService(log.service);
+  const log = fakeBusinessLogService();
+  const service = new BusinessLogCleanupCronService(log.service);
   return { service, log };
 };
 
-describe("ActivityEventCleanupCronService", () => {
+describe("BusinessLogCleanupCronService", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-01T03:30:00Z"));
@@ -34,7 +34,7 @@ describe("ActivityEventCleanupCronService", () => {
       () => Promise<void>,
     ];
     await callback();
-    expect(unitLogger().error).toHaveBeenCalledWith("ActivityEventCleanupCronService", "Cron run failed", {
+    expect(unitLogger().error).toHaveBeenCalledWith("BusinessLogCleanupCronService", "Cron run failed", {
       error,
     });
   });
@@ -62,7 +62,7 @@ describe("ActivityEventCleanupCronService", () => {
     const before = new Date("2026-05-02T03:30:00Z");
     expect(log.deleteOlderThan).toHaveBeenCalledWith(before);
     expect(unitLogger().info).toHaveBeenCalledWith(
-      "ActivityEventCleanupCronService",
+      "BusinessLogCleanupCronService",
       `Deleted 42 activity events older than ${before.toISOString()}`,
       { deleted: 42, before }
     );

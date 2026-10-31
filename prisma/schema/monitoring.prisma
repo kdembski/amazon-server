@@ -1,15 +1,15 @@
-enum ActivityEventType {
+enum BusinessLogType {
   ad_scraped
   country_outlier_sent
   price_drop_sent
 }
 
-model ActivityEvent {
-  id          Int               @id @default(autoincrement())
-  type        ActivityEventType
+model BusinessLog {
+  id          Int             @id @default(autoincrement())
+  type        BusinessLogType
   marketplace Marketplace
   data        Json
-  createdAt   DateTime          @db.Timestamp(2)
+  createdAt   DateTime        @db.Timestamp(2)
 
   @@index([type, createdAt])
 }

@@ -126,10 +126,10 @@ export function seedAmazonExclusionRule(
   });
 }
 
-export function seedActivityEvent(
-  overrides: Partial<Prisma.ActivityEventUncheckedCreateInput> = {}
+export function seedBusinessLog(
+  overrides: Partial<Prisma.BusinessLogUncheckedCreateInput> = {}
 ) {
-  return prisma.activityEvent.create({
+  return prisma.businessLog.create({
     data: {
       type: "ad_scraped",
       marketplace: "amazon",
