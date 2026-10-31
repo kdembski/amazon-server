@@ -1,6 +1,10 @@
+import { Decimal } from "@prisma/client/runtime/library";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 
 export interface CountryOutlierReporter<T> {
+  getReportedPrice(listing: T, price: ListingPrice): Promise<Decimal | undefined>;
+  setReportedPrice(listing: T, price: ListingPrice): Promise<void>;
+
   report(
     listing: T,
     prices: ListingPrice[],

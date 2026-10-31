@@ -2,6 +2,7 @@ import { CountryOutlierReporter } from "@/modules/anomalies/interfaces/AnomalyRe
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { AmazonCountryOutlierDiscordService } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierDiscordService";
+import { AmazonCountryOutlierReportRepository } from "@/modules/marketplaces/amazon/repositories/AmazonCountryOutlierReportRepository";
 import { ActivityEventService } from "@/modules/monitoring/services/ActivityEventService";
 
 export class AmazonCountryOutlierReporter
@@ -9,13 +10,24 @@ export class AmazonCountryOutlierReporter
 {
   private activityEventService;
   private discordService;
+  private reportRepository;
 
   constructor(
     activityEventService = new ActivityEventService(),
-    discordService = new AmazonCountryOutlierDiscordService()
+    discordService = new AmazonCountryOutlierDiscordService(),
+    reportRepository = new AmazonCountryOutlierReportRepository()
   ) {
     this.activityEventService = activityEventService;
     this.discordService = discordService;
+    this.reportRepository = reportRepository;
+  }
+
+  getReportedPrice(ad: AmazonAdSelectDto, price: ListingPrice) {
+    return this.reportRepository.getValue(ad.id, price.country.id);
+  }
+
+  setReportedPrice(ad: AmazonAdSelectDto, price: ListingPrice) {
+    return this.reportRepository.set(ad.id, price.country.id, price.value);
   }
 
   async report(

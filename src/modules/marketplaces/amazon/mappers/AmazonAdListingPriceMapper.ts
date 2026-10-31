@@ -25,7 +25,7 @@ export class AmazonAdListingPriceMapper {
     scraped: boolean
   ): ListingPrice {
     const { tld, active, country } = price.country;
-    const { name, code, currencyId, currency } = country;
+    const { id, name, code, currencyId, currency } = country;
 
     return {
       value: price.value,
@@ -33,7 +33,7 @@ export class AmazonAdListingPriceMapper {
       scraped,
       reportable: scraped && price.dispatchFrom === "Amazon",
       url: `https://www.amazon.${tld}/dp/${asin}`,
-      country: { name, code, active, currencyId, currencyCode: currency.code },
+      country: { id, name, code, active, currencyId, currencyCode: currency.code },
     };
   }
 }

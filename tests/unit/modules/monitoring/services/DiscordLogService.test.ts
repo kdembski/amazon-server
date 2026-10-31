@@ -62,7 +62,7 @@ describe("DiscordLogService.sendHourly", () => {
 
     expect(lastEmbed()).toEqual({
       title: "Hourly status",
-      description: ["Scraped: **1 234**", "4+ prices: **5 678**"].join(SP4),
+      description: ["Scraped: **1 234**", "3+ prices: **5 678**"].join(SP4),
       fields: [
         {
           name: "Channels",
@@ -144,7 +144,7 @@ describe("DiscordLogService.sendDaily", () => {
 
     expect(lastEmbed()).toEqual({
       title: "Daily status",
-      description: ["Scraped: **890**", "4+ prices: **12**"].join(SP4),
+      description: ["Scraped: **890**", "3+ prices: **12**"].join(SP4),
       fields: [
         ...sectionFields,
         { name: "Server", value: "Disk space: **10**/**100** *(10%)*" },

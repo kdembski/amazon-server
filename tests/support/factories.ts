@@ -124,6 +124,7 @@ export const buildListingPrice = (
     reportable: true,
     url: "https://www.amazon.pl/dp/B0TESTASIN",
     country: {
+      id: 1,
       name: "Poland",
       code: "pl",
       active: true,

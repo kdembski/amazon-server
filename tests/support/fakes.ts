@@ -200,6 +200,7 @@ export function fakePrisma() {
     },
     scraperConfig: { upsert: vi.fn() },
     exclusionRuleFingerprint: { findUnique: vi.fn(), upsert: vi.fn() },
+    amazonCountryOutlierReport: { findUnique: vi.fn(), upsert: vi.fn() },
   };
   const $executeRaw = vi.fn().mockResolvedValue(1);
   const $queryRaw = vi.fn().mockResolvedValue([]);

@@ -77,7 +77,7 @@ describe("DailyStatsCronService", () => {
     expect(getField1).toHaveBeenCalledWith(dayBefore, now);
     expect(getField2).toHaveBeenCalledWith(dayBefore, now);
     expect(log.getCount).toHaveBeenCalledWith("ad_scraped", dayBefore, now);
-    expect(log.getCountWithMinPrices).toHaveBeenCalledWith("ad_scraped", 4, dayBefore, now);
+    expect(log.getCountWithMinPrices).toHaveBeenCalledWith("ad_scraped", 3, dayBefore, now);
     expect(sendDaily).toHaveBeenCalledWith([field1, field2], 777, 55);
     expect(unitLogger().info).toHaveBeenCalledWith(
       "DailyStatsCronService",

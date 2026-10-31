@@ -72,7 +72,7 @@ npm run test:integration  # tests/integration, needs a running Docker
   `src/modules/marketplaces`; pass marketplace implementations in from `src/modules.ts`.
 - Add a marketplace: (1) Prisma models and a `src/modules/marketplaces/<name>/` folder with the layers;
   (2) a mapper to `ListingPrice`, implementations of `CountryOutlierReporter`/`PriceDropReporter` that
-  store an event and post to Discord, and a call to `AnomalyManager([...])` with the managers of the chosen
+  store an event and post to Discord (`CountryOutlierReporter` also stores the reported price per listing and country), and a call to `AnomalyManager([...])` with the managers of the chosen
   detectors after storing prices; (3) implementations of `ExclusionRuleTarget` and `DailyReportSection`;
   (4) `create<Name>Module()` returning `MarketplaceModule`, added to `marketplaces` in `src/modules.ts`.
 - Anomaly detectors work on `ListingPrice` only; each marketplace passes its reporters to the managers. Rule matching goes through `ExclusionRuleTarget`; the daily Discord report gets its

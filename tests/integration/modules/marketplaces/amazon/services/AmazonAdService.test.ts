@@ -191,7 +191,33 @@ describe("AmazonAdService (MySQL)", () => {
       expect(pricing.send).not.toHaveBeenCalled();
     });
 
-    it("compares with recent prices of countries missing from the scrape", async () => {
+    it("reports an outlier once while only the other countries change", async () => {
+      const { service, conversion } = buildAdService();
+      const ad = await seedAd();
+      const pl = await seedMarket({ countryCode: "pl", currencyCode: "PLN" });
+      const de = await seedMarket({ countryCode: "de", currencyCode: "EUR", rateToPln: 4.3 });
+      const se = await seedMarket({ countryCode: "se", currencyCode: "SEK", rateToPln: 0.4 });
+      const gb = await seedMarket({ countryCode: "gb", currencyCode: "GBP", rateToPln: 5 });
+      const price = (market: typeof pl, value: number) => {
+        return { adId: ad.id, countryId: market.country.id, value, dispatchFrom: "Amazon" };
+      };
+      const reported = () => prisma.amazonCountryOutlierReport.findMany();
+
+      // Two countries: no check. The third country makes 20 PLN (pl) an outlier at an unchanged price.
+      await service.updatePrices(ad.id, [price(pl, 20), price(de, 30)]);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      await service.updatePrices(ad.id, [price(pl, 20), price(de, 30), price(se, 300)]);
+      await vi.waitFor(async () => expect(await reported()).toHaveLength(1));
+      await service.updatePrices(ad.id, [price(pl, 20), price(de, 35), price(se, 300), price(gb, 60)]);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // 20 PLN vs the median 120 PLN: channels 2 and 4, sent once.
+      expect(conversion.setChannel.mock.calls.map((c) => c[0]).sort()).toEqual(["2", "4"]);
+      expect((await reported())[0]).toMatchObject({ adId: ad.id, countryId: pl.country.id });
+      expect((await reported())[0].value.toNumber()).toBe(20);
+    });
+
+    it("ignores recent prices of countries missing from the scrape", async () => {
       const { service, conversion } = buildAdService();
       const ad = await seedAd();
       const pl = await seedMarket({ countryCode: "pl", currencyCode: "PLN" });
@@ -204,16 +230,17 @@ describe("AmazonAdService (MySQL)", () => {
         await seedPrice({ adId: ad.id, countryId: country.country.id, value, createdAt: new Date() });
       }
 
-      // 40 PLN (se) is over 90 % below the median of pl and ch (1145 PLN), but de, fr and it
-      // (43, 50 and 60 PLN) bring the median of the other prices down to 60 PLN.
+      // 40 PLN (se) is 96 % below the weighted median of pl and ch (1000 PLN); de, fr and it
+      // (43, 50 and 60 PLN) would bring it under 50 % if they were compared.
       await service.updatePrices(ad.id, [
         { adId: ad.id, countryId: pl.country.id, value: 1000, dispatchFrom: "Amazon" },
         { adId: ad.id, countryId: se.country.id, value: 100, dispatchFrom: "Amazon" },
         { adId: ad.id, countryId: ch.country.id, value: 300, dispatchFrom: "Amazon" },
       ]);
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      expect(conversion.send).not.toHaveBeenCalled();
+      await vi.waitFor(() => expect(conversion.send).toHaveBeenCalledTimes(2));
+      const [, sentPrices] = conversion.send.mock.calls[0] as [AmazonAdSelectDto, ListingPrice[]];
+      expect(sentPrices.map((p) => p.country.code)).toEqual(["se", "pl", "ch"]);
     });
 
     it("reports a price drop in the market currency while the conversion check runs", async () => {
