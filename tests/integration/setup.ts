@@ -4,6 +4,8 @@ import { prisma, truncateAll } from "../support/integration/db";
 import { discordInbox } from "../support/integration/discordInbox";
 import { PlnExchangeRateCache } from "@/modules/currency/services/PlnExchangeRateCache";
 import { ActivityCounter } from "@/modules/monitoring/services/ActivityCounter";
+import { SettingCache } from "@/modules/settings/services/SettingCache";
+import { seedDiscordChannels } from "../support/integration/seed";
 
 vi.mock("discord.js", async () => {
   const { discordInbox } = await import("../support/integration/discordInbox");
@@ -31,6 +33,12 @@ beforeEach(async () => {
   // the cache is reset in place.
   PlnExchangeRateCache.getInstance().rates = undefined;
   ActivityCounter.getInstance().counts = new Map();
+  const settingCache = SettingCache.getInstance();
+  settingCache.refreshedAt = undefined;
+  settingCache.values = undefined;
+  settingCache.channels = undefined;
+  settingCache.clients.clear();
+  await seedDiscordChannels();
   discordInbox.length = 0;
 });
 

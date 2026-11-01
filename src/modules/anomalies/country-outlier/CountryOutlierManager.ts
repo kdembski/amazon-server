@@ -4,7 +4,8 @@ import { CountryOutlierReporter } from "@/modules/anomalies/interfaces/AnomalyRe
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { CountryOutlierStrategy } from "@/modules/anomalies/country-outlier/CountryOutlierStrategy";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
-import { MIN_COUNTRY_OUTLIER_PRICES } from "@/shared/utils/countryOutlier";
+import { CountryOutlierRuleI } from "@/modules/anomalies/interfaces/CountryOutlierRuleI";
+import { SettingService } from "@/modules/settings/services/SettingService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
 const MISSING_RATE_WARNING_INTERVAL_MS = 60 * 60 * 1000;
@@ -14,48 +15,63 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
   private exchangeRateService;
   private strategy;
   private logger;
-  private minPriceDrop = 0.05;
+  private settingService;
   private missingRateWarnedAt = new Map<number, number>();
 
   constructor(
     reporter: CountryOutlierReporter<T>,
     exchangeRateService = new CurrencyExchangeRateService(),
     strategy = new CountryOutlierStrategy(),
-    logger = SystemLogService.getInstance()
+    logger = SystemLogService.getInstance(),
+    settingService = new SettingService()
   ) {
     this.reporter = reporter;
     this.exchangeRateService = exchangeRateService;
     this.strategy = strategy;
     this.logger = logger;
+    this.settingService = settingService;
   }
 
   async check(listing: T, allCountryPrices: ListingPrice[][]) {
     const countryPrices = allCountryPrices.filter(([price]) => price.scraped);
-    if (countryPrices.length < MIN_COUNTRY_OUTLIER_PRICES) return;
+    const minPrices = await this.settingService.get("countryOutlier.minPrices");
+    if (countryPrices.length < minPrices) return;
 
     const newestPrices = countryPrices.map((prices) => prices[0]);
     const prices = await this.toPln(newestPrices);
     this.sortPrices(prices);
-    const rules = this.strategy.getMatchingRules(prices);
+    const rules = await this.strategy.getMatchingRules(prices);
     if (!rules.length) return;
 
     const cheapest = newestPrices.find(
       (price) => price.country === prices[0].country
     )!;
-    const reported = await this.reporter.getReportedPrice(listing, cheapest);
-    if (reported && !this.isBelowReported(cheapest.value, reported)) return;
+    for (const [channelId, dropSinceSentPercent] of this.getChannels(rules)) {
+      const reported = await this.reporter.getReportedPrice(listing, cheapest, channelId);
+      if (reported && !this.isBelowReported(cheapest.value, reported, dropSinceSentPercent)) {
+        continue;
+      }
 
-    const difference = reported && this.getDifference(cheapest.value, reported);
-    for (const rule of rules) {
-      await this.reporter.report(listing, prices, rule.channel, difference);
+      const difference = reported && this.getDifference(cheapest.value, reported);
+      await this.reporter.report(listing, prices, channelId, difference);
+      await this.reporter.setReportedPrice(listing, cheapest, channelId);
     }
-    await this.reporter.setReportedPrice(listing, cheapest);
+  }
+
+  // A channel matched by rules of several groups uses the lowest dropSinceSentPercent.
+  private getChannels(rules: CountryOutlierRuleI[]) {
+    const channels = new Map<number, number>();
+    for (const { channelId, dropSinceSentPercent } of rules) {
+      const current = channels.get(channelId) ?? Infinity;
+      channels.set(channelId, Math.min(current, dropSinceSentPercent));
+    }
+    return channels;
   }
 
   // Compares raw prices of the cheapest country only: PLN values move with exchange rates and
   // changes of the other countries never report a listing again.
-  private isBelowReported(value: Decimal, reported: Decimal) {
-    return reported.minus(value).gte(reported.times(this.minPriceDrop));
+  private isBelowReported(value: Decimal, reported: Decimal, dropSinceSentPercent: number) {
+    return reported.minus(value).gte(reported.times(dropSinceSentPercent / 100));
   }
 
   private getDifference(value: Decimal, reported: Decimal) {

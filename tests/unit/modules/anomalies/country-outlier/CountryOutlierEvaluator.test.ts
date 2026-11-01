@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { CountryOutlierEvaluator } from "@/modules/anomalies/country-outlier/CountryOutlierEvaluator";
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { buildListingPrice } from "../../../../support/factories";
 
 const evaluator = new CountryOutlierEvaluator();
@@ -38,14 +37,15 @@ describe("isOverPercentageDifference", () => {
 });
 
 describe("isInRange", () => {
-  it("checks min and max inclusively", () => {
+  it("includes min and excludes max", () => {
     expect(evaluator.isInRange(prices(50), 50, 200)).toBe(true);
-    expect(evaluator.isInRange(prices(200), 50, 200)).toBe(true);
-    expect(evaluator.isInRange(prices(201), 50, 200)).toBe(false);
+    expect(evaluator.isInRange(prices(199.99), 50, 200)).toBe(true);
+    expect(evaluator.isInRange(prices(200), 50, 200)).toBe(false);
+    expect(evaluator.isInRange(prices(49.99), 50, 200)).toBe(false);
   });
 
-  it("treats min=0 as 'only max'", () => {
-    expect(evaluator.isInRange(prices(30), 0, 50)).toBe(true);
+  it("checks min = 0", () => {
+    expect(evaluator.isInRange(prices(0), 0, 50)).toBe(true);
     expect(evaluator.isInRange(prices(60), 0, 50)).toBe(false);
   });
 
@@ -56,10 +56,10 @@ describe("isInRange", () => {
 
   it("checks only max when min is missing", () => {
     expect(evaluator.isInRange(prices(10), undefined, 50)).toBe(true);
+    expect(evaluator.isInRange(prices(50), undefined, 50)).toBe(false);
   });
 
-  it("returns undefined without bounds or without a value", () => {
-    expect(evaluator.isInRange(prices(10))).toBeUndefined();
-    expect(evaluator.isInRange([{} as ListingPrice], 0, 50)).toBeUndefined();
+  it("matches every price without bounds", () => {
+    expect(evaluator.isInRange(prices(10))).toBe(true);
   });
 });

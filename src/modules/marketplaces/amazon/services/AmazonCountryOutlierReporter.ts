@@ -2,7 +2,7 @@ import { CountryOutlierReporter } from "@/modules/anomalies/interfaces/AnomalyRe
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { AmazonCountryOutlierDiscordService } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierDiscordService";
-import { AmazonCountryOutlierReportRepository } from "@/modules/marketplaces/amazon/repositories/AmazonCountryOutlierReportRepository";
+import { AmazonCountryOutlierChannelReportRepository } from "@/modules/marketplaces/amazon/repositories/AmazonCountryOutlierChannelReportRepository";
 import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
 
 export class AmazonCountryOutlierReporter
@@ -15,25 +15,25 @@ export class AmazonCountryOutlierReporter
   constructor(
     businessLogService = new BusinessLogService(),
     discordService = new AmazonCountryOutlierDiscordService(),
-    reportRepository = new AmazonCountryOutlierReportRepository()
+    reportRepository = new AmazonCountryOutlierChannelReportRepository()
   ) {
     this.businessLogService = businessLogService;
     this.discordService = discordService;
     this.reportRepository = reportRepository;
   }
 
-  getReportedPrice(ad: AmazonAdSelectDto, price: ListingPrice) {
-    return this.reportRepository.getValue(ad.id, price.country.id);
+  getReportedPrice(ad: AmazonAdSelectDto, price: ListingPrice, channelId: number) {
+    return this.reportRepository.getValue(ad.id, price.country.id, channelId);
   }
 
-  setReportedPrice(ad: AmazonAdSelectDto, price: ListingPrice) {
-    return this.reportRepository.set(ad.id, price.country.id, price.value);
+  setReportedPrice(ad: AmazonAdSelectDto, price: ListingPrice, channelId: number) {
+    return this.reportRepository.set(ad.id, price.country.id, channelId, price.value);
   }
 
   async report(
     ad: AmazonAdSelectDto,
     prices: ListingPrice[],
-    channel: string,
+    channelId: number,
     difference?: number
   ) {
     await this.businessLogService.creatable.create({
@@ -42,7 +42,7 @@ export class AmazonCountryOutlierReporter
       data: {
         asin: ad.asin,
         name: ad.name,
-        channel,
+        channel: String(channelId),
         prices: prices.map((price) => ({
           country: price.country.code,
           value: price.value.toString(),
@@ -50,7 +50,6 @@ export class AmazonCountryOutlierReporter
       },
     });
 
-    this.discordService.setChannel(channel);
-    await this.discordService.send(ad, prices, difference);
+    await this.discordService.send(channelId, ad, prices, difference);
   }
 }

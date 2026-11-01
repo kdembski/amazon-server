@@ -46,6 +46,7 @@ describe("DailyStatsCronService (MySQL)", () => {
         { name: "Exchange rates", value: "EUR -> PLN: **4.3**" },
       ],
       4,
+      3,
       3
     );
   });

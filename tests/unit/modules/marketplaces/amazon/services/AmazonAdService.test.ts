@@ -566,8 +566,6 @@ describe("AmazonAdService.getForScraping", () => {
 
 describe("AmazonAdService defaults", () => {
   it("defaults to conversion and price drop managers", () => {
-    vi.stubEnv("DISCORD_PRICE_DROP_TOKEN", "t");
-
     new AmazonAdService();
 
     expect(AnomalyManager).toHaveBeenCalledWith([

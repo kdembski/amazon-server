@@ -2,8 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCronService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { SystemService } from "@/shared/system/SystemService";
-import { messagesSentTo } from "../../../../support/integration/discordInbox";
+import { messagesSentToToken } from "../../../../support/integration/discordInbox";
 import {
+  discordChannelToken,
   seedBusinessLog,
   seedScraperMetric,
 } from "../../../../support/integration/seed";
@@ -35,8 +36,20 @@ describe("HourlyStatsCronService (MySQL)", () => {
 
     await service.run();
 
-    // [ad_scraped, ce1, ce2, ce3, ce4, ce5, ce6, price_drop, 3+ prices]
-    expect(sendHourly).toHaveBeenCalledWith([6, 1, 0, 0, 0, 0, 2, 1, 2], []);
+    // Channels in the order of the default rule groups
+    expect(sendHourly).toHaveBeenCalledWith(
+      {
+        scraped: 6,
+        comparable: 2,
+        minPrices: 3,
+        priceDrops: 1,
+        channels: [3, 2, 1, 4, 5, 6].map((id) => ({
+          name: `channel-${id}`,
+          count: { 1: 1, 6: 2 }[id] ?? 0,
+        })),
+      },
+      []
+    );
   });
 
   describe("Scrapers field", () => {
@@ -48,7 +61,8 @@ describe("HourlyStatsCronService (MySQL)", () => {
       await new HourlyStatsCronService(
         new DiscordLogService(undefined, system)
       ).run();
-      const [message] = messagesSentTo("DISCORD_LOGS_TOKEN");
+      await vi.waitFor(() => expect(messagesSentToToken(discordChannelToken(8))).toHaveLength(1));
+      const [message] = messagesSentToToken(discordChannelToken(8));
       return (message.options as { embeds: [{ fields: { name: string; value: string }[] }] })
         .embeds[0].fields;
     };

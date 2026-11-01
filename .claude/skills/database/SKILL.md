@@ -16,8 +16,9 @@ bash .claude/skills/database/scripts/query.sh --raw "SELECT ..." > out.txt   # b
 
 - Writes fail with `ERROR 1142`. Do not try them and do not look for other credentials; changes go to the user
   as SQL, except exclusion rules, which the `exclusion-rules` skill changes through `/amazon/exclusion-rules`.
-- The script opens the SSH tunnel itself (`ssh -f -N amazon-db`). When it fails or the config is missing,
-  stop and pass the script's message to the user.
+- The script opens the SSH tunnel itself (`ssh -f -N amazon-db`, port 3308) and closes it on exit; a tunnel
+  left on the port is closed first. Run queries one at a time, never in parallel. When it fails or the
+  config is missing, stop and pass the script's message to the user.
 - Never print or read `~/.mysql-readonly.cnf` or `~/.ssh/amazon_db`.
 - Queries time out after 30 s. Always add `LIMIT` (start with 50) and filter by indexed columns or date
   ranges; `AmazonAdPrice` and `BusinessLog` are large. Run `COUNT(*)`/aggregates before listing rows.

@@ -1,14 +1,20 @@
 import { format } from "date-fns";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
-import { DiscordService } from "@/shared/discord/DiscordService";
+import { DiscordChannelService } from "@/modules/settings/services/DiscordChannelService";
+import { SettingService } from "@/modules/settings/services/SettingService";
 import { roundToTwoDecimals } from "@/shared/utils/number";
 
 export class AmazonPriceDropDiscordService {
   private service;
+  private settingService;
 
-  constructor(service = new DiscordService("DISCORD_PRICE_DROP_TOKEN")) {
+  constructor(
+    service = new DiscordChannelService(),
+    settingService = new SettingService()
+  ) {
     this.service = service;
+    this.settingService = settingService;
   }
 
   async send(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][]) {
@@ -47,7 +53,8 @@ export class AmazonPriceDropDiscordService {
       color: process.env.NODE_ENV === "development" ? 0xe50000 : undefined,
     };
 
-    this.service.send({ embeds: [embed] });
+    const channelId = await this.settingService.get("priceDrop.channelId");
+    await this.service.send(channelId, { embeds: [embed] }, { asin: ad.asin });
   }
 
   // Prices are newest first: keeps the newest one and the oldest price of every run of equal prices.

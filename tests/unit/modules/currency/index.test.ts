@@ -10,7 +10,6 @@ vi.mock("discord.js", async (importOriginal) => {
 
 describe("createCurrencyModule", () => {
   it("mounts country, currency and rate routers, the rate cron and the report section", () => {
-    vi.stubEnv("DISCORD_LOGS_TOKEN", "t");
     const module = createCurrencyModule();
 
     expect(module.routers!.map((r) => r.path)).toEqual([

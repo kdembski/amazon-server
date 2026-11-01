@@ -6,6 +6,7 @@ export const prisma = PrismaClient.getInstance();
 export const TABLES = [
   "AmazonAdPrice",
   "AmazonCountryOutlierReport",
+  "AmazonCountryOutlierChannelReport",
   "AmazonAd",
   "AmazonExclusionRule",
   "AmazonAdCategory",
@@ -18,6 +19,8 @@ export const TABLES = [
   "ScraperConfig",
   "ExclusionRuleFingerprint",
   "SystemLog",
+  "Setting",
+  "DiscordChannel",
 ] as const;
 
 // FOREIGN_KEY_CHECKS is per session, so every statement has to run on the one

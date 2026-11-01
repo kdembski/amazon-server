@@ -1,0 +1,16 @@
+model Setting {
+  key       String   @id @db.VarChar(63)
+  value     Json
+  createdAt DateTime @db.Timestamp(2)
+  updatedAt DateTime @db.Timestamp(2)
+}
+
+model DiscordChannel {
+  id                                 Int                                 @id @default(autoincrement())
+  name                               String                              @unique(map: "discord_channel_name_UNIQUE") @db.VarChar(63)
+  // webhook URL part after https://discord.com/api/webhooks/
+  token                              String                              @db.VarChar(255)
+  createdAt                          DateTime                            @db.Timestamp(2)
+  updatedAt                          DateTime                            @db.Timestamp(2)
+  amazonCountryOutlierChannelReports AmazonCountryOutlierChannelReport[]
+}

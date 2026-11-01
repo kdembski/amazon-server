@@ -6,6 +6,7 @@ import {
   fakeActivityCountService,
   fakeBusinessLogService,
   fakeScraperMetricService,
+  fakeSettingService,
   unitLogger,
 } from "../../../../support/fakes";
 
@@ -15,15 +16,16 @@ vi.mock("cron", () => ({
   }),
 }));
 
-const COUNTS: [string, string?][] = [
-  ["ad_scraped"],
-  ["country_outlier_sent", "1"],
-  ["country_outlier_sent", "2"],
-  ["country_outlier_sent", "3"],
-  ["country_outlier_sent", "4"],
-  ["country_outlier_sent", "5"],
-  ["country_outlier_sent", "6"],
-  ["price_drop_sent"],
+const CHANNELS = [
+  { id: 1, name: "outlier-50", token: "1/a", createdAt: new Date(), updatedAt: new Date() },
+  { id: 2, name: "outlier-90", token: "2/b", createdAt: new Date(), updatedAt: new Date() },
+];
+const RULE_GROUPS = [
+  [
+    { channelId: 2, belowMedianPercent: 90 },
+    { channelId: 1, belowMedianPercent: 50 },
+  ],
+  [{ channelId: 2, belowMedianPercent: 70, maxPln: 50 }, { channelId: 9, belowMedianPercent: 70 }],
 ];
 
 const setup = () => {
@@ -36,7 +38,11 @@ const setup = () => {
     log.service,
     metrics.service,
     undefined,
-    counter.service
+    counter.service,
+    fakeSettingService(
+      { "countryOutlier.ruleGroups": RULE_GROUPS, "countryOutlier.minPrices": 4 },
+      CHANNELS
+    ).service
   );
   return { service, sendHourly, log, counter, metrics };
 };
@@ -79,14 +85,12 @@ describe("HourlyStatsCronService", () => {
     expect(vi.mocked(CronJob).mock.results[0].value.start).toHaveBeenCalled();
   });
 
-  it("counts every event type and conversion channel over the last hour and sends them in order", async () => {
+  it("counts the events of every channel of the rule groups over the last hour", async () => {
     const { service, sendHourly, log, counter } = setup();
-    log.getCount.mockImplementation(
-      (type: string, _from: Date, _to: Date, channel?: string) =>
-        Promise.resolve(
-          COUNTS.findIndex(([t, c]) => t === type && c === channel) * 10
-        )
-    );
+    log.getCount.mockImplementation((type: string, _from: Date, _to: Date, channel?: string) => {
+      return Promise.resolve(type === "price_drop_sent" ? 70 : Number(channel) * 10);
+    });
+    counter.getCount.mockResolvedValue(5);
     counter.getCountWithMinPrices.mockResolvedValue(80);
 
     await service.run();
@@ -94,12 +98,20 @@ describe("HourlyStatsCronService", () => {
     const from = new Date("2026-06-01T09:00:00Z");
     const to = new Date("2026-06-01T10:00:00Z");
     expect(counter.getCount).toHaveBeenCalledWith("ad_scraped", from, to);
-    expect(counter.getCountWithMinPrices).toHaveBeenCalledWith("ad_scraped", 3, from, to);
-    COUNTS.slice(1).forEach(([type, channel]) =>
-      expect(log.getCount).toHaveBeenCalledWith(type, from, to, channel)
-    );
+    expect(counter.getCountWithMinPrices).toHaveBeenCalledWith("ad_scraped", 4, from, to);
+    expect(log.getCount).toHaveBeenCalledWith("price_drop_sent", from, to, undefined);
     expect(sendHourly).toHaveBeenCalledWith(
-      [0, 10, 20, 30, 40, 50, 60, 70, 80],
+      {
+        scraped: 5,
+        comparable: 80,
+        minPrices: 4,
+        priceDrops: 70,
+        channels: [
+          { name: "outlier-90", count: 20 },
+          { name: "outlier-50", count: 10 },
+          { name: "#9", count: 90 },
+        ],
+      },
       []
     );
   });
@@ -116,7 +128,7 @@ describe("HourlyStatsCronService", () => {
       new Date(2026, 5, 1, 9, 58, 30, 0),
       new Date(2026, 5, 1, 10, 58, 30, 0)
     );
-    expect(sendHourly).toHaveBeenCalledWith(expect.any(Array), summaries);
+    expect(sendHourly).toHaveBeenCalledWith(expect.any(Object), summaries);
   });
 
   it("uses the same summaries window when the clock is not exactly on the hour", async () => {
@@ -150,11 +162,22 @@ describe("HourlyStatsCronService", () => {
         to: metrics.getSummaries.mock.calls[0][1],
       }
     );
-    expect(sendHourly).toHaveBeenCalledWith(Array(9).fill(4), []);
+    const counts = {
+      scraped: 4,
+      comparable: 4,
+      minPrices: 4,
+      priceDrops: 4,
+      channels: [
+        { name: "outlier-90", count: 4 },
+        { name: "outlier-50", count: 4 },
+        { name: "#9", count: 4 },
+      ],
+    };
+    expect(sendHourly).toHaveBeenCalledWith(counts, []);
     expect(unitLogger().info).toHaveBeenCalledWith(
       "HourlyStatsCronService",
       "Hourly report sent",
-      { counts: Array(9).fill(4), scrapers: 0 }
+      { counts, scrapers: 0 }
     );
   });
 });

@@ -2,12 +2,18 @@ import { describe, expect, it, vi } from "vitest";
 import { format } from "date-fns";
 import { AmazonPriceDropDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPriceDropDiscordService";
 import { buildAd, buildListingPrice } from "../../../../../support/factories";
-import { fakeDiscordService } from "../../../../../support/fakes";
+import { fakeDiscordChannelService, fakeSettingService } from "../../../../../support/fakes";
+
+const build = (channel = fakeDiscordChannelService(), channelId = 7) =>
+  new AmazonPriceDropDiscordService(
+    channel.service,
+    fakeSettingService({ "priceDrop.channelId": channelId }).service
+  );
 
 describe("AmazonPriceDropDiscordService", () => {
   it("renders price history oldest-first with a link on the newest price", async () => {
-    const discord = fakeDiscordService();
-    const service = new AmazonPriceDropDiscordService(discord.service);
+    const discord = fakeDiscordChannelService();
+    const service = build(discord);
     const ad = buildAd({
       name: "Drill",
       asin: "B0X",
@@ -35,7 +41,7 @@ describe("AmazonPriceDropDiscordService", () => {
 
     const newestDate = format(newest.createdAt, "d MMM HH:mm");
     const olderDate = format(older.createdAt, "d MMM HH:mm");
-    expect(discord.send).toHaveBeenCalledWith({
+    expect(discord.send).toHaveBeenCalledWith(7, {
       embeds: [
         {
           title: "Drill",
@@ -54,24 +60,30 @@ describe("AmazonPriceDropDiscordService", () => {
           color: undefined,
         },
       ],
-    });
+    }, { asin: "B0X" });
+  });
+
+  it("sends to the price drop channel of the settings", async () => {
+    const discord = fakeDiscordChannelService();
+
+    await build(discord, 9).send(buildAd(), [[buildListingPrice()]]);
+
+    expect(discord.send.mock.calls[0][0]).toBe(9);
   });
 
   it("uses the red color in development", async () => {
     vi.stubEnv("NODE_ENV", "development");
-    const discord = fakeDiscordService();
+    const discord = fakeDiscordChannelService();
 
-    await new AmazonPriceDropDiscordService(discord.service).send(buildAd(), [
+    await build(discord).send(buildAd(), [
       [buildListingPrice()],
     ]);
 
-    expect(discord.send.mock.calls[0][0].embeds[0].color).toBe(0xe50000);
+    expect(discord.send.mock.calls[0][1].embeds[0].color).toBe(0xe50000);
   });
 
   it("getDifference rounds the percentage to the next price and is undefined for the last one", () => {
-    const service = new AmazonPriceDropDiscordService(
-      fakeDiscordService().service
-    );
+    const service = build();
     const prices = [
       buildListingPrice({ value: 33 }),
       buildListingPrice({ value: 100 }),
@@ -82,8 +94,8 @@ describe("AmazonPriceDropDiscordService", () => {
   });
 
   it("renders only price changes, dated when each price first appeared", async () => {
-    const discord = fakeDiscordService();
-    const service = new AmazonPriceDropDiscordService(discord.service);
+    const discord = fakeDiscordChannelService();
+    const service = build(discord);
     const country = { name: "Germany", code: "de", currencyCode: "EUR" };
     const at = (hour: number) => new Date(2026, 0, 1, hour);
     const history = [
@@ -104,7 +116,7 @@ describe("AmazonPriceDropDiscordService", () => {
     await service.send(buildAd({ asin: "B0X" }), [history]);
 
     const date = (hour: number) => format(at(hour), "d MMM HH:mm");
-    expect(discord.send.mock.calls[0][0].embeds[0].fields[0].value).toBe(
+    expect(discord.send.mock.calls[0][1].embeds[0].fields[0].value).toBe(
       [
         `${date(8)} – **100.00 EUR**`,
         `${date(9)} – **80.00 EUR** *(-20%)*`,
@@ -115,9 +127,7 @@ describe("AmazonPriceDropDiscordService", () => {
   });
 
   it("getFullText omits the difference when it is missing or zero", () => {
-    const service = new AmazonPriceDropDiscordService(
-      fakeDiscordService().service
-    );
+    const service = build();
 
     expect(service.getFullText("**1.00 EUR**")).toBe("**1.00 EUR**");
     expect(service.getFullText("**1.00 EUR**", 0)).toBe("**1.00 EUR**");

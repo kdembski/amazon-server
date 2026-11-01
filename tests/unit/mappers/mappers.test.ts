@@ -22,6 +22,9 @@ import { CurrencyUpdateMapper } from "@/modules/currency/mappers/CurrencyUpdateM
 import { CurrencyExchangeRateCreateMapper } from "@/modules/currency/mappers/CurrencyExchangeRateCreateMapper";
 import { CurrencyExchangeRateUpdateMapper } from "@/modules/currency/mappers/CurrencyExchangeRateUpdateMapper";
 import { SystemLogCreateMapper } from "@/shared/logging/mappers/SystemLogCreateMapper";
+import { DiscordChannelCreateMapper } from "@/modules/settings/mappers/DiscordChannelCreateMapper";
+import { DiscordChannelUpdateMapper } from "@/modules/settings/mappers/DiscordChannelUpdateMapper";
+import { SettingUpsertMapper } from "@/modules/settings/mappers/SettingUpsertMapper";
 import {
   buildAd,
   buildCurrency,
@@ -42,6 +45,18 @@ afterEach(() => {
 
 describe("create mappers", () => {
   it.each([
+    {
+      name: "DiscordChannelCreateMapper",
+      map: (dto: any) => new DiscordChannelCreateMapper().toCreateInput(dto),
+      dto: { name: "outlier-90", token: "1/abc" },
+      expected: { name: "outlier-90", token: "1/abc", createdAt: NOW, updatedAt: NOW },
+    },
+    {
+      name: "SettingUpsertMapper",
+      map: (dto: any) => new SettingUpsertMapper().toCreateInput(dto.key, dto.value),
+      dto: { key: "priceDrop.dropPercent", value: 40 },
+      expected: { key: "priceDrop.dropPercent", value: 40, createdAt: NOW, updatedAt: NOW },
+    },
     {
       name: "BusinessLogCreateMapper",
       map: (dto: any) => new BusinessLogCreateMapper().toCreateInput(dto),
@@ -218,6 +233,18 @@ describe("create mappers", () => {
 
 describe("update mappers", () => {
   it.each([
+    {
+      name: "DiscordChannelUpdateMapper",
+      map: (dto: any) => new DiscordChannelUpdateMapper().toUpdateInput(dto),
+      dto: { name: "outlier-90" },
+      expected: { name: "outlier-90", token: undefined, updatedAt: NOW },
+    },
+    {
+      name: "SettingUpsertMapper",
+      map: (dto: any) => new SettingUpsertMapper().toUpdateInput(dto),
+      dto: [[{ channelId: 1, belowMedianPercent: 50 }]],
+      expected: { value: [[{ channelId: 1, belowMedianPercent: 50 }]], updatedAt: NOW },
+    },
     {
       name: "AmazonAdCategoryUpdateMapper",
       map: (dto: any) => new AmazonAdCategoryUpdateMapper().toUpdateInput(dto),

@@ -163,7 +163,7 @@ describe("AmazonAdService (MySQL)", () => {
 
       // 40 PLN (se) vs the median 1290 PLN (de): channel 3 (90 %) and channel 4 (0-50 PLN).
       await vi.waitFor(() => expect(conversion.send).toHaveBeenCalledTimes(2));
-      expect(conversion.setChannel.mock.calls.map((c) => c[0]).sort()).toEqual(["3", "4"]);
+      expect(conversion.send.mock.calls.map((c) => c[0]).sort()).toEqual([3, 4]);
       const events = await prisma.businessLog.findMany({
         where: { type: "country_outlier_sent" },
       });
@@ -178,7 +178,8 @@ describe("AmazonAdService (MySQL)", () => {
           { country: "gb", value: "2000" },
         ],
       });
-      const [, sentPrices] = conversion.send.mock.calls[0] as [
+      const [, , sentPrices] = conversion.send.mock.calls[0] as [
+        number,
         AmazonAdSelectDto,
         ListingPrice[]
       ];
@@ -201,20 +202,25 @@ describe("AmazonAdService (MySQL)", () => {
       const price = (market: typeof pl, value: number) => {
         return { adId: ad.id, countryId: market.country.id, value, dispatchFrom: "Amazon" };
       };
-      const reported = () => prisma.amazonCountryOutlierReport.findMany();
+      const reported = () => {
+        return prisma.amazonCountryOutlierChannelReport.findMany({ orderBy: { channelId: "asc" } });
+      };
 
       // Two countries: no check. The third country makes 20 PLN (pl) an outlier at an unchanged price.
       await service.updatePrices(ad.id, [price(pl, 20), price(de, 30)]);
       await new Promise((resolve) => setTimeout(resolve, 300));
       await service.updatePrices(ad.id, [price(pl, 20), price(de, 30), price(se, 300)]);
-      await vi.waitFor(async () => expect(await reported()).toHaveLength(1));
+      await vi.waitFor(async () => expect(await reported()).toHaveLength(2));
       await service.updatePrices(ad.id, [price(pl, 20), price(de, 35), price(se, 300), price(gb, 60)]);
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      // 20 PLN vs the median 120 PLN: channels 2 and 4, sent once.
-      expect(conversion.setChannel.mock.calls.map((c) => c[0]).sort()).toEqual(["2", "4"]);
-      expect((await reported())[0]).toMatchObject({ adId: ad.id, countryId: pl.country.id });
-      expect((await reported())[0].value.toNumber()).toBe(20);
+      // 20 PLN vs the median 120 PLN: channels 2 and 4, sent once each.
+      expect(conversion.send.mock.calls.map((c) => c[0]).sort()).toEqual([2, 4]);
+      const rows = await reported();
+      expect(rows.map((row) => [row.channelId, row.countryId, row.value.toNumber()])).toEqual([
+        [2, pl.country.id, 20],
+        [4, pl.country.id, 20],
+      ]);
     });
 
     it("ignores recent prices of countries missing from the scrape", async () => {
@@ -239,7 +245,7 @@ describe("AmazonAdService (MySQL)", () => {
       ]);
 
       await vi.waitFor(() => expect(conversion.send).toHaveBeenCalledTimes(2));
-      const [, sentPrices] = conversion.send.mock.calls[0] as [AmazonAdSelectDto, ListingPrice[]];
+      const [, , sentPrices] = conversion.send.mock.calls[0] as [number, AmazonAdSelectDto, ListingPrice[]];
       expect(sentPrices.map((p) => p.country.code)).toEqual(["se", "pl", "ch"]);
     });
 

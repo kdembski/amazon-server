@@ -54,7 +54,7 @@ npm run test:integration  # tests/integration, needs a running Docker
 ## Architecture
 
 - Layout: `src/shared/` (`crud`, `http`, `discord`, `logging`, `system`, `utils`, `interfaces`) and `src/modules/`
-  (`currency`, `monitoring`, `exclusion-rules`, `anomalies`, `marketplaces/<name>`). Put no code in other
+  (`settings`, `currency`, `monitoring`, `exclusion-rules`, `anomalies`, `marketplaces/<name>`). Put no code in other
   top-level `src/` folders.
 - Inside a module keep the layers `routes/` → `controllers/` → `services/` → `repositories/` (Prisma);
   `mappers/` turn DTOs into Prisma inputs; `dtos/`, `interfaces/` and `cron/` sit beside them. Generic CRUD
@@ -67,16 +67,27 @@ npm run test:integration  # tests/integration, needs a running Docker
   marketplaces live at `src/modules/marketplaces/<name>/index.ts` and return `MarketplaceModule`.
   Register it in `createModules()` in `src/modules.ts`.
 - Dependency direction: `marketplaces/*` → `anomalies`, `exclusion-rules`, `monitoring`, `currency` → `shared`;
-  `anomalies` → `currency`; `currency` → `monitoring`. `src/shared` imports nothing from
-  `src/modules`. `currency`, `monitoring`, `exclusion-rules` and `anomalies` import nothing from
+  `anomalies` → `currency`; `currency` → `monitoring`; every module may import `settings`, which imports only
+  `src/shared`. `src/shared` imports nothing from `src/modules`. `currency`, `monitoring`, `exclusion-rules` and `anomalies` import nothing from
   `src/modules/marketplaces`; pass marketplace implementations in from `src/modules.ts`.
 - Add a marketplace: (1) Prisma models and a `src/modules/marketplaces/<name>/` folder with the layers;
   (2) a mapper to `ListingPrice`, implementations of `CountryOutlierReporter`/`PriceDropReporter` that
-  store an event and post to Discord (`CountryOutlierReporter` also stores the reported price per listing and country), and a call to `AnomalyManager([...])` with the managers of the chosen
+  store an event and post to Discord through `DiscordChannelService.send` (`CountryOutlierReporter` also stores the reported price per listing, country and channel), and a call to `AnomalyManager([...])` with the managers of the chosen
   detectors after storing prices; (3) implementations of `ExclusionRuleTarget` and `DailyReportSection`;
   (4) `create<Name>Module()` returning `MarketplaceModule`, added to `marketplaces` in `src/modules.ts`.
 - Anomaly detectors work on `ListingPrice` only; each marketplace passes its reporters to the managers. Rule matching goes through `ExclusionRuleTarget`; the daily Discord report gets its
   sections through `DailyReportSection`.
+- Settings: read every anomaly parameter through `SettingService.get(key)` (`Setting` table, JSON `value`; a missing
+  row uses `SETTING_DEFAULTS` in `src/modules/settings/services/SettingDefaults.ts`; cached 60 s per process). Add a
+  key to `Settings`, `SETTING_DEFAULTS` and `SettingValidator`. Change them only through `GET /settings`,
+  `PUT /settings/:key` (`{ value }`, invalid → 400) and `DELETE /settings/:key` (back to the default). Anomaly
+  Discord channels are `DiscordChannel` rows (`id`, `name`, `token` = webhook URL part `<id>/<token>`), changed through
+  `GET|POST /discord-channels` and `PUT|DELETE /discord-channels/:id` (tokens masked in responses and logs; deleting a
+  channel a setting uses → 422); settings refer to them by `channelId`. The hourly/daily reports and other log
+  messages go through `DiscordLogService` to `reports.channelId`. No Discord webhook lives in env.
+  Country outlier rules (`countryOutlier.ruleGroups`): each group sends to the channel of its first matching rule
+  (`belowMedianPercent` below the weighted median, `minPln ≤ cheapest < maxPln`); a channel gets a listing again only
+  when the cheapest price is `dropSinceSentPercent` below the price last sent there.
 - Cross-cutting services are `getInstance()` singletons. `*SelectDto` types derive from repository return
   types. Controller errors go through `ResponseErrorService` (`error.status` if set, P2002/P2003 → 422, P1001 → 503).
 - Exclusion rules are per marketplace (`AmazonExclusionRule`, optional `categoryId`; `NULL` = every category;
@@ -124,7 +135,7 @@ npm run test:integration  # tests/integration, needs a running Docker
   `BusinessLog` for `ad_scraped`/`*_sent` only.
 - Activity counts: count `ad_scraped` in memory with `ActivityCountService.increment(type, marketplace, countryIds)`;
   its rows hold `data.prices` (number of distinct countries → ads) and `data.countries` (countryId → ads). Show
-  ads with at least `MIN_COUNTRY_OUTLIER_PRICES` (`src/shared/utils/countryOutlier.ts`) prices next to Scraped in the
+  ads with at least `countryOutlier.minPrices` (setting) prices next to Scraped in the
   hourly and daily report via `ActivityCountService.getCountWithMinPrices`;
   `ActivityCountFlushCronService` writes one `BusinessLog` per type and marketplace with `data.count` every minute
   (second 30). Read `ad_scraped` only through `ActivityCountService.getCount` (sums `data.count`, a row without it

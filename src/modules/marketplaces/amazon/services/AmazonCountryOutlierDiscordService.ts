@@ -1,16 +1,21 @@
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
-import { DiscordService } from "@/shared/discord/DiscordService";
+import { DiscordChannelService } from "@/modules/settings/services/DiscordChannelService";
 import { roundToTwoDecimals } from "@/shared/utils/number";
 
 export class AmazonCountryOutlierDiscordService {
   private service;
 
-  constructor(service = new DiscordService()) {
+  constructor(service = new DiscordChannelService()) {
     this.service = service;
   }
 
-  async send(ad: AmazonAdSelectDto, prices: ListingPrice[], difference?: number) {
+  async send(
+    channelId: number,
+    ad: AmazonAdSelectDto,
+    prices: ListingPrice[],
+    difference?: number
+  ) {
     const embed = {
       title: ad.name,
       description: ad.asin,
@@ -31,10 +36,6 @@ export class AmazonCountryOutlierDiscordService {
       color: process.env.NODE_ENV === "development" ? 0xe50000 : undefined,
     };
 
-    this.service.send({ embeds: [embed] });
-  }
-
-  setChannel(channel: string) {
-    this.service.client = `DISCORD_COUNTRY_OUTLIER_${channel}_TOKEN`;
+    await this.service.send(channelId, { embeds: [embed] }, { asin: ad.asin });
   }
 }

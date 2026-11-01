@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { AmazonCountryOutlierDiscordService } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierDiscordService";
 import { buildAd, buildListingPrice } from "../../../../../support/factories";
-import { fakeDiscordService } from "../../../../../support/fakes";
+import { fakeDiscordChannelService } from "../../../../../support/fakes";
 
 describe("AmazonCountryOutlierDiscordService", () => {
   it("sends an embed with one field per country linking to the marketplace", async () => {
-    const discord = fakeDiscordService();
+    const discord = fakeDiscordChannelService();
     const service = new AmazonCountryOutlierDiscordService(discord.service);
     const ad = buildAd({
       name: "Drill",
@@ -19,9 +19,9 @@ describe("AmazonCountryOutlierDiscordService", () => {
       country: { name: "Germany", code: "de", currencyCode: "EUR" },
     });
 
-    await service.send(ad, [de]);
+    await service.send(3, ad, [de]);
 
-    expect(discord.send).toHaveBeenCalledWith({
+    expect(discord.send).toHaveBeenCalledWith(3, {
       embeds: [
         {
           title: "Drill",
@@ -37,20 +37,20 @@ describe("AmazonCountryOutlierDiscordService", () => {
           color: undefined,
         },
       ],
-    });
+    }, { asin: "B0X" });
   });
 
   it("shows the drop of the first price in percent", async () => {
-    const discord = fakeDiscordService();
+    const discord = fakeDiscordChannelService();
     const service = new AmazonCountryOutlierDiscordService(discord.service);
     const prices = [
       buildListingPrice({ value: 60, url: "de" }),
       buildListingPrice({ value: 100, url: "pl" }),
     ];
 
-    await service.send(buildAd(), prices, -40);
+    await service.send(1, buildAd(), prices, -40);
 
-    const values = discord.send.mock.calls[0][0].embeds[0].fields.map(
+    const values = discord.send.mock.calls[0][1].embeds[0].fields.map(
       (field: { value: string }) => field.value
     );
     expect(values).toEqual(["[60.00 PLN](de) *(-40%)*", "[100.00 PLN](pl)"]);
@@ -58,23 +58,14 @@ describe("AmazonCountryOutlierDiscordService", () => {
 
   it("uses the red color in development", async () => {
     vi.stubEnv("NODE_ENV", "development");
-    const discord = fakeDiscordService();
+    const discord = fakeDiscordChannelService();
 
     await new AmazonCountryOutlierDiscordService(discord.service).send(
+      1,
       buildAd(),
       [buildListingPrice()]
     );
 
-    expect(discord.send.mock.calls[0][0].embeds[0].color).toBe(0xe50000);
-  });
-
-  it("setChannel points the client at the matching env variable", () => {
-    const discord = fakeDiscordService();
-
-    new AmazonCountryOutlierDiscordService(discord.service).setChannel("4");
-
-    expect(discord.clientSetter).toHaveBeenCalledWith(
-      "DISCORD_COUNTRY_OUTLIER_4_TOKEN"
-    );
+    expect(discord.send.mock.calls[0][1].embeds[0].color).toBe(0xe50000);
   });
 });

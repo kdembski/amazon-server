@@ -4,7 +4,11 @@ import { createCurrencyModule } from "@/modules/currency";
 import { createExclusionRulesModule } from "@/modules/exclusion-rules";
 import { createMonitoringModule } from "@/modules/monitoring";
 import { createAmazonModule } from "@/modules/marketplaces/amazon";
+import { createSettingsModule } from "@/modules/settings";
 
+vi.mock("@/modules/settings", () => ({
+  createSettingsModule: vi.fn(() => ({ id: "settings" })),
+}));
 vi.mock("@/modules/currency", () => ({
   createCurrencyModule: vi.fn(() => ({
     dailyReportSection: { id: "currency-section" },
@@ -25,10 +29,11 @@ vi.mock("@/modules/marketplaces/amazon", () => ({
 }));
 
 describe("createModules", () => {
-  it("returns currency, exclusion rules, monitoring and the marketplaces in order", () => {
+  it("returns settings, currency, exclusion rules, monitoring and the marketplaces in order", () => {
     const modules = createModules();
 
     expect(modules).toEqual([
+      vi.mocked(createSettingsModule).mock.results.at(-1)!.value,
       vi.mocked(createCurrencyModule).mock.results.at(-1)!.value,
       vi.mocked(createExclusionRulesModule).mock.results.at(-1)!.value,
       vi.mocked(createMonitoringModule).mock.results.at(-1)!.value,
