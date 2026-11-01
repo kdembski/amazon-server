@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { PriceDropManager } from "@/modules/anomalies/price-drop/PriceDropManager";
+import { PriceDropEvaluator } from "@/modules/anomalies/price-drop/PriceDropEvaluator";
 import { buildListingPrice } from "../../../../support/factories";
+import { fakeSettingService } from "../../../../support/fakes";
 
-const setup = () => {
+const setup = (dropPercent = 50) => {
   const reporter = { report: vi.fn().mockResolvedValue(undefined) };
-  const manager = new PriceDropManager(reporter);
+  const settings = fakeSettingService({ "priceDrop.dropPercent": dropPercent });
+  const manager = new PriceDropManager(reporter, new PriceDropEvaluator(), settings.service);
   return { manager, reporter, listing: { id: 1 } };
 };
 
@@ -28,6 +31,15 @@ describe("PriceDropManager", () => {
     await manager.check(listing, [history(51, 100)]);
 
     expect(reporter.report).not.toHaveBeenCalled();
+  });
+
+  it("reads the drop percent from the settings", async () => {
+    const { manager, reporter, listing } = setup(30);
+    const country = history(70, 100);
+
+    await manager.check(listing, [country]);
+
+    expect(reporter.report).toHaveBeenCalledWith(listing, [country]);
   });
 
   it("does not send when the price had already been low for most of the window", async () => {

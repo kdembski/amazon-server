@@ -4,7 +4,5 @@ export type DiscordMessage = { url: string; options: unknown };
 // before every test.
 export const discordInbox: DiscordMessage[] = [];
 
-export const messagesSentTo = (tokenEnvName: string) =>
-  discordInbox.filter((message) =>
-    message.url.endsWith(`/${process.env[tokenEnvName]}`)
-  );
+export const messagesSentToToken = (token: string) =>
+  discordInbox.filter((message) => message.url.endsWith(`/${token}`));

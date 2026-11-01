@@ -5,8 +5,9 @@ import { FIXED_DATE } from "../../support/factories";
 import { createTestApp } from "../../support/integration/app";
 import { ActivityCounter } from "@/modules/monitoring/services/ActivityCounter";
 import { prisma } from "../../support/integration/db";
-import { messagesSentTo } from "../../support/integration/discordInbox";
+import { messagesSentToToken } from "../../support/integration/discordInbox";
 import {
+  discordChannelToken,
   seedAd,
   seedCategory,
   seedAmazonCountry,
@@ -66,10 +67,10 @@ describe("PUT /amazon/ads/:id", () => {
     expect(await prisma.amazonAdPrice.count({ where: { adId: ad.id } })).toBe(2);
     expect(ActivityCounter.getInstance().counts.get("ad_scraped:amazon")?.count).toBe(1);
     await vi.waitFor(() =>
-      expect(messagesSentTo("DISCORD_PRICE_DROP_TOKEN")).toHaveLength(1)
+      expect(messagesSentToToken(discordChannelToken(7))).toHaveLength(1)
     );
     expect(await prisma.businessLog.count({ where: { type: "price_drop_sent" } })).toBe(1);
-    expect(messagesSentTo("DISCORD_PRICE_DROP_TOKEN")[0].options).toMatchObject({
+    expect(messagesSentToToken(discordChannelToken(7))[0].options).toMatchObject({
       embeds: [{ title: ad.name, description: ad.asin }],
     });
   });

@@ -3,7 +3,7 @@ import { CronJob } from "cron";
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
-import { fakeActivityCountService, unitLogger } from "../../../../support/fakes";
+import { fakeActivityCountService, fakeSettingService, unitLogger } from "../../../../support/fakes";
 
 vi.mock("cron", () => ({
   CronJob: vi.fn(function () {
@@ -21,7 +21,9 @@ const setup = () => {
   const service = new DailyStatsCronService(
     [{ getField: getField1 }, { getField: getField2 }] as DailyReportSection[],
     { sendDaily } as unknown as DiscordLogService,
-    log.service
+    log.service,
+    undefined,
+    fakeSettingService({ "countryOutlier.minPrices": 4 }).service
   );
   return { service, sendDaily, getField1, getField2, field1, field2, log };
 };
@@ -77,8 +79,8 @@ describe("DailyStatsCronService", () => {
     expect(getField1).toHaveBeenCalledWith(dayBefore, now);
     expect(getField2).toHaveBeenCalledWith(dayBefore, now);
     expect(log.getCount).toHaveBeenCalledWith("ad_scraped", dayBefore, now);
-    expect(log.getCountWithMinPrices).toHaveBeenCalledWith("ad_scraped", 3, dayBefore, now);
-    expect(sendDaily).toHaveBeenCalledWith([field1, field2], 777, 55);
+    expect(log.getCountWithMinPrices).toHaveBeenCalledWith("ad_scraped", 4, dayBefore, now);
+    expect(sendDaily).toHaveBeenCalledWith([field1, field2], 777, 55, 4);
     expect(unitLogger().info).toHaveBeenCalledWith(
       "DailyStatsCronService",
       "Daily report sent",

@@ -2,7 +2,7 @@ import { ActivityCountService } from "@/modules/monitoring/services/ActivityCoun
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
-import { MIN_COUNTRY_OUTLIER_PRICES } from "@/shared/utils/countryOutlier";
+import { SettingService } from "@/modules/settings/services/SettingService";
 import { CronJob } from "cron";
 
 export class DailyStatsCronService {
@@ -10,17 +10,20 @@ export class DailyStatsCronService {
   private discordService;
   private activityCountService;
   private logger;
+  private settingService;
 
   constructor(
     sections: DailyReportSection[],
     discordService = new DiscordLogService(),
     activityCountService = new ActivityCountService(),
-    logger = SystemLogService.getInstance()
+    logger = SystemLogService.getInstance(),
+    settingService = new SettingService()
   ) {
     this.sections = sections;
     this.discordService = discordService;
     this.activityCountService = activityCountService;
     this.logger = logger;
+    this.settingService = settingService;
   }
 
   schedule() {
@@ -36,17 +39,18 @@ export class DailyStatsCronService {
     const fields = await Promise.all(
       this.sections.map((section) => section.getField(dayBefore, now))
     );
+    const minPrices = await this.settingService.get("countryOutlier.minPrices");
     const [scraped, comparable] = await Promise.all([
       this.activityCountService.getCount("ad_scraped", dayBefore, now),
       this.activityCountService.getCountWithMinPrices(
         "ad_scraped",
-        MIN_COUNTRY_OUTLIER_PRICES,
+        minPrices,
         dayBefore,
         now
       ),
     ]);
 
-    await this.discordService.sendDaily(fields, scraped, comparable);
+    await this.discordService.sendDaily(fields, scraped, comparable, minPrices);
     this.logger.info("DailyStatsCronService", "Daily report sent", {
       scraped,
       comparable,

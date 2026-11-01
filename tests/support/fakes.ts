@@ -10,6 +10,11 @@ import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import type { AmazonCountryOutlierDiscordService } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierDiscordService";
 import type { AmazonPriceDropDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPriceDropDiscordService";
 import type { ExclusionRuleFingerprintRepository } from "@/modules/exclusion-rules/repositories/ExclusionRuleFingerprintRepository";
+import type { SettingService } from "@/modules/settings/services/SettingService";
+import type { DiscordChannelService } from "@/modules/settings/services/DiscordChannelService";
+import type { DiscordChannelSelectDto } from "@/modules/settings/dtos/DiscordChannelDtos";
+import type { SettingKey, Settings } from "@/modules/settings/interfaces/Settings";
+import { SETTING_DEFAULTS } from "@/modules/settings/services/SettingDefaults";
 
 export function fakeBusinessLogService() {
   const create = vi.fn().mockResolvedValue({ id: 1 });
@@ -78,12 +83,46 @@ export function fakeScraperConfigService() {
 
 export function fakeAmazonCountryOutlierDiscordService() {
   const send = vi.fn().mockResolvedValue(undefined);
-  const setChannel = vi.fn();
+  const service = { send } as unknown as AmazonCountryOutlierDiscordService;
+  return { service, send };
+}
+
+// Returns the defaults for keys missing in `values`.
+export function fakeSettingService(
+  values: Partial<Settings> = {},
+  channels: DiscordChannelSelectDto[] = []
+) {
+  const get = vi.fn(async (key: SettingKey) => values[key] ?? SETTING_DEFAULTS[key]);
+  const getAll = vi.fn().mockResolvedValue([]);
+  const getChannels = vi.fn().mockResolvedValue(channels);
+  const set = vi.fn();
+  const reset = vi.fn();
+  const invalidate = vi.fn();
+  const service = {
+    get,
+    getAll,
+    getChannels,
+    set,
+    reset,
+    invalidate,
+  } as unknown as SettingService;
+  return { service, get, getAll, getChannels, set, reset, invalidate };
+}
+
+export function fakeDiscordChannelService() {
+  const send = vi.fn().mockResolvedValue(undefined);
+  const getAll = vi.fn();
+  const create = vi.fn();
+  const update = vi.fn();
+  const remove = vi.fn();
   const service = {
     send,
-    setChannel,
-  } as unknown as AmazonCountryOutlierDiscordService;
-  return { service, send, setChannel };
+    getAll,
+    create,
+    update,
+    delete: remove,
+  } as unknown as DiscordChannelService;
+  return { service, send, getAll, create, update, delete: remove };
 }
 
 export function fakeAmazonPriceDropDiscordService() {
@@ -94,14 +133,9 @@ export function fakeAmazonPriceDropDiscordService() {
 
 export function fakeDiscordService() {
   const send = vi.fn();
-  const clientSetter = vi.fn();
-  const service = {
-    send,
-    set client(envVarName: string) {
-      clientSetter(envVarName);
-    },
-  } as unknown as DiscordService;
-  return { service, send, clientSetter };
+  const setToken = vi.fn();
+  const service = { send, setToken } as unknown as DiscordService;
+  return { service, send, setToken };
 }
 
 export function fakeResponse() {
@@ -200,7 +234,9 @@ export function fakePrisma() {
     },
     scraperConfig: { upsert: vi.fn() },
     exclusionRuleFingerprint: { findUnique: vi.fn(), upsert: vi.fn() },
-    amazonCountryOutlierReport: { findUnique: vi.fn(), upsert: vi.fn() },
+    amazonCountryOutlierChannelReport: { findUnique: vi.fn(), upsert: vi.fn() },
+    setting: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
+    discordChannel: fakeDelegate(),
   };
   const $executeRaw = vi.fn().mockResolvedValue(1);
   const $queryRaw = vi.fn().mockResolvedValue([]);

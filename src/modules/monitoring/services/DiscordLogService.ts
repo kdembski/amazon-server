@@ -3,7 +3,8 @@ import {
   roundToOneDecimal,
   roundToTwoDecimals,
 } from "@/shared/utils/number";
-import { DiscordService } from "@/shared/discord/DiscordService";
+import { DiscordChannelService } from "@/modules/settings/services/DiscordChannelService";
+import { SettingService } from "@/modules/settings/services/SettingService";
 import {
   APIEmbedField,
   MessagePayload,
@@ -11,26 +12,30 @@ import {
 } from "discord.js";
 import { SystemService } from "@/shared/system/SystemService";
 import { getSpacing } from "@/shared/discord/spacing";
-import { MIN_COUNTRY_OUTLIER_PRICES } from "@/shared/utils/countryOutlier";
 import { ScraperMetricSummary } from "@/modules/monitoring/dtos/ScraperMetricDtos";
+import { HourlyReportCounts } from "@/modules/monitoring/dtos/StatsDtos";
 
 export class DiscordLogService {
   private service;
   private systemService;
+  private settingService;
 
   constructor(
-    service = new DiscordService("DISCORD_LOGS_TOKEN"),
-    systemService = SystemService.getInstance()
+    service = new DiscordChannelService(),
+    systemService = SystemService.getInstance(),
+    settingService = new SettingService()
   ) {
     this.service = service;
     this.systemService = systemService;
+    this.settingService = settingService;
   }
 
-  send(options: string | MessagePayload | WebhookMessageCreateOptions) {
-    return this.service.send(options);
+  async send(options: string | MessagePayload | WebhookMessageCreateOptions) {
+    const channelId = await this.settingService.get("reports.channelId");
+    await this.service.send(channelId, options);
   }
 
-  async sendHourly(logs: number[], summaries: ScraperMetricSummary[]) {
+  async sendHourly(counts: HourlyReportCounts, summaries: ScraperMetricSummary[]) {
     const cpu = this.systemService.getCpuUsage();
     const ram = await this.systemService.getMemoryUsage();
 
@@ -39,13 +44,8 @@ export class DiscordLogService {
     fields.push({
       name: "Channels",
       value: [
-        `50%: **${logs[1]}**`,
-        `70%: **${logs[2]}**`,
-        `90%: **${logs[3]}**`,
-        `0-50: **${logs[4]}**`,
-        `50-200: **${logs[5]}**`,
-        `200+: **${logs[6]}**`,
-        `hist: **${logs[7]}**`,
+        ...counts.channels.map(({ name, count }) => `${name}: **${count}**`),
+        `hist: **${counts.priceDrops}**`,
       ].join(getSpacing(4)),
     });
 
@@ -65,14 +65,23 @@ export class DiscordLogService {
 
     const embed = {
       title: "Hourly status",
-      description: this.getScrapedDescription(logs[0], logs[8]),
+      description: this.getScrapedDescription(
+        counts.scraped,
+        counts.comparable,
+        counts.minPrices
+      ),
       fields,
     };
 
-    return this.service.send({ embeds: [embed] });
+    return this.send({ embeds: [embed] });
   }
 
-  async sendDaily(sectionFields: APIEmbedField[], scraped: number, comparable: number) {
+  async sendDaily(
+    sectionFields: APIEmbedField[],
+    scraped: number,
+    comparable: number,
+    minPrices: number
+  ) {
     const disk = await this.systemService.getDiskSpace();
     const fields: APIEmbedField[] = [...sectionFields];
 
@@ -85,17 +94,17 @@ export class DiscordLogService {
 
     const embed = {
       title: "Daily status",
-      description: this.getScrapedDescription(scraped, comparable),
+      description: this.getScrapedDescription(scraped, comparable, minPrices),
       fields,
     };
 
-    return this.service.send({ embeds: [embed] });
+    return this.send({ embeds: [embed] });
   }
 
-  private getScrapedDescription(scraped: number, comparable: number) {
+  private getScrapedDescription(scraped: number, comparable: number, minPrices: number) {
     return [
       `Scraped: **${addSeparators(scraped)}**`,
-      `${MIN_COUNTRY_OUTLIER_PRICES}+ prices: **${addSeparators(comparable)}**`,
+      `${minPrices}+ prices: **${addSeparators(comparable)}**`,
     ].join(getSpacing(4));
   }
 

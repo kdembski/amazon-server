@@ -3,7 +3,7 @@ import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogServi
 import { SystemService } from "@/shared/system/SystemService";
 import { getSpacing } from "@/shared/discord/spacing";
 import type { ScraperMetricSummary } from "@/modules/monitoring/dtos/ScraperMetricDtos";
-import { fakeDiscordService } from "../../../../support/fakes";
+import { fakeDiscordChannelService, fakeSettingService } from "../../../../support/fakes";
 
 const SP4 = getSpacing(4);
 const RED = "<:rd:1345009441191362613>";
@@ -11,7 +11,7 @@ const GREEN = "<:gn:1345009439916294154>";
 const UP = "<:au:1369710756358258748>";
 const DOWN = "<:ad:1369710758241374219>";
 const FLAT = `${getSpacing(3)}-${getSpacing(3)}`;
-const COUNTS = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+const COUNTS = { scraped: 0, comparable: 0, minPrices: 3, channels: [], priceDrops: 0 };
 
 const summary = (
   overrides: Partial<ScraperMetricSummary> = {}
@@ -32,7 +32,7 @@ const fieldNames = (embed: { fields: { name: string }[] }) =>
   embed.fields.map((f) => f.name);
 
 const setup = () => {
-  const discord = fakeDiscordService();
+  const discord = fakeDiscordChannelService();
   const getDiskSpace = vi
     .fn()
     .mockResolvedValue({ used: 10, total: 100, percentage: 10 });
@@ -41,16 +41,20 @@ const setup = () => {
     getMemoryUsage: async () => 56,
     getDiskSpace,
   } as unknown as SystemService;
-  const service = new DiscordLogService(discord.service, system);
-  const lastEmbed = () => discord.send.mock.calls.at(-1)![0].embeds[0];
+  const service = new DiscordLogService(
+    discord.service,
+    system,
+    fakeSettingService({ "reports.channelId": 9 }).service
+  );
+  const lastEmbed = () => discord.send.mock.calls.at(-1)![1].embeds[0];
   return { service, discord, getDiskSpace, lastEmbed };
 };
 
 describe("DiscordLogService.send", () => {
-  it("forwards to the underlying webhook", () => {
+  it("forwards to the reports channel of the settings", async () => {
     const { service, discord } = setup();
-    service.send("text");
-    expect(discord.send).toHaveBeenCalledWith("text");
+    await service.send("text");
+    expect(discord.send).toHaveBeenCalledWith(9, "text");
   });
 });
 
@@ -58,23 +62,27 @@ describe("DiscordLogService.sendHourly", () => {
   it("renders channel counts and server stats", async () => {
     const { service, lastEmbed } = setup();
 
-    await service.sendHourly([1234, 1, 2, 3, 4, 5, 6, 7, 5678], []);
+    await service.sendHourly(
+      {
+        scraped: 1234,
+        comparable: 5678,
+        minPrices: 4,
+        channels: [
+          { name: "50%", count: 1 },
+          { name: "90%", count: 3 },
+        ],
+        priceDrops: 7,
+      },
+      []
+    );
 
     expect(lastEmbed()).toEqual({
       title: "Hourly status",
-      description: ["Scraped: **1 234**", "3+ prices: **5 678**"].join(SP4),
+      description: ["Scraped: **1 234**", "4+ prices: **5 678**"].join(SP4),
       fields: [
         {
           name: "Channels",
-          value: [
-            "50%: **1**",
-            "70%: **2**",
-            "90%: **3**",
-            "0-50: **4**",
-            "50-200: **5**",
-            "200+: **6**",
-            "hist: **7**",
-          ].join(SP4),
+          value: ["50%: **1**", "90%: **3**", "hist: **7**"].join(SP4),
         },
         { name: "Server", value: ["CPU: **12.3%**", "RAM: **56%**"].join(SP4) },
       ],
@@ -140,7 +148,7 @@ describe("DiscordLogService.sendDaily", () => {
   it("renders section fields in order followed by disk usage", async () => {
     const { service, lastEmbed } = setup();
 
-    await service.sendDaily(sectionFields, 890, 12);
+    await service.sendDaily(sectionFields, 890, 12, 3);
 
     expect(lastEmbed()).toEqual({
       title: "Daily status",
@@ -156,7 +164,7 @@ describe("DiscordLogService.sendDaily", () => {
     const { service, getDiskSpace, lastEmbed } = setup();
     getDiskSpace.mockResolvedValue(undefined);
 
-    await service.sendDaily(sectionFields, 0, 0);
+    await service.sendDaily(sectionFields, 0, 0, 3);
 
     expect(lastEmbed().fields).toEqual(sectionFields);
   });

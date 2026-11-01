@@ -11,19 +11,16 @@ const MAX_EMBED_TITLE_LENGTH = 256;
 export class DiscordService {
   private baseUrl = "https://discord.com/api/webhooks/";
   private _client?: WebhookClient;
-  private envVarName?: string;
+  private webhookName?: string;
   private retryDelays;
   private logger;
 
   constructor(
-    envVarName?: string,
     retryDelays = [5_000, 15_000, 45_000, 120_000, 300_000, 900_000],
     logger = SystemLogService.getInstance()
   ) {
     this.retryDelays = retryDelays;
     this.logger = logger;
-    if (!envVarName) return;
-    this.client = envVarName;
   }
 
   send(options: string | MessagePayload | WebhookMessageCreateOptions) {
@@ -32,11 +29,9 @@ export class DiscordService {
     return this.sendWithRetry(this._client, this.truncateTitles(options));
   }
 
-  set client(envVarName: string) {
-    const token = process.env[envVarName];
-    if (!token) throw Error(`${envVarName} env variable is missing`);
-
-    this.envVarName = envVarName;
+  // `name` identifies the webhook in logs instead of the token.
+  setToken(token: string, name: string) {
+    this.webhookName = name;
     // discord.js would silently resend after a timeout, ECONNRESET or 5xx, duplicating messages Discord already published.
     this._client = new WebhookClient(
       { url: this.baseUrl + token },
@@ -55,7 +50,7 @@ export class DiscordService {
       const delay = this.retryDelays[attempt];
       const context = {
         error: e,
-        webhook: this.envVarName,
+        webhook: this.webhookName,
         attempt: attempt + 1,
         payload: this.summarize(options),
       };

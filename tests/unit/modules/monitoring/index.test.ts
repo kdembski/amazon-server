@@ -11,6 +11,7 @@ import { SystemLogCleanupCronService } from "@/modules/monitoring/cron/SystemLog
 import { ProcessMetricsCronService } from "@/modules/monitoring/cron/ProcessMetricsCronService";
 import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
+import { SettingService } from "@/modules/settings/services/SettingService";
 
 vi.mock("discord.js", async (importOriginal) => {
   const original = await importOriginal<typeof import("discord.js")>();
@@ -19,7 +20,6 @@ vi.mock("discord.js", async (importOriginal) => {
 
 describe("createMonitoringModule", () => {
   it("runs the flush and process metrics in the api and the reports and cleanups in the worker", () => {
-    vi.stubEnv("DISCORD_LOGS_TOKEN", "t");
 
     const module = createMonitoringModule([]);
 
@@ -42,9 +42,9 @@ describe("createMonitoringModule", () => {
   });
 
   it("passes the sections to the daily stats cron", async () => {
-    vi.stubEnv("DISCORD_LOGS_TOKEN", "t");
     vi.spyOn(ActivityCountService.prototype, "getCount").mockResolvedValue(7);
     vi.spyOn(ActivityCountService.prototype, "getCountWithMinPrices").mockResolvedValue(3);
+    vi.spyOn(SettingService.prototype, "get").mockResolvedValue(4 as never);
     const sendDaily = vi
       .spyOn(DiscordLogService.prototype, "sendDaily")
       .mockResolvedValue(undefined as never);
@@ -58,6 +58,6 @@ describe("createMonitoringModule", () => {
     await daily.run();
 
     expect(section.getField).toHaveBeenCalledTimes(1);
-    expect(sendDaily).toHaveBeenCalledWith([field], 7, 3);
+    expect(sendDaily).toHaveBeenCalledWith([field], 7, 3, 4);
   });
 });

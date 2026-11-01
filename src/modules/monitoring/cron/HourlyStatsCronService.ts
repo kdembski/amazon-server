@@ -2,9 +2,11 @@ import { ActivityCountService } from "@/modules/monitoring/services/ActivityCoun
 import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
+import { HourlyReportCounts } from "@/modules/monitoring/dtos/StatsDtos";
 import { BusinessLogType } from "@prisma/client";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
-import { MIN_COUNTRY_OUTLIER_PRICES } from "@/shared/utils/countryOutlier";
+import { SettingService } from "@/modules/settings/services/SettingService";
+import _ from "lodash";
 import { CronJob } from "cron";
 
 export class HourlyStatsCronService {
@@ -13,19 +15,22 @@ export class HourlyStatsCronService {
   private metricService;
   private logger;
   private activityCountService;
+  private settingService;
 
   constructor(
     discordService = new DiscordLogService(),
     businessLogService = new BusinessLogService(),
     metricService = new ScraperMetricService(),
     logger = SystemLogService.getInstance(),
-    activityCountService = new ActivityCountService()
+    activityCountService = new ActivityCountService(),
+    settingService = new SettingService()
   ) {
     this.discordService = discordService;
     this.businessLogService = businessLogService;
     this.metricService = metricService;
     this.logger = logger;
     this.activityCountService = activityCountService;
+    this.settingService = settingService;
   }
 
   schedule() {
@@ -37,18 +42,7 @@ export class HourlyStatsCronService {
   }
 
   async run() {
-    const counts = [
-      this.activityCountService.getCount("ad_scraped", ...this.getLastHour()),
-      ...["1", "2", "3", "4", "5", "6"].map((channel) =>
-        this.getCount("country_outlier_sent", channel)
-      ),
-      this.getCount("price_drop_sent"),
-      this.activityCountService.getCountWithMinPrices(
-        "ad_scraped",
-        MIN_COUNTRY_OUTLIER_PRICES,
-        ...this.getLastHour()
-      ),
-    ];
+    const counts = this.getCounts();
 
     const to = new Date();
     to.setMinutes(0, 0, 0);
@@ -56,7 +50,7 @@ export class HourlyStatsCronService {
     const from = new Date(to.getTime() - 3_600_000);
 
     const [resolvedCounts, summaries] = await Promise.all([
-      Promise.all(counts),
+      counts,
       this.metricService.getSummaries(from, to).catch((error) => {
         this.logger.error(
           "HourlyStatsCronService",
@@ -71,6 +65,38 @@ export class HourlyStatsCronService {
       counts: resolvedCounts,
       scrapers: summaries.length,
     });
+  }
+
+  private async getCounts(): Promise<HourlyReportCounts> {
+    const [ruleGroups, channels, minPrices] = await Promise.all([
+      this.settingService.get("countryOutlier.ruleGroups"),
+      this.settingService.getChannels(),
+      this.settingService.get("countryOutlier.minPrices"),
+    ]);
+    const channelIds = _.uniq(ruleGroups.flat().map((rule) => rule.channelId));
+    const [scraped, comparable, priceDrops, channelCounts] = await Promise.all([
+      this.activityCountService.getCount("ad_scraped", ...this.getLastHour()),
+      this.activityCountService.getCountWithMinPrices(
+        "ad_scraped",
+        minPrices,
+        ...this.getLastHour()
+      ),
+      this.getCount("price_drop_sent"),
+      Promise.all(
+        channelIds.map((id) => this.getCount("country_outlier_sent", String(id)))
+      ),
+    ]);
+
+    return {
+      scraped,
+      comparable,
+      minPrices,
+      priceDrops,
+      channels: channelIds.map((id, i) => {
+        const name = channels.find((channel) => channel.id === id)?.name ?? `#${id}`;
+        return { name, count: channelCounts[i] };
+      }),
+    };
   }
 
   getCount(type: BusinessLogType, channel?: string) {

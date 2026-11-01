@@ -5,6 +5,12 @@ import { fakeSystemLogService } from "../../../support/fakes";
 
 const { webhookSend } = vi.hoisted(() => ({ webhookSend: vi.fn() }));
 
+const connected = (...args: ConstructorParameters<typeof DiscordService>) => {
+  const service = new DiscordService(...args);
+  service.setToken("123/abc", "logs");
+  return service;
+};
+
 // The real WebhookClient validates the webhook URL shape; the mock skips that
 // on purpose so the test can focus on how DiscordService assembles the URL.
 vi.mock("discord.js", async (importOriginal) => {
@@ -24,19 +30,10 @@ describe("DiscordService", () => {
     );
   });
 
-  it("throws when the env variable is missing", () => {
-    vi.stubEnv("DISCORD_MISSING_TOKEN", "");
-
-    expect(() => new DiscordService("DISCORD_MISSING_TOKEN")).toThrow(
-      "DISCORD_MISSING_TOKEN env variable is missing"
-    );
-  });
-
-  it("builds the webhook url from the env token and sends through it", async () => {
-    vi.stubEnv("DISCORD_LOGS_TOKEN", "123/abc");
+  it("builds the webhook url from the token and sends through it", async () => {
     webhookSend.mockResolvedValueOnce(undefined);
 
-    await new DiscordService("DISCORD_LOGS_TOKEN").send("hello");
+    await connected().send("hello");
 
     expect(WebhookClient).toHaveBeenCalledWith(
       { url: "https://discord.com/api/webhooks/123/abc" },
@@ -47,7 +44,6 @@ describe("DiscordService", () => {
   });
 
   it("retries a failed send after the configured delays until it succeeds", async () => {
-    vi.stubEnv("DISCORD_LOGS_TOKEN", "123/abc");
     vi.useFakeTimers();
     const logger = fakeSystemLogService();
     webhookSend
@@ -57,11 +53,7 @@ describe("DiscordService", () => {
       })
       .mockResolvedValueOnce(undefined);
 
-    const sending = new DiscordService(
-      "DISCORD_LOGS_TOKEN",
-      [100, 200],
-      logger.service
-    ).send("x");
+    const sending = connected([100, 200], logger.service).send("x");
 
     await vi.advanceTimersByTimeAsync(99);
     expect(webhookSend).toHaveBeenCalledTimes(1);
@@ -78,7 +70,7 @@ describe("DiscordService", () => {
       "Discord send failed, retrying",
       {
         error: new Error("sync"),
-        webhook: "DISCORD_LOGS_TOKEN",
+        webhook: "logs",
         attempt: 2,
         payload: { content: "x" },
         retryInMs: 200,
@@ -89,7 +81,6 @@ describe("DiscordService", () => {
   });
 
   it("logs every failure and resolves once all retries are exhausted", async () => {
-    vi.stubEnv("DISCORD_LOGS_TOKEN", "123/abc");
     const logger = fakeSystemLogService();
     webhookSend
       .mockRejectedValueOnce(new Error("network"))
@@ -97,7 +88,7 @@ describe("DiscordService", () => {
       .mockRejectedValueOnce(new Error("network"));
 
     await expect(
-      new DiscordService("DISCORD_LOGS_TOKEN", [0, 0], logger.service).send({
+      connected([0, 0], logger.service).send({
         content: "c",
         embeds: [{ title: "Daily status" }],
       })
@@ -110,7 +101,7 @@ describe("DiscordService", () => {
       "Discord message was not sent after all retries",
       {
         error: new Error("network"),
-        webhook: "DISCORD_LOGS_TOKEN",
+        webhook: "logs",
         attempt: 3,
         payload: { content: "c", embedTitles: ["Daily status"] },
       }
@@ -118,10 +109,9 @@ describe("DiscordService", () => {
   });
 
   it("truncates embed titles longer than 256 characters", async () => {
-    vi.stubEnv("DISCORD_LOGS_TOKEN", "123/abc");
     webhookSend.mockResolvedValueOnce(undefined);
 
-    await new DiscordService("DISCORD_LOGS_TOKEN").send({
+    await connected().send({
       content: "c",
       embeds: [{ title: "a".repeat(300), description: "d" }, { title: "b".repeat(256) }, {}],
     });
@@ -137,11 +127,10 @@ describe("DiscordService", () => {
   });
 
   it("sends options without embeds unchanged", async () => {
-    vi.stubEnv("DISCORD_LOGS_TOKEN", "123/abc");
     webhookSend.mockResolvedValueOnce(undefined);
     const options = { content: "c" };
 
-    await new DiscordService("DISCORD_LOGS_TOKEN").send(options);
+    await connected().send(options);
 
     expect(webhookSend).toHaveBeenCalledWith(options);
   });

@@ -1,14 +1,19 @@
 import { Decimal } from "@prisma/client/runtime/library";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 
+// The reported price is kept per listing, country and channel.
 export interface CountryOutlierReporter<T> {
-  getReportedPrice(listing: T, price: ListingPrice): Promise<Decimal | undefined>;
-  setReportedPrice(listing: T, price: ListingPrice): Promise<void>;
+  getReportedPrice(
+    listing: T,
+    price: ListingPrice,
+    channelId: number
+  ): Promise<Decimal | undefined>;
+  setReportedPrice(listing: T, price: ListingPrice, channelId: number): Promise<void>;
 
   report(
     listing: T,
     prices: ListingPrice[],
-    channel: string,
+    channelId: number,
     difference?: number
   ): Promise<void>;
 }

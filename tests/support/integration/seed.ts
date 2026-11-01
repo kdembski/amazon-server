@@ -157,6 +157,20 @@ export function seedScraperMetric(
   });
 }
 
+export const discordChannelToken = (id: number) => `${id}00/channel-${id}-token`;
+
+// Channels 1-8 that the default settings refer to, as the production migration inserts them.
+export function seedDiscordChannels() {
+  return prisma.discordChannel.createMany({
+    data: [1, 2, 3, 4, 5, 6, 7, 8].map((id) => ({
+      id,
+      name: `channel-${id}`,
+      token: discordChannelToken(id),
+      ...stamps(),
+    })),
+  });
+}
+
 export function seedPln() {
   return prisma.currency.upsert({
     where: { code: "PLN" },
