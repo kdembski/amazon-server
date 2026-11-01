@@ -47,20 +47,23 @@ Default rule groups:
    with weights `n`..`1` from the cheapest, the first price whose cumulative weight passes half, the mean with the next
    one when it is exactly half) and `minPln ≤ cheapest < maxPln` (`isInRange`, a missing bound is open).
 6. Matches are merged by `channelId`; a channel matched in several groups uses the lowest `dropSinceSentPercent`.
-7. Duplicate check per channel on the cheapest country, in its own currency: the channel goes on when the reporter has
-   no reported price for the listing, country and channel (`getReportedPrice`) or the newest price is at least
-   `dropSinceSentPercent` below it; otherwise that channel is skipped. Changes of the other countries and of the
-   previous scrape never pass it.
+7. Duplicate check on the cheapest country, in its own currency, against one reported price per listing and country
+   (`getReportedPrice`, the last price sent to any channel): without a reported price every channel goes on;
+   otherwise a channel goes on only when the newest price is at least its `dropSinceSentPercent` below the reported
+   one. Without a remaining channel it stops. Changes of the other countries and of the previous scrape never pass it.
 8. For each remaining channel the marketplace's `CountryOutlierReporter.report` gets the listing, the sorted PLN
-   prices, the `channelId` and the change of the cheapest price against that channel's reported one in percent (none
-   for a channel that never got the listing; shown next to the cheapest price on Discord); it stores a
-   `country_outlier_sent` event (`data.channel` = `String(channelId)`) and posts to the channel's webhook through
-   `DiscordChannelService.send` (a missing channel logs an error). Then `setReportedPrice` stores the cheapest price in
-   its own currency (Amazon: `AmazonCountryOutlierChannelReport`, one row per ad, country and channel).
+   prices, the `channelId` and the change of the cheapest price against the reported one in percent (none for a
+   listing never reported; shown next to the cheapest price on Discord); it stores a `country_outlier_sent` event
+   (`data.channel` = `String(channelId)`) and posts to the channel's webhook through `DiscordChannelService.send` (a
+   missing channel logs an error). Then `setReportedPrice` stores the cheapest price once, in its own currency
+   (Amazon: `AmazonCountryOutlierReport`, one row per ad and country).
 
 ## Known limits
 
-- A listing that matches a channel for the first time is reported there even when its cheapest price did not change
-  (a fourth country appeared, other countries rose). After that the channel gets it again only when its cheapest price
-  is `dropSinceSentPercent` below the price sent there; a price that rises and comes back is not reported again.
+- A listing that matches for the first time is reported even when its cheapest price did not change (a fourth country
+  appeared, other countries rose). After that a channel gets it only when its cheapest price is the channel's
+  `dropSinceSentPercent` below the last reported price; a price that rises and comes back is not reported again.
+- A channel with a high `dropSinceSentPercent` misses gradual drops reported on other channels (100 → 94 → 80 with 5%
+  and 20%: the 20% channel gets neither), and a listing that only moves into a stronger rule without a price drop is
+  not reported there.
 - PLN prices in the event drift with exchange rates; the duplicate check uses the original currency.

@@ -44,8 +44,7 @@ export class DiscordLogService {
     fields.push({
       name: "Channels",
       value: [
-        ...counts.channels.map(({ name, count }) => `${name}: **${count}**`),
-        `hist: **${counts.priceDrops}**`,
+        ...[...counts.channels, counts.priceDrop].map(({ name, count }) => `${name}: **${count}**`),
       ].join(getSpacing(4)),
     });
 

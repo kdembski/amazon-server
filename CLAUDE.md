@@ -72,7 +72,7 @@ npm run test:integration  # tests/integration, needs a running Docker
   `src/modules/marketplaces`; pass marketplace implementations in from `src/modules.ts`.
 - Add a marketplace: (1) Prisma models and a `src/modules/marketplaces/<name>/` folder with the layers;
   (2) a mapper to `ListingPrice`, implementations of `CountryOutlierReporter`/`PriceDropReporter` that
-  store an event and post to Discord through `DiscordChannelService.send` (`CountryOutlierReporter` also stores the reported price per listing, country and channel), and a call to `AnomalyManager([...])` with the managers of the chosen
+  store an event and post to Discord through `DiscordChannelService.send` (`CountryOutlierReporter` also stores the reported price per listing and country), and a call to `AnomalyManager([...])` with the managers of the chosen
   detectors after storing prices; (3) implementations of `ExclusionRuleTarget` and `DailyReportSection`;
   (4) `create<Name>Module()` returning `MarketplaceModule`, added to `marketplaces` in `src/modules.ts`.
 - Anomaly detectors work on `ListingPrice` only; each marketplace passes its reporters to the managers. Rule matching goes through `ExclusionRuleTarget`; the daily Discord report gets its
@@ -86,8 +86,9 @@ npm run test:integration  # tests/integration, needs a running Docker
   channel a setting uses → 422); settings refer to them by `channelId`. The hourly/daily reports and other log
   messages go through `DiscordLogService` to `reports.channelId`. No Discord webhook lives in env.
   Country outlier rules (`countryOutlier.ruleGroups`): each group sends to the channel of its first matching rule
-  (`belowMedianPercent` below the weighted median, `minPln ≤ cheapest < maxPln`); a channel gets a listing again only
-  when the cheapest price is `dropSinceSentPercent` below the price last sent there.
+  (`belowMedianPercent` below the weighted median, `minPln ≤ cheapest < maxPln`); one reported price per listing and
+  country (the last one sent to any channel), a channel gets the listing only when the cheapest price is its
+  `dropSinceSentPercent` below that price. The hourly report labels every count with its `DiscordChannel.name`.
 - Cross-cutting services are `getInstance()` singletons. `*SelectDto` types derive from repository return
   types. Controller errors go through `ResponseErrorService` (`error.status` if set, P2002/P2003 → 422, P1001 → 503).
 - Exclusion rules are per marketplace (`AmazonExclusionRule`, optional `categoryId`; `NULL` = every category;

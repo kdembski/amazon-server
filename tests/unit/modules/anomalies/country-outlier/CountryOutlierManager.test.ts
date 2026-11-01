@@ -11,13 +11,11 @@ import {
 } from "../../../../support/factories";
 import { fakeSettingService, fakeSystemLogService } from "../../../../support/fakes";
 
-// `reported`: the reported price of every channel, or per channel id
-const fakeReporter = (reported?: number | Record<number, number>) => ({
+const fakeReporter = (reported?: number) => ({
   report: vi.fn().mockResolvedValue(undefined),
-  getReportedPrice: vi.fn(async (_listing: unknown, _price: unknown, channelId: number) => {
-    const value = typeof reported === "object" ? reported[channelId] : reported;
-    return value === undefined ? undefined : new Decimal(value);
-  }),
+  getReportedPrice: vi
+    .fn()
+    .mockResolvedValue(reported === undefined ? undefined : new Decimal(reported)),
   setReportedPrice: vi.fn().mockResolvedValue(undefined),
 });
 
@@ -29,7 +27,7 @@ const rule = (channelId: number, dropSinceSentPercent = 10): Rule => ({
 
 const setup = (
   rules: Rule[] = [rule(1), rule(4)],
-  reported?: number | Record<number, number>,
+  reported?: number,
   minPrices = 3
 ) => {
   const reporter = fakeReporter(reported);
@@ -192,7 +190,7 @@ describe("CountryOutlierManager", () => {
     expect(countryPrices.map(([price]) => price)).toEqual(order);
   });
 
-  it("reports and stores the price on every channel matched by the strategy", async () => {
+  it("reports every channel matched by the strategy and stores the price once", async () => {
     const { manager, reporter, getMatchingRules, listing } = setup([rule(2), rule(5)]);
 
     await manager.check(listing, fourCountries());
@@ -202,7 +200,7 @@ describe("CountryOutlierManager", () => {
       [listing, matched, 2, undefined],
       [listing, matched, 5, undefined],
     ]);
-    expect(reporter.setReportedPrice.mock.calls.map((call) => call[2])).toEqual([2, 5]);
+    expect(reporter.setReportedPrice).toHaveBeenCalledTimes(1);
   });
 
   it("reports a channel matched by rules of two groups once", async () => {
@@ -228,9 +226,9 @@ describe("CountryOutlierManager", () => {
 
     await manager.check(listing, [history(300), cheapest, history(400), history(500)]);
 
-    expect(reporter.getReportedPrice).toHaveBeenCalledWith(listing, cheapest[0], 1);
+    expect(reporter.getReportedPrice).toHaveBeenCalledWith(listing, cheapest[0]);
     expect(reporter.report).toHaveBeenCalledTimes(1);
-    expect(reporter.setReportedPrice).toHaveBeenCalledWith(listing, cheapest[0], 1);
+    expect(reporter.setReportedPrice).toHaveBeenCalledWith(listing, cheapest[0]);
   });
 
   it.each([
@@ -260,21 +258,13 @@ describe("CountryOutlierManager", () => {
     expect(reporter.setReportedPrice).toHaveBeenCalledTimes(1);
   });
 
-  it("compares each channel with its own reported price and dropSinceSentPercent", async () => {
-    const { manager, reporter, listing } = setup([rule(1, 5), rule(4, 20)], { 1: 100, 4: 100 });
+  it("compares the reported price with the dropSinceSentPercent of each channel", async () => {
+    const { manager, reporter, listing } = setup([rule(1, 5), rule(4, 20)], 100);
 
     await manager.check(listing, [history(300), history(94), history(400), history(500)]);
 
     expect(reporter.report.mock.calls.map((call) => [call[2], call[3]])).toEqual([[1, -6]]);
-    expect(reporter.setReportedPrice.mock.calls.map((call) => call[2])).toEqual([1]);
-  });
-
-  it("reports a channel never sent to while another one skips the listing", async () => {
-    const { manager, reporter, listing } = setup([rule(3), rule(4)], { 3: 40 });
-
-    await manager.check(listing, [history(300), history(40), history(400), history(500)]);
-
-    expect(reporter.report.mock.calls.map((call) => call[2])).toEqual([4]);
+    expect(reporter.setReportedPrice).toHaveBeenCalledTimes(1);
   });
 
   it("uses the lowest dropSinceSentPercent of a channel matched in two groups", async () => {

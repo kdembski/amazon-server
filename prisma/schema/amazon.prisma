@@ -22,7 +22,6 @@ model AmazonAd {
   category      AmazonAdCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "amazon_ad_category_id_fk")
   AmazonAdPrice AmazonAdPrice[]
   outlierReports AmazonCountryOutlierReport[]
-  outlierChannelReports AmazonCountryOutlierChannelReport[]
 
   @@index([categoryId], map: "amazon_ad_category_id_fk_idx")
   @@index([excluded, scrapedAt], map: "amazon_ad_excluded_scraped_at_idx")
@@ -57,7 +56,6 @@ model AmazonCountry {
   country       Country         @relation(fields: [countryId], references: [id], onDelete: Cascade, map: "amazon_country_country_id_fk")
   AmazonAdPrice AmazonAdPrice[]
   outlierReports AmazonCountryOutlierReport[]
-  outlierChannelReports AmazonCountryOutlierChannelReport[]
 }
 
 model AmazonCountryOutlierReport {
@@ -70,22 +68,6 @@ model AmazonCountryOutlierReport {
 
   @@id([adId, countryId])
   @@index([countryId], map: "amazon_country_outlier_report_country_id_fk")
-}
-
-model AmazonCountryOutlierChannelReport {
-  adId      Int
-  countryId Int
-  channelId Int
-  value     Decimal        @db.Decimal(9, 2)
-  createdAt DateTime       @db.Timestamp(2)
-  updatedAt DateTime       @db.Timestamp(2)
-  ad        AmazonAd       @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_country_outlier_channel_report_ad_id_fk")
-  country   AmazonCountry  @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "amazon_country_outlier_channel_report_country_id_fk")
-  channel   DiscordChannel @relation(fields: [channelId], references: [id], onDelete: Cascade, map: "amazon_country_outlier_channel_report_channel_id_fk")
-
-  @@id([adId, countryId, channelId])
-  @@index([countryId], map: "amazon_country_outlier_channel_report_country_id_fk")
-  @@index([channelId], map: "amazon_country_outlier_channel_report_channel_id_fk")
 }
 
 model AmazonExclusionRule {

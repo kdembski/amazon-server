@@ -11,7 +11,13 @@ const GREEN = "<:gn:1345009439916294154>";
 const UP = "<:au:1369710756358258748>";
 const DOWN = "<:ad:1369710758241374219>";
 const FLAT = `${getSpacing(3)}-${getSpacing(3)}`;
-const COUNTS = { scraped: 0, comparable: 0, minPrices: 3, channels: [], priceDrops: 0 };
+const COUNTS = {
+  scraped: 0,
+  comparable: 0,
+  minPrices: 3,
+  channels: [],
+  priceDrop: { name: "hist", count: 0 },
+};
 
 const summary = (
   overrides: Partial<ScraperMetricSummary> = {}
@@ -71,7 +77,7 @@ describe("DiscordLogService.sendHourly", () => {
           { name: "50%", count: 1 },
           { name: "90%", count: 3 },
         ],
-        priceDrops: 7,
+        priceDrop: { name: "price-drop", count: 7 },
       },
       []
     );
@@ -82,7 +88,7 @@ describe("DiscordLogService.sendHourly", () => {
       fields: [
         {
           name: "Channels",
-          value: ["50%: **1**", "90%: **3**", "hist: **7**"].join(SP4),
+          value: ["50%: **1**", "90%: **3**", "price-drop: **7**"].join(SP4),
         },
         { name: "Server", value: ["CPU: **12.3%**", "RAM: **56%**"].join(SP4) },
       ],

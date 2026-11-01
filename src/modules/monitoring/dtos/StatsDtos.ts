@@ -5,7 +5,7 @@ export interface HourlyReportCounts {
   comparable: number;
   minPrices: number;
   channels: { name: string; count: number }[];
-  priceDrops: number;
+  priceDrop: { name: string; count: number };
 }
 
 export interface TimePoint {

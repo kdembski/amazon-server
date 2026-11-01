@@ -42,7 +42,7 @@ describe("HourlyStatsCronService (MySQL)", () => {
         scraped: 6,
         comparable: 2,
         minPrices: 3,
-        priceDrops: 1,
+        priceDrop: { name: "channel-7", count: 1 },
         channels: [3, 2, 1, 4, 5, 6].map((id) => ({
           name: `channel-${id}`,
           count: { 1: 1, 6: 2 }[id] ?? 0,

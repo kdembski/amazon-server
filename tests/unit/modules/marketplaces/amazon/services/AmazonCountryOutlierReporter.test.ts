@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { Decimal } from "@prisma/client/runtime/library";
-import { AmazonCountryOutlierChannelReportRepository } from "@/modules/marketplaces/amazon/repositories/AmazonCountryOutlierChannelReportRepository";
+import { AmazonCountryOutlierReportRepository } from "@/modules/marketplaces/amazon/repositories/AmazonCountryOutlierReportRepository";
 import { AmazonCountryOutlierReporter } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierReporter";
 import { buildAd, buildListingPrice } from "../../../../../support/factories";
 import {
@@ -18,7 +18,7 @@ const setup = () => {
   const reporter = new AmazonCountryOutlierReporter(
     log.service,
     discord.service,
-    repository as unknown as AmazonCountryOutlierChannelReportRepository
+    repository as unknown as AmazonCountryOutlierReportRepository
   );
   return { reporter, log, discord, repository };
 };
@@ -50,16 +50,16 @@ describe("AmazonCountryOutlierReporter", () => {
     expect(discord.send).toHaveBeenCalledWith(3, ad, prices, -40);
   });
 
-  it("reads and stores the reported price by ad, country and channel", async () => {
+  it("reads and stores the reported price by ad and country", async () => {
     const { reporter, repository } = setup();
     const ad = buildAd();
     const price = buildListingPrice({ value: 90, country: { id: 3 } });
 
-    expect(await reporter.getReportedPrice(ad, price, 4)).toEqual(new Decimal(95));
-    await reporter.setReportedPrice(ad, price, 4);
+    expect(await reporter.getReportedPrice(ad, price)).toEqual(new Decimal(95));
+    await reporter.setReportedPrice(ad, price);
 
-    expect(repository.getValue).toHaveBeenCalledWith(ad.id, 3, 4);
-    expect(repository.set).toHaveBeenCalledWith(ad.id, 3, 4, price.value);
+    expect(repository.getValue).toHaveBeenCalledWith(ad.id, 3);
+    expect(repository.set).toHaveBeenCalledWith(ad.id, 3, price.value);
   });
 
   it("rejects when the embed cannot be sent", async () => {

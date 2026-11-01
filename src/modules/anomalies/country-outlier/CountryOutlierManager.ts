@@ -46,16 +46,17 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     const cheapest = newestPrices.find(
       (price) => price.country === prices[0].country
     )!;
-    for (const [channelId, dropSinceSentPercent] of this.getChannels(rules)) {
-      const reported = await this.reporter.getReportedPrice(listing, cheapest, channelId);
-      if (reported && !this.isBelowReported(cheapest.value, reported, dropSinceSentPercent)) {
-        continue;
-      }
+    const reported = await this.reporter.getReportedPrice(listing, cheapest);
+    const channelIds = [...this.getChannels(rules)]
+      .filter(([, drop]) => !reported || this.isBelowReported(cheapest.value, reported, drop))
+      .map(([channelId]) => channelId);
+    if (!channelIds.length) return;
 
-      const difference = reported && this.getDifference(cheapest.value, reported);
+    const difference = reported && this.getDifference(cheapest.value, reported);
+    for (const channelId of channelIds) {
       await this.reporter.report(listing, prices, channelId, difference);
-      await this.reporter.setReportedPrice(listing, cheapest, channelId);
     }
+    await this.reporter.setReportedPrice(listing, cheapest);
   }
 
   // A channel matched by rules of several groups uses the lowest dropSinceSentPercent.
