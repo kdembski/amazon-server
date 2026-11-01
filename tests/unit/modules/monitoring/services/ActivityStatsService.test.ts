@@ -1,19 +1,29 @@
 import { describe, expect, it, vi } from "vitest";
 import { ActivityStatsService } from "@/modules/monitoring/services/ActivityStatsService";
 import { BusinessLogRepository } from "@/modules/monitoring/repositories/BusinessLogRepository";
+import { fakeActivityCountService, fakeSettingService } from "../../../../support/fakes";
 
 const HOUR = 3600;
 const range = { from: new Date(10 * HOUR * 1000), to: new Date(12 * HOUR * 1000) };
 
-const setup = (current: unknown[], previous: unknown[]) => {
+const setup = (current: unknown[], previous: unknown[], minPrices: number | null = 4) => {
   const repository = {
     getSumByTypeChannelAndHour: vi
       .fn()
       .mockResolvedValueOnce(current)
       .mockResolvedValueOnce(previous),
   };
-  const service = new ActivityStatsService(repository as unknown as BusinessLogRepository);
-  return { service, repository };
+  const counter = fakeActivityCountService();
+  counter.getCountWithMinPrices.mockResolvedValueOnce(9).mockResolvedValueOnce(30);
+  const settings = fakeSettingService({ "countryOutlier.minPrices": minPrices ?? undefined }, [
+    { id: 1, name: "outliers-de", token: "t", createdAt: new Date(0), updatedAt: new Date(0) },
+  ]);
+  const service = new ActivityStatsService(
+    repository as unknown as BusinessLogRepository,
+    counter.service,
+    settings.service
+  );
+  return { service, repository, counter };
 };
 
 describe("ActivityStatsService", () => {
@@ -63,16 +73,32 @@ describe("ActivityStatsService", () => {
       ],
       totals: { ad_scraped: 12, country_outlier_sent: 3, price_drop_sent: 1 },
       previousTotals: { ad_scraped: 40, country_outlier_sent: 0, price_drop_sent: 0 },
+      comparable: { minPrices: 4, total: 9, previousTotal: 30 },
+      channelNames: { "1": "outliers-de" },
     });
   });
 
-  it("returns no series and zero totals without events", async () => {
-    const { service } = setup([], []);
+  it("counts the comparable ads of both periods with the minPrices setting", async () => {
+    const { service, counter } = setup([], []);
+
+    await service.get(range);
+
+    expect(counter.getCountWithMinPrices.mock.calls).toEqual([
+      ["ad_scraped", 4, range.from, range.to],
+      ["ad_scraped", 4, new Date(8 * HOUR * 1000), range.from],
+    ]);
+  });
+
+  it("returns no series, zero totals and no comparable count without events and minPrices", async () => {
+    const { service, counter } = setup([], [], null);
 
     expect(await service.get(range)).toEqual({
       series: [],
       totals: { ad_scraped: 0, country_outlier_sent: 0, price_drop_sent: 0 },
       previousTotals: { ad_scraped: 0, country_outlier_sent: 0, price_drop_sent: 0 },
+      comparable: undefined,
+      channelNames: { "1": "outliers-de" },
     });
+    expect(counter.getCountWithMinPrices).not.toHaveBeenCalled();
   });
 });

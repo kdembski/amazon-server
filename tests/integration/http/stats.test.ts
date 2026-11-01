@@ -20,7 +20,10 @@ describe("/stats", () => {
   });
 
   it("GET /activity returns hourly series and totals of the range and the previous one", async () => {
-    await seedBusinessLog({ data: { count: 3 }, createdAt: new Date("2026-10-26T10:15:00Z") });
+    await seedBusinessLog({
+      data: { count: 3, prices: { 1: 1, 3: 2 } },
+      createdAt: new Date("2026-10-26T10:15:00Z"),
+    });
     await seedBusinessLog({ data: { count: 5 }, createdAt: new Date("2026-10-26T09:00:00Z") });
 
     const response = await request(app).get("/stats/activity").query(range).expect(200);
@@ -35,6 +38,8 @@ describe("/stats", () => {
       ],
       totals: { ad_scraped: 3, country_outlier_sent: 0, price_drop_sent: 0 },
       previousTotals: { ad_scraped: 5, country_outlier_sent: 0, price_drop_sent: 0 },
+      comparable: { minPrices: 3, total: 2, previousTotal: 0 },
+      channelNames: Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map((id) => [id, `channel-${id}`])),
     });
   });
 

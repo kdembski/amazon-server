@@ -25,6 +25,10 @@ export interface ActivityStatsDto {
   series: ActivitySeries[];
   totals: Record<BusinessLogType, number>;
   previousTotals: Record<BusinessLogType, number>;
+  // ad_scraped events with prices from at least minPrices countries; without the countryOutlier.minPrices setting
+  comparable?: { minPrices: number; total: number; previousTotal: number };
+  // Discord channel names by the channel of a series
+  channelNames: Record<string, string>;
 }
 
 export type LogLevelCounts = { error: number; warn: number };
