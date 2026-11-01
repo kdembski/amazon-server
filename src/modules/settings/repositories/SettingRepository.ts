@@ -19,8 +19,4 @@ export class SettingRepository {
   ) {
     return this.delegate.upsert({ where: { key }, create, update });
   }
-
-  delete(key: string) {
-    return this.delegate.deleteMany({ where: { key } });
-  }
 }

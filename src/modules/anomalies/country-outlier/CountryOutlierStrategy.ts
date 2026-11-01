@@ -23,6 +23,7 @@ export class CountryOutlierStrategy {
       this.settingService.get("countryOutlier.ruleGroups"),
       this.settingService.get("countryOutlier.dropSinceSentPercent"),
     ]);
+    if (!groups || dropSinceSentPercent === undefined) return [];
 
     return groups.flatMap((group) => {
       const rule = group

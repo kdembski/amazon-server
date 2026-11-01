@@ -7,6 +7,7 @@ export class SettingCache {
   channels?: DiscordChannelSelectDto[];
   refreshedAt?: number;
   refreshFailing = false;
+  missingLoggedAt = new Map<string, number>();
   // keyed by token, so a changed token gets a new client
   clients = new Map<string, DiscordService>();
 

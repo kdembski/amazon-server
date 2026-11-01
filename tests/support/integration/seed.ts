@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "./db";
-import { FIXED_DATE } from "../factories";
+import { FIXED_DATE, TEST_SETTINGS } from "../factories";
 
 let seq = 0;
 const next = () => ++seq;
@@ -168,6 +168,12 @@ export function seedDiscordChannels() {
       token: discordChannelToken(id),
       ...stamps(),
     })),
+  });
+}
+
+export function seedSettings() {
+  return prisma.setting.createMany({
+    data: Object.entries(TEST_SETTINGS).map(([key, value]) => ({ key, value, ...stamps() })),
   });
 }
 

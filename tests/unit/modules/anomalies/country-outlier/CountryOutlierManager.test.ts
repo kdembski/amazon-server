@@ -28,7 +28,8 @@ const rule = (channelId: number, dropSinceSentPercent = 10): Rule => ({
 const setup = (
   rules: Rule[] = [rule(1), rule(4)],
   reported?: number,
-  minPrices = 3
+  // null: no minPrices setting
+  minPrices: number | null = 3
 ) => {
   const reporter = fakeReporter(reported);
   const getPlnRates = vi.fn().mockResolvedValue([]);
@@ -38,7 +39,7 @@ const setup = (
     { getPlnRates } as unknown as CurrencyExchangeRateService,
     { getMatchingRules } as unknown as CountryOutlierStrategy,
     fakeSystemLogService().service,
-    fakeSettingService({ "countryOutlier.minPrices": minPrices }).service
+    fakeSettingService({ "countryOutlier.minPrices": minPrices ?? undefined }).service
   );
   return {
     manager,
@@ -78,6 +79,14 @@ describe("CountryOutlierManager", () => {
     await manager.check(listing, fourCountries());
 
     expect(getMatchingRules).not.toHaveBeenCalled();
+  });
+
+  it("does nothing without the minPrices setting", async () => {
+    const { manager, getPlnRates, listing } = setup(undefined, undefined, null);
+
+    await manager.check(listing, fourCountries());
+
+    expect(getPlnRates).not.toHaveBeenCalled();
   });
 
   it("ignores countries missing from the scrape", async () => {

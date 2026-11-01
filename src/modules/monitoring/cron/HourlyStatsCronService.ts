@@ -75,14 +75,12 @@ export class HourlyStatsCronService {
       this.settingService.get("priceDrop.channelId"),
     ]);
     const getName = (id: number) => channels.find((channel) => channel.id === id)?.name ?? `#${id}`;
-    const channelIds = _.uniq(ruleGroups.flat().map((rule) => rule.channelId));
+    const channelIds = _.uniq((ruleGroups ?? []).flat().map((rule) => rule.channelId));
     const [scraped, comparable, priceDrops, channelCounts] = await Promise.all([
       this.activityCountService.getCount("ad_scraped", ...this.getLastHour()),
-      this.activityCountService.getCountWithMinPrices(
-        "ad_scraped",
-        minPrices,
-        ...this.getLastHour()
-      ),
+      minPrices === undefined
+        ? undefined
+        : this.activityCountService.getCountWithMinPrices("ad_scraped", minPrices, ...this.getLastHour()),
       this.getCount("price_drop_sent"),
       Promise.all(
         channelIds.map((id) => this.getCount("country_outlier_sent", String(id)))
@@ -93,7 +91,10 @@ export class HourlyStatsCronService {
       scraped,
       comparable,
       minPrices,
-      priceDrop: { name: getName(priceDropChannelId), count: priceDrops },
+      priceDrop:
+        priceDropChannelId === undefined
+          ? undefined
+          : { name: getName(priceDropChannelId), count: priceDrops },
       channels: channelIds.map((id, i) => ({ name: getName(id), count: channelCounts[i] })),
     };
   }

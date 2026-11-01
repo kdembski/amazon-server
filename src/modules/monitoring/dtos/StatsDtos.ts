@@ -2,10 +2,12 @@ import { BusinessLogType } from "@prisma/client";
 
 export interface HourlyReportCounts {
   scraped: number;
-  comparable: number;
-  minPrices: number;
+  // without the countryOutlier.minPrices setting
+  comparable?: number;
+  minPrices?: number;
   channels: { name: string; count: number }[];
-  priceDrop: { name: string; count: number };
+  // without the priceDrop.channelId setting
+  priceDrop?: { name: string; count: number };
 }
 
 export interface TimePoint {

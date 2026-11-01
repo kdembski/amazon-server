@@ -4,12 +4,12 @@ import { SettingRepository } from "@/modules/settings/repositories/SettingReposi
 import { DiscordChannelRepository } from "@/modules/settings/repositories/DiscordChannelRepository";
 import { SettingUpsertMapper } from "@/modules/settings/mappers/SettingUpsertMapper";
 import { SettingCache } from "@/modules/settings/services/SettingCache";
-import { SETTING_DEFAULTS } from "@/modules/settings/services/SettingDefaults";
-import { SettingValidator } from "@/modules/settings/services/SettingValidator";
+import { SETTING_KEYS, SettingValidator } from "@/modules/settings/services/SettingValidator";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
 // The worker rereads the settings the api process stores.
 const SETTING_TTL_MS = 60_000;
+const MISSING_ERROR_INTERVAL_MS = 60_000;
 
 export class SettingService {
   private repository;
@@ -35,16 +35,17 @@ export class SettingService {
     this.logger = logger;
   }
 
-  async get<K extends SettingKey>(key: K): Promise<Settings[K]> {
+  // Undefined without a Setting row: the caller skips its work.
+  async get<K extends SettingKey>(key: K): Promise<Settings[K] | undefined> {
     const values = await this.getValues();
-    return (values.get(key) ?? SETTING_DEFAULTS[key]) as Settings[K];
+    const value = values.get(key) as Settings[K] | undefined;
+    if (value === undefined) this.logMissing(key);
+    return value;
   }
 
   async getAll() {
     const values = await this.getValues();
-    return (Object.keys(SETTING_DEFAULTS) as SettingKey[]).map((key) =>
-      this.toSelectDto(key, values)
-    );
+    return SETTING_KEYS.map((key) => this.toSelectDto(key, values));
   }
 
   async getChannels() {
@@ -60,7 +61,7 @@ export class SettingService {
       value,
       channels.map((channel) => channel.id)
     );
-    const old = await this.get(settingKey);
+    const old = (await this.getValues()).get(settingKey) ?? null;
 
     await this.repository.upsert(
       settingKey,
@@ -76,19 +77,6 @@ export class SettingService {
     return this.toSelectDto(settingKey, await this.getValues());
   }
 
-  async reset(key: string) {
-    const settingKey = this.validator.validateKey(key);
-    const old = await this.get(settingKey);
-
-    await this.repository.delete(settingKey);
-    this.invalidate();
-    this.logger.info("SettingService", `Setting ${settingKey} reset to the default`, {
-      key: settingKey,
-      old,
-    });
-    return this.toSelectDto(settingKey, await this.getValues());
-  }
-
   invalidate() {
     this.cache.refreshedAt = undefined;
   }
@@ -98,7 +86,7 @@ export class SettingService {
     return this.cache.values!;
   }
 
-  // A failed read keeps the last values (defaults on a cold start) until the next TTL.
+  // A failed read keeps the last values (none on a cold start) until the next TTL.
   private async refresh() {
     const { refreshedAt } = this.cache;
     if (refreshedAt !== undefined && Date.now() - refreshedAt < SETTING_TTL_MS) return;
@@ -124,14 +112,20 @@ export class SettingService {
     this.cache.refreshedAt = Date.now();
   }
 
+  // At most once a minute per key
+  private logMissing(key: SettingKey) {
+    const now = Date.now();
+    const loggedAt = this.cache.missingLoggedAt.get(key);
+    if (loggedAt !== undefined && now - loggedAt < MISSING_ERROR_INTERVAL_MS) return;
+
+    this.cache.missingLoggedAt.set(key, now);
+    this.logger.error("SettingService", `Setting ${key} is missing, its work is skipped`, { key });
+  }
+
   private toSelectDto<K extends SettingKey>(
     key: K,
     values: Map<string, unknown>
   ): SettingSelectDto<K> {
-    return {
-      key,
-      value: (values.get(key) ?? SETTING_DEFAULTS[key]) as Settings[K],
-      default: SETTING_DEFAULTS[key],
-    };
+    return { key, value: (values.get(key) ?? null) as Settings[K] | null };
   }
 }

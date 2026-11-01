@@ -6,6 +6,7 @@ import { CurrencySelectDto } from "@/modules/currency/dtos/CurrencyDtos";
 import { CurrencyExchangeRateSelectDto } from "@/modules/currency/dtos/CurrencyExchangeRateDtos";
 import { AmazonExclusionRuleSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonExclusionRuleDtos";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { Settings } from "@/modules/settings/interfaces/Settings";
 
 export const FIXED_DATE = new Date("2026-01-01T12:00:00.000Z");
 
@@ -170,3 +171,24 @@ export const buildAmazonExclusionRule = (
   createdAt: FIXED_DATE,
   ...overrides,
 });
+
+// The settings production runs with, channels 1-8 as seedDiscordChannels() inserts them.
+export const TEST_SETTINGS: Settings = {
+  "countryOutlier.minPrices": 3,
+  "countryOutlier.dropSinceSentPercent": 10,
+  "countryOutlier.ruleGroups": [
+    [
+      { channelId: 3, belowMedianPercent: 90 },
+      { channelId: 2, belowMedianPercent: 70 },
+      { channelId: 1, belowMedianPercent: 50 },
+    ],
+    [
+      { channelId: 4, belowMedianPercent: 70, maxPln: 50 },
+      { channelId: 5, belowMedianPercent: 70, minPln: 50, maxPln: 200 },
+      { channelId: 6, belowMedianPercent: 70, minPln: 200 },
+    ],
+  ],
+  "priceDrop.dropPercent": 50,
+  "priceDrop.channelId": 7,
+  "reports.channelId": 8,
+};

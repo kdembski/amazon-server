@@ -15,7 +15,6 @@ export class SettingRouter implements SubRouterI {
   build() {
     this.router.get("/", (req, res) => this.controller.getAll(res));
     this.router.put("/:key", (req, res) => this.controller.set(req, res));
-    this.router.delete("/:key", (req, res) => this.controller.reset(req, res));
     return this;
   }
 

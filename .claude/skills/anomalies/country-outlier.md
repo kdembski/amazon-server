@@ -13,15 +13,15 @@ The same listing costs much less in one country than in the others once all pric
 
 ## Settings
 
-Every parameter is a row of `Setting` (`src/modules/settings`), changed through `PUT|DELETE /settings/:key`; a key
-without a row uses `SETTING_DEFAULTS`. Channels are `DiscordChannel` rows (`id`, `name`, webhook `token`), changed
+Every parameter is a row of `Setting` (`src/modules/settings`), changed through `PUT /settings/:key`; without its
+row a detector skips its work (no defaults in code). Channels are `DiscordChannel` rows (`id`, `name`, webhook `token`), changed
 through `/discord-channels`. `SettingService` caches both for 60 s per process.
 
 - `countryOutlier.minPrices` (3): minimum number of countries in the scrape.
 - `countryOutlier.ruleGroups`: groups of rules `{ channelId, belowMedianPercent, minPln?, maxPln?, dropSinceSentPercent? }`.
 - `countryOutlier.dropSinceSentPercent` (10): `dropSinceSentPercent` of rules without one.
 
-Default rule groups:
+Production rule groups (the values in parentheses are the production values too):
 
 | Group | Rule | Channel |
 |---|---|---|

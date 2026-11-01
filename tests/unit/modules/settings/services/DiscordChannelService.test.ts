@@ -2,9 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DiscordChannelService, maskToken } from "@/modules/settings/services/DiscordChannelService";
 import { DiscordChannelRepository } from "@/modules/settings/repositories/DiscordChannelRepository";
 import { SettingCache } from "@/modules/settings/services/SettingCache";
-import { SETTING_DEFAULTS } from "@/modules/settings/services/SettingDefaults";
 import { DiscordService } from "@/shared/discord/DiscordService";
-import { FIXED_DATE } from "../../../../support/factories";
+import { FIXED_DATE, TEST_SETTINGS } from "../../../../support/factories";
 import {
   fakeDiscordService,
   fakeSettingService,
@@ -39,7 +38,10 @@ const setup = (channels = [channel(1)]) => {
   };
   const settings = fakeSettingService({}, channels);
   settings.getAll.mockResolvedValue(
-    Object.entries(SETTING_DEFAULTS).map(([key, value]) => ({ key, value, default: value }))
+    [
+      ...Object.entries(TEST_SETTINGS).map(([key, value]) => ({ key, value })),
+      { key: "countryOutlier.ruleGroups", value: null },
+    ]
   );
   const logger = fakeSystemLogService();
   const clients: ReturnType<typeof fakeDiscordService>[] = [];
@@ -177,6 +179,16 @@ describe("DiscordChannelService", () => {
     ]);
     expect(clients.map((client) => client.send.mock.calls.length)).toEqual([2, 1, 1]);
     expect(clients[0].send).toHaveBeenCalledWith(options);
+  });
+
+  it("send does nothing without a channel id", async () => {
+    const { service, settings, logger, createClient } = setup();
+
+    await service.send(undefined, { content: "hi" });
+
+    expect(settings.getChannels).not.toHaveBeenCalled();
+    expect(createClient).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 
   it("send logs an error for a missing channel", async () => {

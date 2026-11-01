@@ -14,7 +14,7 @@ import type { SettingService } from "@/modules/settings/services/SettingService"
 import type { DiscordChannelService } from "@/modules/settings/services/DiscordChannelService";
 import type { DiscordChannelSelectDto } from "@/modules/settings/dtos/DiscordChannelDtos";
 import type { SettingKey, Settings } from "@/modules/settings/interfaces/Settings";
-import { SETTING_DEFAULTS } from "@/modules/settings/services/SettingDefaults";
+import { TEST_SETTINGS } from "./factories";
 
 export function fakeBusinessLogService() {
   const create = vi.fn().mockResolvedValue({ id: 1 });
@@ -87,26 +87,20 @@ export function fakeAmazonCountryOutlierDiscordService() {
   return { service, send };
 }
 
-// Returns the defaults for keys missing in `values`.
+// Keys missing in `values` come from TEST_SETTINGS; pass a key as undefined for a missing setting.
 export function fakeSettingService(
-  values: Partial<Settings> = {},
+  values: { [K in SettingKey]?: Settings[K] | undefined } = {},
   channels: DiscordChannelSelectDto[] = []
 ) {
-  const get = vi.fn(async (key: SettingKey) => values[key] ?? SETTING_DEFAULTS[key]);
+  const get = vi.fn(async (key: SettingKey) => {
+    return Object.prototype.hasOwnProperty.call(values, key) ? values[key] : TEST_SETTINGS[key];
+  });
   const getAll = vi.fn().mockResolvedValue([]);
   const getChannels = vi.fn().mockResolvedValue(channels);
   const set = vi.fn();
-  const reset = vi.fn();
   const invalidate = vi.fn();
-  const service = {
-    get,
-    getAll,
-    getChannels,
-    set,
-    reset,
-    invalidate,
-  } as unknown as SettingService;
-  return { service, get, getAll, getChannels, set, reset, invalidate };
+  const service = { get, getAll, getChannels, set, invalidate } as unknown as SettingService;
+  return { service, get, getAll, getChannels, set, invalidate };
 }
 
 export function fakeDiscordChannelService() {
@@ -235,7 +229,7 @@ export function fakePrisma() {
     scraperConfig: { upsert: vi.fn() },
     exclusionRuleFingerprint: { findUnique: vi.fn(), upsert: vi.fn() },
     amazonCountryOutlierReport: { findUnique: vi.fn(), upsert: vi.fn() },
-    setting: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
+    setting: { findMany: vi.fn(), upsert: vi.fn() },
     discordChannel: fakeDelegate(),
   };
   const $executeRaw = vi.fn().mockResolvedValue(1);

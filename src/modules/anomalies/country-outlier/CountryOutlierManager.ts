@@ -35,7 +35,7 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
   async check(listing: T, allCountryPrices: ListingPrice[][]) {
     const countryPrices = allCountryPrices.filter(([price]) => price.scraped);
     const minPrices = await this.settingService.get("countryOutlier.minPrices");
-    if (countryPrices.length < minPrices) return;
+    if (minPrices === undefined || countryPrices.length < minPrices) return;
 
     const newestPrices = countryPrices.map((prices) => prices[0]);
     const prices = await this.toPln(newestPrices);

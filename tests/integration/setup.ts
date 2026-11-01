@@ -5,7 +5,7 @@ import { discordInbox } from "../support/integration/discordInbox";
 import { PlnExchangeRateCache } from "@/modules/currency/services/PlnExchangeRateCache";
 import { ActivityCounter } from "@/modules/monitoring/services/ActivityCounter";
 import { SettingCache } from "@/modules/settings/services/SettingCache";
-import { seedDiscordChannels } from "../support/integration/seed";
+import { seedDiscordChannels, seedSettings } from "../support/integration/seed";
 
 vi.mock("discord.js", async () => {
   const { discordInbox } = await import("../support/integration/discordInbox");
@@ -38,7 +38,9 @@ beforeEach(async () => {
   settingCache.values = undefined;
   settingCache.channels = undefined;
   settingCache.clients.clear();
+  settingCache.missingLoggedAt.clear();
   await seedDiscordChannels();
+  await seedSettings();
   discordInbox.length = 0;
 });
 

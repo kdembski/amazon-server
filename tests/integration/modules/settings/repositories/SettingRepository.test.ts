@@ -10,7 +10,8 @@ const upsert = (key: string, value: unknown) => {
 };
 
 describe("SettingRepository (MySQL)", () => {
-  it("stores JSON values by key, replaces them and deletes them", async () => {
+  it("stores JSON values by key and replaces them", async () => {
+    await prisma.setting.deleteMany();
     const groups = [[{ channelId: 1, belowMedianPercent: 50, maxPln: 50 }]];
 
     await upsert("countryOutlier.ruleGroups", groups);
@@ -23,9 +24,6 @@ describe("SettingRepository (MySQL)", () => {
         { key: "priceDrop.dropPercent", value: 35 },
       ])
     );
-
-    await repository.delete("priceDrop.dropPercent");
-    await repository.delete("priceDrop.dropPercent");
-    expect(await repository.getAll()).toEqual([{ key: "countryOutlier.ruleGroups", value: groups }]);
+    expect(await prisma.setting.count()).toBe(2);
   });
 });
