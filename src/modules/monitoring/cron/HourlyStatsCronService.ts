@@ -68,11 +68,13 @@ export class HourlyStatsCronService {
   }
 
   private async getCounts(): Promise<HourlyReportCounts> {
-    const [ruleGroups, channels, minPrices] = await Promise.all([
+    const [ruleGroups, channels, minPrices, priceDropChannelId] = await Promise.all([
       this.settingService.get("countryOutlier.ruleGroups"),
       this.settingService.getChannels(),
       this.settingService.get("countryOutlier.minPrices"),
+      this.settingService.get("priceDrop.channelId"),
     ]);
+    const getName = (id: number) => channels.find((channel) => channel.id === id)?.name ?? `#${id}`;
     const channelIds = _.uniq(ruleGroups.flat().map((rule) => rule.channelId));
     const [scraped, comparable, priceDrops, channelCounts] = await Promise.all([
       this.activityCountService.getCount("ad_scraped", ...this.getLastHour()),
@@ -91,11 +93,8 @@ export class HourlyStatsCronService {
       scraped,
       comparable,
       minPrices,
-      priceDrops,
-      channels: channelIds.map((id, i) => {
-        const name = channels.find((channel) => channel.id === id)?.name ?? `#${id}`;
-        return { name, count: channelCounts[i] };
-      }),
+      priceDrop: { name: getName(priceDropChannelId), count: priceDrops },
+      channels: channelIds.map((id, i) => ({ name: getName(id), count: channelCounts[i] })),
     };
   }
 

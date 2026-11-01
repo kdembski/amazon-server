@@ -19,6 +19,7 @@ vi.mock("cron", () => ({
 const CHANNELS = [
   { id: 1, name: "outlier-50", token: "1/a", createdAt: new Date(), updatedAt: new Date() },
   { id: 2, name: "outlier-90", token: "2/b", createdAt: new Date(), updatedAt: new Date() },
+  { id: 7, name: "hist", token: "7/c", createdAt: new Date(), updatedAt: new Date() },
 ];
 const RULE_GROUPS = [
   [
@@ -105,7 +106,7 @@ describe("HourlyStatsCronService", () => {
         scraped: 5,
         comparable: 80,
         minPrices: 4,
-        priceDrops: 70,
+        priceDrop: { name: "hist", count: 70 },
         channels: [
           { name: "outlier-90", count: 20 },
           { name: "outlier-50", count: 10 },
@@ -129,6 +130,22 @@ describe("HourlyStatsCronService", () => {
       new Date(2026, 5, 1, 10, 58, 30, 0)
     );
     expect(sendHourly).toHaveBeenCalledWith(expect.any(Object), summaries);
+  });
+
+  it("names the price drop count after an unknown channel by its id", async () => {
+    const sendHourly = vi.fn();
+    const service = new HourlyStatsCronService(
+      { sendHourly } as unknown as DiscordLogService,
+      fakeBusinessLogService().service,
+      fakeScraperMetricService().service,
+      undefined,
+      fakeActivityCountService().service,
+      fakeSettingService({ "priceDrop.channelId": 12 }).service
+    );
+
+    await service.run();
+
+    expect(sendHourly.mock.calls[0][0].priceDrop).toEqual({ name: "#12", count: 0 });
   });
 
   it("uses the same summaries window when the clock is not exactly on the hour", async () => {
@@ -166,7 +183,7 @@ describe("HourlyStatsCronService", () => {
       scraped: 4,
       comparable: 4,
       minPrices: 4,
-      priceDrops: 4,
+      priceDrop: { name: "hist", count: 4 },
       channels: [
         { name: "outlier-90", count: 4 },
         { name: "outlier-50", count: 4 },

@@ -202,25 +202,20 @@ describe("AmazonAdService (MySQL)", () => {
       const price = (market: typeof pl, value: number) => {
         return { adId: ad.id, countryId: market.country.id, value, dispatchFrom: "Amazon" };
       };
-      const reported = () => {
-        return prisma.amazonCountryOutlierChannelReport.findMany({ orderBy: { channelId: "asc" } });
-      };
+      const reported = () => prisma.amazonCountryOutlierReport.findMany();
 
       // Two countries: no check. The third country makes 20 PLN (pl) an outlier at an unchanged price.
       await service.updatePrices(ad.id, [price(pl, 20), price(de, 30)]);
       await new Promise((resolve) => setTimeout(resolve, 300));
       await service.updatePrices(ad.id, [price(pl, 20), price(de, 30), price(se, 300)]);
-      await vi.waitFor(async () => expect(await reported()).toHaveLength(2));
+      await vi.waitFor(async () => expect(await reported()).toHaveLength(1));
       await service.updatePrices(ad.id, [price(pl, 20), price(de, 35), price(se, 300), price(gb, 60)]);
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       // 20 PLN vs the median 120 PLN: channels 2 and 4, sent once each.
       expect(conversion.send.mock.calls.map((c) => c[0]).sort()).toEqual([2, 4]);
-      const rows = await reported();
-      expect(rows.map((row) => [row.channelId, row.countryId, row.value.toNumber()])).toEqual([
-        [2, pl.country.id, 20],
-        [4, pl.country.id, 20],
-      ]);
+      expect((await reported())[0]).toMatchObject({ adId: ad.id, countryId: pl.country.id });
+      expect((await reported())[0].value.toNumber()).toBe(20);
     });
 
     it("ignores recent prices of countries missing from the scrape", async () => {

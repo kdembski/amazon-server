@@ -234,7 +234,7 @@ export function fakePrisma() {
     },
     scraperConfig: { upsert: vi.fn() },
     exclusionRuleFingerprint: { findUnique: vi.fn(), upsert: vi.fn() },
-    amazonCountryOutlierChannelReport: { findUnique: vi.fn(), upsert: vi.fn() },
+    amazonCountryOutlierReport: { findUnique: vi.fn(), upsert: vi.fn() },
     setting: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
     discordChannel: fakeDelegate(),
   };
