@@ -16,7 +16,7 @@ From the screenshot read: title, ASIN, the cheapest country and its price, the o
 1. **Amazon page.** Fetch the cheapest country's page (amazon.pl for Polska; other `tld` per country):
    ```bash
    S=<scratchpad>/deal
-   bash .claude/skills/exclusion-rules/amazon/fetch.sh "$S" "https://www.amazon.pl/dp/<ASIN>"
+   bash ~/Documents/projects/amazon-server/.claude/skills/exclusion-rules/amazon/fetch.sh "$S" "https://www.amazon.pl/dp/<ASIN>"
    ```
    Grep the HTML for: `productTitle`, `Marka:`, `a-offscreen` (current price), `ocen` (reviews), `kupion`
    (bought per month), `Sprzedawca`/`Wysyłka` (Amazon or a third-party seller). Check the pack size

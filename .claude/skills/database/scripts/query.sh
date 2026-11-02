@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: bash .claude/skills/database/scripts/query.sh [--raw] "<SQL>"   (or SQL on stdin)
+# Usage: bash ~/.claude/skills/database/scripts/query.sh [--raw] "<SQL>"   (or SQL on stdin)
 # Runs read-only queries on the production MySQL as `readonly`, through the SSH tunnel on 127.0.0.1:3308
 # (opened in the background with the `amazon-db` host of ~/.ssh/config when closed; 3307 is left to HeidiSQL).
 # --raw prints bare values, one row per line, tab-separated, without headers.

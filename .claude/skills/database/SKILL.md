@@ -10,8 +10,8 @@ Read-only access to the production MySQL 8 database `amazon` as the `readonly` u
 ## Running queries
 
 ```bash
-bash .claude/skills/database/scripts/query.sh "SELECT ..."
-bash .claude/skills/database/scripts/query.sh --raw "SELECT ..." > out.txt   # bare values, no headers
+bash ~/.claude/skills/database/scripts/query.sh "SELECT ..."
+bash ~/.claude/skills/database/scripts/query.sh --raw "SELECT ..." > out.txt   # bare values, no headers
 ```
 
 - Writes fail with `ERROR 1142`. Do not try them and do not look for other credentials; changes go to the user
@@ -25,7 +25,7 @@ bash .claude/skills/database/scripts/query.sh --raw "SELECT ..." > out.txt   # b
 
 ## Schema
 
-- Read `prisma/schema/*.prisma` before writing queries. Table names equal Prisma model names and are
+- Read `~/Documents/projects/amazon-server/prisma/schema/*.prisma` before writing queries. Table names equal Prisma model names and are
   case-sensitive (`AmazonAd`, not `amazonad`); column names equal field names.
 - `DESCRIBE <Table>;` or `SHOW INDEX FROM <Table>;` for the live structure.
 
