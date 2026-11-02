@@ -1,3 +1,18 @@
+---
+paths:
+  - "**/modules/anomalies/country-outlier/**"
+  - "**/modules/marketplaces/*/services/*CountryOutlier*"
+  - "**/modules/marketplaces/*/repositories/*CountryOutlier*"
+  - "**/modules/anomalies/*.ts"
+  - "**/modules/anomalies/interfaces/**"
+  - "**/modules/marketplaces/*/mappers/*ListingPriceMapper*"
+  - "**/modules/marketplaces/*/mappers/*RecentPriceMapper*"
+  - "**/modules/marketplaces/*/services/*AdService*"
+  - "**/modules/marketplaces/*/repositories/*AdPriceRepository*"
+  - "**/modules/settings/services/SettingValidator*"
+  - "**/modules/settings/interfaces/Settings.ts"
+---
+
 # Country outlier
 
 The same listing costs much less in one country than in the others once all prices are converted to PLN.
@@ -10,6 +25,10 @@ The same listing costs much less in one country than in the others once all pric
 3. Its `ListingPrice` mapper sets `scraped` for prices of countries in this scrape and `reportable` only for those the
    marketplace considers reportable (Amazon: `dispatchFrom === "Amazon"`).
 4. It calls `AnomalyManager` with its `CountryOutlierManager` and `PriceDropManager`; both get the same prices.
+   Keep `.claude/rules/anomalies/price-drop.md` in sync when changing this input.
+
+Check production with the `database` skill (`BusinessLog` types `country_outlier_sent`, `ad_scraped` — one row per
+minute, sum `data.count`).
 
 ## Settings
 

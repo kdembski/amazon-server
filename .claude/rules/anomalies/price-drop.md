@@ -1,12 +1,26 @@
+---
+paths:
+  - "**/modules/anomalies/price-drop/**"
+  - "**/modules/marketplaces/*/services/*PriceDrop*"
+  - "**/modules/anomalies/*.ts"
+  - "**/modules/anomalies/interfaces/**"
+  - "**/modules/marketplaces/*/mappers/*ListingPriceMapper*"
+  - "**/modules/marketplaces/*/mappers/*RecentPriceMapper*"
+  - "**/modules/marketplaces/*/services/*AdService*"
+  - "**/modules/marketplaces/*/repositories/*AdPriceRepository*"
+  - "**/modules/settings/services/SettingValidator*"
+  - "**/modules/settings/interfaces/Settings.ts"
+---
+
 # Price drop
 
 A country's price dropped sharply against its own recent prices, in that country's currency.
 
 ## Input (marketplace)
 
-The same as for country outliers (see [country-outlier.md](country-outlier.md#input-marketplace)): the 5 newest
-prices per country, newest first, `reportable` only for countries in this scrape that the marketplace considers
-reportable.
+The same as for country outliers (`.claude/rules/anomalies/country-outlier.md`; keep both in sync when changing the
+marketplace input): the 5 newest prices per country, newest first, `reportable` only for countries in this scrape that
+the marketplace considers reportable. Check production with the `database` skill (`BusinessLog` type `price_drop_sent`).
 
 ## Steps (`src/modules/anomalies/price-drop/`)
 
