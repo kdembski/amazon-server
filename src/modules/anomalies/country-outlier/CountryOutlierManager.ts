@@ -43,8 +43,8 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     const rules = await this.strategy.getMatchingRules(prices);
     if (!rules.length) return;
 
-    const cheapest = newestPrices.find(
-      (price) => price.country === prices[0].country
+    const [cheapest, previous] = countryPrices.find(
+      ([price]) => price.country === prices[0].country
     )!;
     const reported = await this.reporter.getReportedPrice(listing, cheapest);
     const channelIds = [...this.getChannels(rules)]
@@ -52,7 +52,7 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
       .map(([channelId]) => channelId);
     if (!channelIds.length) return;
 
-    const difference = reported && this.getDifference(cheapest.value, reported);
+    const difference = previous && this.getDifference(cheapest.value, previous.value);
     for (const channelId of channelIds) {
       await this.reporter.report(listing, prices, channelId, difference);
     }
@@ -75,9 +75,9 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     return reported.minus(value).gte(reported.times(dropSinceSentPercent / 100));
   }
 
-  private getDifference(value: Decimal, reported: Decimal) {
-    const reportedValue = reported.toNumber();
-    return Math.round(((value.toNumber() - reportedValue) * 100) / reportedValue);
+  private getDifference(value: Decimal, previous: Decimal) {
+    const previousValue = previous.toNumber();
+    return Math.round(((value.toNumber() - previousValue) * 100) / previousValue);
   }
 
   // Returns copies: the same price objects are passed to the other error managers.

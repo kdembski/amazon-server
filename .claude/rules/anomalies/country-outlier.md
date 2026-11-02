@@ -71,8 +71,9 @@ Production rule groups (the values in parentheses are the production values too)
    otherwise a channel goes on only when the newest price is at least its `dropSinceSentPercent` below the reported
    one. Without a remaining channel it stops. Changes of the other countries and of the previous scrape never pass it.
 8. For each remaining channel the marketplace's `CountryOutlierReporter.report` gets the listing, the sorted PLN
-   prices, the `channelId` and the change of the cheapest price against the reported one in percent (none for a
-   listing never reported; shown next to the cheapest price on Discord); it stores a `country_outlier_sent` event
+   prices, the `channelId` and the change of the cheapest price against the previous price of its country (the
+   second newest of the 5 loaded prices) in percent (none without a previous price; shown next to the cheapest price
+   on Discord); it stores a `country_outlier_sent` event
    (`data.channel` = `String(channelId)`) and posts to the channel's webhook through `DiscordChannelService.send` (a
    missing channel logs an error). Then `setReportedPrice` stores the cheapest price once, in its own currency
    (Amazon: `AmazonCountryOutlierReport`, one row per ad and country).
