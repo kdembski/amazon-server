@@ -28,12 +28,4 @@ export class SettingController {
       new ResponseErrorService(response).send(error);
     }
   }
-
-  async reset(request: Request<{ key: string }>, response: Response) {
-    try {
-      response.json(await this.service.reset(request.params.key));
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
-  }
 }

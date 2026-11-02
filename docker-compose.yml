@@ -3,7 +3,7 @@ services:
     image: mysql:8
     command: --innodb-buffer-pool-size=4G --slow-query-log=ON --long-query-time=2
     restart: unless-stopped
-    env_file: .env.production
+    env_file: .env
     ports:
       - "127.0.0.1:3307:3306"
     volumes:
@@ -22,7 +22,7 @@ services:
   app:
     build: .
     restart: unless-stopped
-    env_file: .env.production
+    env_file: .env
     depends_on:
       db:
         condition: service_healthy
@@ -34,7 +34,7 @@ services:
     build: .
     command: ["npm", "run", "worker"]
     restart: unless-stopped
-    env_file: .env.production
+    env_file: .env
     depends_on:
       db:
         condition: service_healthy

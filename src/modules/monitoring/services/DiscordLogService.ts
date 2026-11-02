@@ -43,9 +43,9 @@ export class DiscordLogService {
 
     fields.push({
       name: "Channels",
-      value: [
-        ...[...counts.channels, counts.priceDrop].map(({ name, count }) => `${name}: **${count}**`),
-      ].join(getSpacing(4)),
+      value: [...counts.channels, ...(counts.priceDrop ? [counts.priceDrop] : [])]
+        .map(({ name, count }) => `${name}: **${count}**`)
+        .join(getSpacing(4)),
     });
 
     if (summaries.length) {
@@ -78,8 +78,8 @@ export class DiscordLogService {
   async sendDaily(
     sectionFields: APIEmbedField[],
     scraped: number,
-    comparable: number,
-    minPrices: number
+    comparable?: number,
+    minPrices?: number
   ) {
     const disk = await this.systemService.getDiskSpace();
     const fields: APIEmbedField[] = [...sectionFields];
@@ -100,11 +100,12 @@ export class DiscordLogService {
     return this.send({ embeds: [embed] });
   }
 
-  private getScrapedDescription(scraped: number, comparable: number, minPrices: number) {
-    return [
-      `Scraped: **${addSeparators(scraped)}**`,
-      `${minPrices}+ prices: **${addSeparators(comparable)}**`,
-    ].join(getSpacing(4));
+  private getScrapedDescription(scraped: number, comparable?: number, minPrices?: number) {
+    const parts = [`Scraped: **${addSeparators(scraped)}**`];
+    if (minPrices !== undefined) {
+      parts.push(`${minPrices}+ prices: **${addSeparators(comparable ?? 0)}**`);
+    }
+    return parts.join(getSpacing(4));
   }
 
   private getSpeedIcon(speed: number) {

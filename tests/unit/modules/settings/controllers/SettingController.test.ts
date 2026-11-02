@@ -20,6 +20,17 @@ describe("SettingController", () => {
     expect(json).toHaveBeenCalledWith([{ key: "a" }]);
   });
 
+  it("getAll sends the error status", async () => {
+    const { controller, getAll } = setup();
+    getAll.mockRejectedValue(invalid());
+    const { response, status, send } = fakeResponse();
+
+    await controller.getAll(response);
+
+    expect(status).toHaveBeenCalledWith(400);
+    expect(send).toHaveBeenCalledWith("bad");
+  });
+
   it("set passes the key and the value of the body", async () => {
     const { controller, set } = setup();
     set.mockResolvedValue({ key: "priceDrop.dropPercent", value: 40 });
@@ -43,28 +54,5 @@ describe("SettingController", () => {
 
     expect(set).toHaveBeenCalledWith("priceDrop.dropPercent", undefined);
     expect(status).toHaveBeenCalledWith(400);
-  });
-
-  it("reset answers the default", async () => {
-    const { controller, reset } = setup();
-    reset.mockResolvedValue({ key: "priceDrop.dropPercent", value: 50 });
-    const { response, json } = fakeResponse();
-
-    await controller.reset(fakeRequest({ params: { key: "priceDrop.dropPercent" } }), response);
-
-    expect(reset).toHaveBeenCalledWith("priceDrop.dropPercent");
-    expect(json).toHaveBeenCalledWith({ key: "priceDrop.dropPercent", value: 50 });
-  });
-
-  it.each(["getAll", "reset"] as const)("%s sends the error status", async (method) => {
-    const fake = setup();
-    fake[method].mockRejectedValue(invalid());
-    const { response, status, send } = fakeResponse();
-
-    if (method === "getAll") await fake.controller.getAll(response);
-    else await fake.controller.reset(fakeRequest({ params: { key: "x" } }), response);
-
-    expect(status).toHaveBeenCalledWith(400);
-    expect(send).toHaveBeenCalledWith("bad");
   });
 });

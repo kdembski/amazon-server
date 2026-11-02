@@ -28,7 +28,8 @@ const rule = (channelId: number, dropSinceSentPercent = 10): Rule => ({
 const setup = (
   rules: Rule[] = [rule(1), rule(4)],
   reported?: number,
-  minPrices = 3
+  // null: no minPrices setting
+  minPrices: number | null = 3
 ) => {
   const reporter = fakeReporter(reported);
   const getPlnRates = vi.fn().mockResolvedValue([]);
@@ -38,7 +39,7 @@ const setup = (
     { getPlnRates } as unknown as CurrencyExchangeRateService,
     { getMatchingRules } as unknown as CountryOutlierStrategy,
     fakeSystemLogService().service,
-    fakeSettingService({ "countryOutlier.minPrices": minPrices }).service
+    fakeSettingService({ "countryOutlier.minPrices": minPrices ?? undefined }).service
   );
   return {
     manager,
@@ -78,6 +79,14 @@ describe("CountryOutlierManager", () => {
     await manager.check(listing, fourCountries());
 
     expect(getMatchingRules).not.toHaveBeenCalled();
+  });
+
+  it("does nothing without the minPrices setting", async () => {
+    const { manager, getPlnRates, listing } = setup(undefined, undefined, null);
+
+    await manager.check(listing, fourCountries());
+
+    expect(getPlnRates).not.toHaveBeenCalled();
   });
 
   it("ignores countries missing from the scrape", async () => {
@@ -263,7 +272,7 @@ describe("CountryOutlierManager", () => {
 
     await manager.check(listing, [history(300), history(94), history(400), history(500)]);
 
-    expect(reporter.report.mock.calls.map((call) => [call[2], call[3]])).toEqual([[1, -6]]);
+    expect(reporter.report.mock.calls.map((call) => call[2])).toEqual([1]);
     expect(reporter.setReportedPrice).toHaveBeenCalledTimes(1);
   });
 
@@ -291,23 +300,23 @@ describe("CountryOutlierManager", () => {
     expect(reporter.setReportedPrice).not.toHaveBeenCalled();
   });
 
-  it("passes the drop of the cheapest price since the last report in percent", async () => {
+  it("passes the change of the cheapest price since its previous price in percent", async () => {
     const { manager, reporter, listing } = setup([rule(1)], 100);
 
     await manager.check(listing, [
       history(300, 300),
-      history(60, 60),
+      history(60, 75),
       history(400, 400),
       history(500, 500),
     ]);
 
-    expect(reporter.report.mock.calls[0][3]).toBe(-40);
+    expect(reporter.report.mock.calls[0][3]).toBe(-20);
   });
 
-  it("passes no drop for a listing never reported before", async () => {
-    const { manager, reporter, listing } = setup([rule(1)]);
+  it("passes no change for a cheapest price without a previous one", async () => {
+    const { manager, reporter, listing } = setup([rule(1)], 100);
 
-    await manager.check(listing, [history(300), history(60, 100), history(400), history(500)]);
+    await manager.check(listing, [history(300, 300), history(60), history(400), history(500)]);
 
     expect(reporter.report.mock.calls[0][3]).toBeUndefined();
   });

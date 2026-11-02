@@ -42,12 +42,9 @@ export class DailyStatsCronService {
     const minPrices = await this.settingService.get("countryOutlier.minPrices");
     const [scraped, comparable] = await Promise.all([
       this.activityCountService.getCount("ad_scraped", dayBefore, now),
-      this.activityCountService.getCountWithMinPrices(
-        "ad_scraped",
-        minPrices,
-        dayBefore,
-        now
-      ),
+      minPrices === undefined
+        ? undefined
+        : this.activityCountService.getCountWithMinPrices("ad_scraped", minPrices, dayBefore, now),
     ]);
 
     await this.discordService.sendDaily(fields, scraped, comparable, minPrices);

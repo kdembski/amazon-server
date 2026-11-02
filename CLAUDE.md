@@ -77,10 +77,11 @@ npm run test:integration  # tests/integration, needs a running Docker
   (4) `create<Name>Module()` returning `MarketplaceModule`, added to `marketplaces` in `src/modules.ts`.
 - Anomaly detectors work on `ListingPrice` only; each marketplace passes its reporters to the managers. Rule matching goes through `ExclusionRuleTarget`; the daily Discord report gets its
   sections through `DailyReportSection`.
-- Settings: read every anomaly parameter through `SettingService.get(key)` (`Setting` table, JSON `value`; a missing
-  row uses `SETTING_DEFAULTS` in `src/modules/settings/services/SettingDefaults.ts`; cached 60 s per process). Add a
-  key to `Settings`, `SETTING_DEFAULTS` and `SettingValidator`. Change them only through `GET /settings`,
-  `PUT /settings/:key` (`{ value }`, invalid → 400) and `DELETE /settings/:key` (back to the default). Anomaly
+- Settings: read every anomaly parameter through `SettingService.get(key)` (`Setting` table, JSON `value`, the only source,
+  no defaults in code; cached 60 s per process). A missing row makes `get` return `undefined`: the caller skips its
+  work and `SettingService` logs one error per key a minute. Add a key to `Settings` and `SETTING_KEYS`/`validate` in
+  `SettingValidator`, and insert its row in production. Change them only through `GET /settings` and
+  `PUT /settings/:key` (`{ value }`, invalid → 400). Anomaly
   Discord channels are `DiscordChannel` rows (`id`, `name`, `token` = webhook URL part `<id>/<token>`), changed through
   `GET|POST /discord-channels` and `PUT|DELETE /discord-channels/:id` (tokens masked in responses and logs; deleting a
   channel a setting uses → 422); settings refer to them by `channelId`. The hourly/daily reports and other log

@@ -145,6 +145,38 @@ describe("DiscordLogService.sendHourly", () => {
   });
 });
 
+describe("DiscordLogService without settings", () => {
+  it("omits the price count and the price drop line", async () => {
+    const { service, lastEmbed } = setup();
+
+    await service.sendHourly(
+      { scraped: 5, channels: [{ name: "50%", count: 1 }] },
+      []
+    );
+    await service.sendDaily([], 9);
+
+    const daily = lastEmbed();
+    expect(daily.description).toBe("Scraped: **9**");
+  });
+
+  it("renders the hourly embed without a price drop line", async () => {
+    const { service, lastEmbed } = setup();
+
+    await service.sendHourly({ scraped: 5, channels: [{ name: "50%", count: 1 }] }, []);
+
+    expect(lastEmbed().description).toBe("Scraped: **5**");
+    expect(lastEmbed().fields[0].value).toBe("50%: **1**");
+  });
+
+  it("shows 0 for a missing comparable count", async () => {
+    const { service, lastEmbed } = setup();
+
+    await service.sendDaily([], 9, undefined, 3);
+
+    expect(lastEmbed().description).toBe(["Scraped: **9**", "3+ prices: **0**"].join(SP4));
+  });
+});
+
 describe("DiscordLogService.sendDaily", () => {
   const sectionFields = [
     { name: "Collected asins", value: "a" },

@@ -2,10 +2,12 @@ import { BusinessLogType } from "@prisma/client";
 
 export interface HourlyReportCounts {
   scraped: number;
-  comparable: number;
-  minPrices: number;
+  // without the countryOutlier.minPrices setting
+  comparable?: number;
+  minPrices?: number;
   channels: { name: string; count: number }[];
-  priceDrop: { name: string; count: number };
+  // without the priceDrop.channelId setting
+  priceDrop?: { name: string; count: number };
 }
 
 export interface TimePoint {
@@ -23,6 +25,10 @@ export interface ActivityStatsDto {
   series: ActivitySeries[];
   totals: Record<BusinessLogType, number>;
   previousTotals: Record<BusinessLogType, number>;
+  // ad_scraped events with prices from at least minPrices countries; without the countryOutlier.minPrices setting
+  comparable?: { minPrices: number; total: number; previousTotal: number };
+  // Discord channel names by the channel of a series
+  channelNames: Record<string, string>;
 }
 
 export type LogLevelCounts = { error: number; warn: number };

@@ -7,7 +7,7 @@ import { fakeSettingService } from "../../../../support/fakes";
 const prices = (...values: number[]) =>
   values.map((value) => buildListingPrice({ value }));
 
-const strategy = (values: Partial<Settings> = {}) =>
+const strategy = (values: { [K in keyof Settings]?: Settings[K] | undefined } = {}) =>
   new CountryOutlierStrategy(fakeSettingService(values).service);
 
 const matchedChannels = async (values: number[], settings: Partial<Settings> = {}) => {
@@ -60,6 +60,14 @@ describe("CountryOutlierStrategy", () => {
 
     expect(rules.map((rule) => rule.dropSinceSentPercent)).toEqual([5, 15]);
   });
+
+  it.each(["countryOutlier.ruleGroups", "countryOutlier.dropSinceSentPercent"] as const)(
+    "matches nothing without the %s setting",
+    async (key) => {
+      const rules = await strategy({ [key]: undefined }).getMatchingRules(prices(9, 100, 120));
+      expect(rules).toEqual([]);
+    }
+  );
 
   it("matches nothing without rule groups", async () => {
     expect(await matchedChannels([9, 100, 120], { "countryOutlier.ruleGroups": [] })).toEqual([]);

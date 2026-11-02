@@ -1,9 +1,17 @@
-import { SETTING_DEFAULTS } from "@/modules/settings/services/SettingDefaults";
 import {
   CountryOutlierRuleSetting,
   SettingKey,
   Settings,
 } from "@/modules/settings/interfaces/Settings";
+
+export const SETTING_KEYS: SettingKey[] = [
+  "countryOutlier.minPrices",
+  "countryOutlier.dropSinceSentPercent",
+  "countryOutlier.ruleGroups",
+  "priceDrop.dropPercent",
+  "priceDrop.channelId",
+  "reports.channelId",
+];
 
 const RULE_FIELDS = [
   "channelId",
@@ -17,7 +25,7 @@ const invalid = (message: string) => Object.assign(new Error(message), { status:
 
 export class SettingValidator {
   validateKey(key: string): SettingKey {
-    if (!Object.prototype.hasOwnProperty.call(SETTING_DEFAULTS, key)) {
+    if (!SETTING_KEYS.includes(key as SettingKey)) {
       throw invalid(`Unknown setting "${key}"`);
     }
     return key as SettingKey;

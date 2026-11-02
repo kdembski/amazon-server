@@ -66,6 +66,24 @@ describe("DailyStatsCronService", () => {
     expect(vi.mocked(CronJob).mock.results[0].value.start).toHaveBeenCalled();
   });
 
+  it("skips the price count without the minPrices setting", async () => {
+    const sendDaily = vi.fn();
+    const counter = fakeActivityCountService();
+    counter.getCount.mockResolvedValue(9);
+    const service = new DailyStatsCronService(
+      [],
+      { sendDaily } as unknown as DiscordLogService,
+      counter.service,
+      undefined,
+      fakeSettingService({ "countryOutlier.minPrices": undefined }).service
+    );
+
+    await service.run();
+
+    expect(counter.getCountWithMinPrices).not.toHaveBeenCalled();
+    expect(sendDaily).toHaveBeenCalledWith([], 9, undefined, undefined);
+  });
+
   it("collects every section field for the last 24h and sends them with the scraped count", async () => {
     const { service, sendDaily, getField1, getField2, field1, field2, log } =
       setup();

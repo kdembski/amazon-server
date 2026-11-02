@@ -4,9 +4,10 @@ import { PriceDropEvaluator } from "@/modules/anomalies/price-drop/PriceDropEval
 import { buildListingPrice } from "../../../../support/factories";
 import { fakeSettingService } from "../../../../support/fakes";
 
-const setup = (dropPercent = 50) => {
+// null: no dropPercent setting
+const setup = (dropPercent: number | null = 50) => {
   const reporter = { report: vi.fn().mockResolvedValue(undefined) };
-  const settings = fakeSettingService({ "priceDrop.dropPercent": dropPercent });
+  const settings = fakeSettingService({ "priceDrop.dropPercent": dropPercent ?? undefined });
   const manager = new PriceDropManager(reporter, new PriceDropEvaluator(), settings.service);
   return { manager, reporter, listing: { id: 1 } };
 };
@@ -29,6 +30,14 @@ describe("PriceDropManager", () => {
     const { manager, reporter, listing } = setup();
 
     await manager.check(listing, [history(51, 100)]);
+
+    expect(reporter.report).not.toHaveBeenCalled();
+  });
+
+  it("does nothing without the dropPercent setting", async () => {
+    const { manager, reporter, listing } = setup(null);
+
+    await manager.check(listing, [history(10, 100)]);
 
     expect(reporter.report).not.toHaveBeenCalled();
   });

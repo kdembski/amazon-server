@@ -21,6 +21,7 @@ export class PriceDropManager<T> implements AnomalyManagerI<T> {
 
   async check(listing: T, countryPrices: ListingPrice[][]) {
     const dropPercent = await this.settingService.get("priceDrop.dropPercent");
+    if (dropPercent === undefined) return;
     const countryPricesToSend = countryPrices.filter(
       (prices) =>
         this.evaluator.isOverPercentageDifference(prices, dropPercent) &&

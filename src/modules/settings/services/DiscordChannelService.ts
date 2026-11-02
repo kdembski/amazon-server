@@ -87,11 +87,14 @@ export class DiscordChannelService {
   }
 
   // Does not wait for Discord: DiscordService retries in the background.
+  // Without a channel id (missing setting) nothing is sent; SettingService logs the missing setting.
   async send(
-    channelId: number,
+    channelId: number | undefined,
     options: string | MessagePayload | WebhookMessageCreateOptions,
     context: Record<string, unknown> = {}
   ) {
+    if (channelId === undefined) return;
+
     const channels = await this.settingService.getChannels();
     const channel = channels.find((channel) => channel.id === channelId);
     if (!channel) {
@@ -120,7 +123,7 @@ export class DiscordChannelService {
     return settings
       .filter(({ key, value }) => {
         if (key.endsWith(".channelId")) return value === id;
-        if (key === "countryOutlier.ruleGroups") {
+        if (key === "countryOutlier.ruleGroups" && value) {
           return (value as { channelId: number }[][]).some((group) =>
             group.some((rule) => rule.channelId === id)
           );

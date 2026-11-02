@@ -1,3 +1,18 @@
+---
+paths:
+  - "**/modules/anomalies/country-outlier/**"
+  - "**/modules/marketplaces/*/services/*CountryOutlier*"
+  - "**/modules/marketplaces/*/repositories/*CountryOutlier*"
+  - "**/modules/anomalies/*.ts"
+  - "**/modules/anomalies/interfaces/**"
+  - "**/modules/marketplaces/*/mappers/*ListingPriceMapper*"
+  - "**/modules/marketplaces/*/mappers/*RecentPriceMapper*"
+  - "**/modules/marketplaces/*/services/*AdService*"
+  - "**/modules/marketplaces/*/repositories/*AdPriceRepository*"
+  - "**/modules/settings/services/SettingValidator*"
+  - "**/modules/settings/interfaces/Settings.ts"
+---
+
 # Country outlier
 
 The same listing costs much less in one country than in the others once all prices are converted to PLN.
@@ -10,18 +25,22 @@ The same listing costs much less in one country than in the others once all pric
 3. Its `ListingPrice` mapper sets `scraped` for prices of countries in this scrape and `reportable` only for those the
    marketplace considers reportable (Amazon: `dispatchFrom === "Amazon"`).
 4. It calls `AnomalyManager` with its `CountryOutlierManager` and `PriceDropManager`; both get the same prices.
+   Keep `.claude/rules/anomalies/price-drop.md` in sync when changing this input.
+
+Check production with the `database` skill (`BusinessLog` types `country_outlier_sent`, `ad_scraped` — one row per
+minute, sum `data.count`).
 
 ## Settings
 
-Every parameter is a row of `Setting` (`src/modules/settings`), changed through `PUT|DELETE /settings/:key`; a key
-without a row uses `SETTING_DEFAULTS`. Channels are `DiscordChannel` rows (`id`, `name`, webhook `token`), changed
+Every parameter is a row of `Setting` (`src/modules/settings`), changed through `PUT /settings/:key`; without its
+row a detector skips its work (no defaults in code). Channels are `DiscordChannel` rows (`id`, `name`, webhook `token`), changed
 through `/discord-channels`. `SettingService` caches both for 60 s per process.
 
 - `countryOutlier.minPrices` (3): minimum number of countries in the scrape.
 - `countryOutlier.ruleGroups`: groups of rules `{ channelId, belowMedianPercent, minPln?, maxPln?, dropSinceSentPercent? }`.
 - `countryOutlier.dropSinceSentPercent` (10): `dropSinceSentPercent` of rules without one.
 
-Default rule groups:
+Production rule groups (the values in parentheses are the production values too):
 
 | Group | Rule | Channel |
 |---|---|---|
@@ -52,8 +71,9 @@ Default rule groups:
    otherwise a channel goes on only when the newest price is at least its `dropSinceSentPercent` below the reported
    one. Without a remaining channel it stops. Changes of the other countries and of the previous scrape never pass it.
 8. For each remaining channel the marketplace's `CountryOutlierReporter.report` gets the listing, the sorted PLN
-   prices, the `channelId` and the change of the cheapest price against the reported one in percent (none for a
-   listing never reported; shown next to the cheapest price on Discord); it stores a `country_outlier_sent` event
+   prices, the `channelId` and the change of the cheapest price against the previous price of its country (the
+   second newest of the 5 loaded prices) in percent (none without a previous price; shown next to the cheapest price
+   on Discord); it stores a `country_outlier_sent` event
    (`data.channel` = `String(channelId)`) and posts to the channel's webhook through `DiscordChannelService.send` (a
    missing channel logs an error). Then `setReportedPrice` stores the cheapest price once, in its own currency
    (Amazon: `AmazonCountryOutlierReport`, one row per ad and country).

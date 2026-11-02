@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { SettingValidator } from "@/modules/settings/services/SettingValidator";
+import { SETTING_KEYS, SettingValidator } from "@/modules/settings/services/SettingValidator";
+import { TEST_SETTINGS } from "../../../../support/factories";
 
 const validator = new SettingValidator();
 const CHANNELS = [1, 2, 3];
@@ -28,6 +29,10 @@ describe("SettingValidator.validateKey", () => {
 });
 
 describe("SettingValidator.validate", () => {
+  it.each(SETTING_KEYS)("accepts the production value of %s", (key) => {
+    expect(validator.validate(key, TEST_SETTINGS[key], [1, 2, 3, 4, 5, 6, 7, 8])).toEqual(TEST_SETTINGS[key]);
+  });
+
   it.each([2, 5])("accepts minPrices %s", (value) => {
     expect(validator.validate("countryOutlier.minPrices", value, CHANNELS)).toBe(value);
   });

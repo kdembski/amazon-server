@@ -4,8 +4,8 @@ import { SettingController } from "@/modules/settings/controllers/SettingControl
 import { fakeRouter, routeTable } from "../../../../support/fakes";
 
 describe("SettingRouter", () => {
-  it("is mounted at /settings and registers the list, set and reset routes", () => {
-    const controller = { getAll: vi.fn(), set: vi.fn(), reset: vi.fn() };
+  it("is mounted at /settings and registers the list and set routes", () => {
+    const controller = { getAll: vi.fn(), set: vi.fn() };
     const { router, calls } = fakeRouter();
     const settingRouter = new SettingRouter(controller as unknown as SettingController, router);
 
@@ -14,14 +14,11 @@ describe("SettingRouter", () => {
     expect(routeTable(calls)).toEqual([
       ["get", "/"],
       ["put", "/:key"],
-      ["delete", "/:key"],
     ]);
 
     (calls[0].handler as Function)("req", "res");
     expect(controller.getAll).toHaveBeenCalledWith("res");
     (calls[1].handler as Function)("req", "res");
     expect(controller.set).toHaveBeenCalledWith("req", "res");
-    (calls[2].handler as Function)("req", "res");
-    expect(controller.reset).toHaveBeenCalledWith("req", "res");
   });
 });

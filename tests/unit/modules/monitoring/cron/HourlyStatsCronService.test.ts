@@ -132,6 +132,38 @@ describe("HourlyStatsCronService", () => {
     expect(sendHourly).toHaveBeenCalledWith(expect.any(Object), summaries);
   });
 
+  it("sends only the scraped count without settings", async () => {
+    const sendHourly = vi.fn();
+    const counter = fakeActivityCountService();
+    counter.getCount.mockResolvedValue(5);
+    const service = new HourlyStatsCronService(
+      { sendHourly } as unknown as DiscordLogService,
+      fakeBusinessLogService().service,
+      fakeScraperMetricService().service,
+      undefined,
+      counter.service,
+      fakeSettingService({
+        "countryOutlier.ruleGroups": undefined,
+        "countryOutlier.minPrices": undefined,
+        "priceDrop.channelId": undefined,
+      }).service
+    );
+
+    await service.run();
+
+    expect(counter.getCountWithMinPrices).not.toHaveBeenCalled();
+    expect(sendHourly).toHaveBeenCalledWith(
+      {
+        scraped: 5,
+        comparable: undefined,
+        minPrices: undefined,
+        priceDrop: undefined,
+        channels: [],
+      },
+      []
+    );
+  });
+
   it("names the price drop count after an unknown channel by its id", async () => {
     const sendHourly = vi.fn();
     const service = new HourlyStatsCronService(
