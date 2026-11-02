@@ -29,6 +29,8 @@ From the screenshot read: title, ASIN, the cheapest country and its price, the o
 3. **Links.** Give the `allegro.pl/produkt/...` or `allegro.pl/oferta/...` URLs from the results. Without
    them, give the listing sorted by price:
    `https://allegro.pl/listing?string=<brand+keywords>&order=p` and say the price comes from search snippets.
+   Every `allegro.pl/listing` or `allegro.pl/kategoria` link, also under Sources, ends with `&order=p`
+   (cheapest first); replace an existing `order=` value.
 4. **Calculation** (PLN, per unit):
    - cost = Amazon price + delivery to you (free over the Prime/free-shipping threshold).
    - revenue = lowest Allegro price of the same product × (1 − commission) − delivery paid by the seller.
