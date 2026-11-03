@@ -216,3 +216,14 @@ export async function seedMarket(options: {
         });
   return { pln, currency, country, rate };
 }
+
+export async function seedAdMissing(
+  overrides: Partial<Prisma.AmazonAdMissingUncheckedCreateInput> = {}
+) {
+  const adId = overrides.adId ?? (await seedAd()).id;
+  const countryId =
+    overrides.countryId ?? (await seedAmazonCountry()).countryId;
+  return prisma.amazonAdMissing.create({
+    data: { createdAt: new Date(), ...overrides, adId, countryId },
+  });
+}

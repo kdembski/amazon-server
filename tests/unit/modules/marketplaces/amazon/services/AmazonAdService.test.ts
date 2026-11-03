@@ -10,6 +10,7 @@ import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mapper
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
 import { ConcurrencyQueue } from "@/shared/utils/ConcurrencyQueue";
+import { AmazonAdMissingService } from "@/modules/marketplaces/amazon/services/AmazonAdMissingService";
 import {
   buildAd,
   buildListingPrice,
@@ -50,6 +51,10 @@ const setup = (anomalyCheckQueue?: ConcurrencyQueue) => {
   const anomalyManager = { check: vi.fn() };
   const listingPrices = [[buildListingPrice()]];
   const priceMapper = { map: vi.fn().mockReturnValue(listingPrices) };
+  const missingService = {
+    store: vi.fn().mockResolvedValue(0),
+    getCountryIdsByAd: vi.fn().mockResolvedValue({}),
+  };
 
   const service = new AmazonAdService(
     repository as unknown as AmazonAdRepository,
@@ -64,7 +69,8 @@ const setup = (anomalyCheckQueue?: ConcurrencyQueue) => {
     undefined,
     undefined,
     undefined,
-    anomalyCheckQueue
+    anomalyCheckQueue,
+    missingService as unknown as AmazonAdMissingService
   );
 
   return {
@@ -75,6 +81,7 @@ const setup = (anomalyCheckQueue?: ConcurrencyQueue) => {
     anomalyManager,
     priceMapper,
     listingPrices,
+    missingService,
   };
 };
 
@@ -253,6 +260,46 @@ describe("AmazonAdService.applyBatch", () => {
       { adIds: [2, 3] }
     );
     await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalledTimes(1));
+  });
+
+  it("stores the missing countries of the ads found in the database", async () => {
+    const { service, missingService } = setupBatch([1, 2]);
+
+    await service.applyBatch({
+      prices: [
+        { id: 1, prices: [price(1)], missingCountryIds: [3, 4] },
+        { id: 2, prices: [] },
+        { id: 5, prices: [], missingCountryIds: [3] },
+      ],
+      deleted: [],
+    });
+
+    expect(missingService.store).toHaveBeenCalledWith([
+      { id: 1, countryIds: [3, 4] },
+      { id: 2, countryIds: [] },
+    ]);
+  });
+
+  it("logs a failed store of missing countries and still applies the batch", async () => {
+    const { service, missingService, counter } = setupBatch([1, 2]);
+    const error = new Error("FK");
+    missingService.store.mockRejectedValue(error);
+
+    const result = await service.applyBatch({
+      prices: [
+        { id: 1, prices: [price(1)], missingCountryIds: [3] },
+        { id: 2, prices: [price(2)] },
+      ],
+      deleted: [],
+    });
+
+    expect(result).toEqual({ prices: 2, deleted: 0 });
+    expect(counter.increment).toHaveBeenCalledTimes(2);
+    expect(unitLogger().error).toHaveBeenCalledWith(
+      "AmazonAdService",
+      "Storing the missing countries of ads failed",
+      { error, adIds: [1] }
+    );
   });
 
   it("warns once per batch when every price was stored one by one", async () => {
@@ -493,19 +540,24 @@ describe("AmazonAdService.getForScraping", () => {
     (AmazonAdService as unknown as { isGetting: boolean }).isGetting = false;
   });
 
-  it("fetches matching ads and bumps scrapedAt", async () => {
-    const { service, repository } = setup();
+  it("fetches matching ads, bumps scrapedAt and adds the countries to skip", async () => {
+    const { service, repository, missingService } = setup();
     const ads: ScrapAd[] = [
       { id: 10, asin: "A", name: "Drill" },
       { id: 11, asin: "B", name: "Saw" },
     ];
     repository.getForScraping.mockResolvedValue(ads);
+    missingService.getCountryIdsByAd.mockResolvedValue({ 10: [3, 4] });
 
     const result = await service.getForScraping(2);
 
     expect(repository.getForScraping).toHaveBeenCalledWith(2);
     expect(repository.updateScrapedAt).toHaveBeenCalledWith([10, 11]);
-    expect(result).toBe(ads);
+    expect(missingService.getCountryIdsByAd).toHaveBeenCalledWith([10, 11]);
+    expect(result).toEqual([
+      { id: 10, asin: "A", name: "Drill", skipCountryIds: [3, 4] },
+      { id: 11, asin: "B", name: "Saw", skipCountryIds: [] },
+    ]);
   });
 
   it("delays a concurrent call by one second while another is in flight", async () => {

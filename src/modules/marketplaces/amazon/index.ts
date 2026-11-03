@@ -7,6 +7,7 @@ import { AmazonExclusionRuleRouter } from "@/modules/marketplaces/amazon/routes/
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
 import { AmazonAdDailyReportSection } from "@/modules/marketplaces/amazon/services/AmazonAdDailyReportSection";
 import { AmazonAdPriceCleanupCronService } from "@/modules/marketplaces/amazon/cron/AmazonAdPriceCleanupCronService";
+import { AmazonAdMissingCleanupCronService } from "@/modules/marketplaces/amazon/cron/AmazonAdMissingCleanupCronService";
 
 export function createAmazonModule(): MarketplaceModule {
   return {
@@ -17,7 +18,7 @@ export function createAmazonModule(): MarketplaceModule {
       new AmazonExclusionRuleRouter(),
       new AmazonCountryRouter(),
     ],
-    workerCrons: [new AmazonAdPriceCleanupCronService()],
+    workerCrons: [new AmazonAdPriceCleanupCronService(), new AmazonAdMissingCleanupCronService()],
     exclusionRuleTarget: new AmazonAdRepository(),
     dailyReportSection: new AmazonAdDailyReportSection(),
   };

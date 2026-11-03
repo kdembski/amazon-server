@@ -9,6 +9,7 @@ import { AmazonExclusionRuleUpdateMapper } from "@/modules/marketplaces/amazon/m
 import { AmazonAdCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdCreateMapper";
 import { AmazonAdUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdUpdateMapper";
 import { AmazonAdPriceCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdPriceCreateMapper";
+import { AmazonAdMissingCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdMissingCreateMapper";
 import { AmazonAdPriceUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdPriceUpdateMapper";
 import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingPriceMapper";
 import { AmazonAdRecentPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdRecentPriceMapper";
@@ -143,6 +144,12 @@ describe("create mappers", () => {
         createdAt: NOW,
         updatedAt: NOW,
       },
+    },
+    {
+      name: "AmazonAdMissingCreateMapper",
+      map: (dto: any) => new AmazonAdMissingCreateMapper().toCreateManyInput(dto.adId, dto.countryId),
+      dto: { adId: 3, countryId: 4 },
+      expected: { adId: 3, countryId: 4, createdAt: NOW },
     },
     {
       name: "AmazonCountryCreateMapper",
