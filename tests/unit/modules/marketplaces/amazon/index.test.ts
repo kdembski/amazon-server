@@ -3,6 +3,7 @@ import { createAmazonModule } from "@/modules/marketplaces/amazon";
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
 import { AmazonAdDailyReportSection } from "@/modules/marketplaces/amazon/services/AmazonAdDailyReportSection";
 import { AmazonAdPriceCleanupCronService } from "@/modules/marketplaces/amazon/cron/AmazonAdPriceCleanupCronService";
+import { AmazonAdMissingCleanupCronService } from "@/modules/marketplaces/amazon/cron/AmazonAdMissingCleanupCronService";
 
 vi.mock("@/modules/marketplaces/amazon/routes/AmazonAdCategoryRouter", () => ({
   AmazonAdCategoryRouter: vi.fn(function () {
@@ -45,6 +46,12 @@ vi.mock("@/modules/marketplaces/amazon/cron/AmazonAdPriceCleanupCronService", ()
   }),
 }));
 
+vi.mock("@/modules/marketplaces/amazon/cron/AmazonAdMissingCleanupCronService", () => ({
+  AmazonAdMissingCleanupCronService: vi.fn(function () {
+    return { id: "missing-cleanup" };
+  }),
+}));
+
 describe("createAmazonModule", () => {
   it("mounts the category, ad, price, exclusion rule and country routers in order", () => {
     const module = createAmazonModule();
@@ -58,11 +65,12 @@ describe("createAmazonModule", () => {
     ]);
   });
 
-  it("schedules the price cleanup", () => {
+  it("schedules the price and missing country cleanups", () => {
     const module = createAmazonModule();
 
     expect(module.workerCrons).toEqual([
       vi.mocked(AmazonAdPriceCleanupCronService).mock.results.at(-1)!.value,
+      vi.mocked(AmazonAdMissingCleanupCronService).mock.results.at(-1)!.value,
     ]);
   });
 

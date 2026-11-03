@@ -15,7 +15,7 @@ export interface AmazonAdUpdateDto {
 }
 
 export interface AmazonAdBatchDto {
-  prices: { id: number; prices: AmazonAdPriceCreateDto[] }[];
+  prices: { id: number; prices: AmazonAdPriceCreateDto[]; missingCountryIds?: number[] }[];
   deleted: number[];
 }
 

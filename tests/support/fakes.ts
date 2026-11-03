@@ -213,6 +213,7 @@ export function fakePrisma() {
   const delegates = {
     amazonAd: fakeDelegate(),
     amazonAdPrice: fakeDelegate(),
+    amazonAdMissing: fakeDelegate(),
     amazonAdCategory: fakeDelegate(),
     amazonCountry: fakeDelegate(),
     country: fakeDelegate(),

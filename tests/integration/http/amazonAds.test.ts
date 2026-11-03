@@ -9,6 +9,7 @@ import { messagesSentToToken } from "../../support/integration/discordInbox";
 import {
   discordChannelToken,
   seedAd,
+  seedAdMissing,
   seedCategory,
   seedAmazonCountry,
   seedPrice,
@@ -31,8 +32,8 @@ describe("GET /amazon/ads/scrap", () => {
     const res = await request(app).get("/amazon/ads/scrap?batchSize=2").expect(200);
 
     expect(res.body).toEqual([
-      { id: never.id, asin: never.asin, name: never.name },
-      { id: older.id, asin: older.asin, name: older.name },
+      { id: never.id, asin: never.asin, name: never.name, skipCountryIds: [] },
+      { id: older.id, asin: older.asin, name: older.name, skipCountryIds: [] },
     ]);
     const rows = await prisma.amazonAd.findMany({ orderBy: { id: "asc" } });
     expect(rows.map((r) => r.id)).toEqual([never.id, older.id, newer.id, excluded.id]);
@@ -50,6 +51,17 @@ describe("GET /amazon/ads/scrap", () => {
     const res = await request(app).get("/amazon/ads/scrap").expect(200);
 
     expect(res.body).toEqual([]);
+  });
+
+  it("returns the countries an ad is missing in as skipCountryIds", async () => {
+    const ad = await seedAd({ excluded: false });
+    const missing = await seedAdMissing({ adId: ad.id });
+
+    const res = await request(app).get("/amazon/ads/scrap").expect(200);
+
+    expect(res.body).toEqual([
+      { id: ad.id, asin: ad.asin, name: ad.name, skipCountryIds: [missing.countryId] },
+    ]);
   });
 });
 
@@ -98,6 +110,19 @@ describe("POST /amazon/ads/batch", () => {
     expect(res.body).toEqual({ prices: 1, deleted: 1 });
     expect(await prisma.amazonAdPrice.count({ where: { adId: scraped.id } })).toBe(1);
     expect(await prisma.amazonAd.count({ where: { id: gone.id } })).toBe(0);
+  });
+
+  it("stores the countries an ad is missing in", async () => {
+    const ad = await seedAd();
+    const { countryId } = await seedAmazonCountry();
+
+    await request(app)
+      .post("/amazon/ads/batch")
+      .send({ prices: [{ id: ad.id, prices: [], missingCountryIds: [countryId] }], deleted: [] })
+      .expect(200);
+
+    const rows = await prisma.amazonAdMissing.findMany();
+    expect(rows.map((row) => [row.adId, row.countryId])).toEqual([[ad.id, countryId]]);
   });
 
   it("stores the prices of a retried batch once and still deletes", async () => {

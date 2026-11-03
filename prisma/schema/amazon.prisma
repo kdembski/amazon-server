@@ -22,6 +22,7 @@ model AmazonAd {
   category      AmazonAdCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "amazon_ad_category_id_fk")
   AmazonAdPrice AmazonAdPrice[]
   outlierReports AmazonCountryOutlierReport[]
+  missing        AmazonAdMissing[]
 
   @@index([categoryId], map: "amazon_ad_category_id_fk_idx")
   @@index([excluded, scrapedAt], map: "amazon_ad_excluded_scraped_at_idx")
@@ -56,6 +57,7 @@ model AmazonCountry {
   country       Country         @relation(fields: [countryId], references: [id], onDelete: Cascade, map: "amazon_country_country_id_fk")
   AmazonAdPrice AmazonAdPrice[]
   outlierReports AmazonCountryOutlierReport[]
+  missing        AmazonAdMissing[]
 }
 
 model AmazonCountryOutlierReport {
@@ -68,6 +70,18 @@ model AmazonCountryOutlierReport {
 
   @@id([adId, countryId])
   @@index([countryId], map: "amazon_country_outlier_report_country_id_fk")
+}
+
+model AmazonAdMissing {
+  adId      Int
+  countryId Int
+  createdAt DateTime      @db.Timestamp(2)
+  ad        AmazonAd      @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_ad_missing_ad_id_fk")
+  country   AmazonCountry @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "amazon_ad_missing_country_id_fk")
+
+  @@id([adId, countryId])
+  @@index([countryId], map: "amazon_ad_missing_country_id_fk")
+  @@index([createdAt], map: "amazon_ad_missing_created_at_idx")
 }
 
 model AmazonExclusionRule {

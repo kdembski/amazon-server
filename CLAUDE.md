@@ -98,7 +98,8 @@ npm run test:integration  # tests/integration, needs a running Docker
   `POST /amazon/exclusion-rules/batch` (`{create, update: [{id, ...}], delete: [id]}` in one transaction: deletes,
   updates, then creates; returns all rules) (skill `exclusion-rules`); writes are validated with
   `ExclusionRuleValidator` (invalid → 400).
-- Scraping: `GET /amazon/ads/scrap` hands out ads with `excluded = false`, oldest `scrapedAt` first, and stamps
+- Scraping: `GET /amazon/ads/scrap` hands out ads with `excluded = false`, oldest `scrapedAt` first, each with
+  `skipCountryIds` (its `AmazonAdMissing` countries), and stamps
   them; never filter it by `name LIKE` or by category. An ad of an inactive category or matching a rule of its
   category or a rule without one, or matching none of its category's inverted rules, gets `excluded = true`; otherwise
   `excluded = false`. `ExclusionRuleMatchCronService`
@@ -110,9 +111,9 @@ npm run test:integration  # tests/integration, needs a running Docker
   matches part of a word). Match rules in JS with `ScopedExclusionRuleMatcher`, not in SQL.
   `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices with one `createMany`,
   counts `ad_scraped` through `ActivityCountService.increment` and asynchronously runs the anomaly managers (`src/modules/anomalies`); their marketplace reporters
-  store `*_sent` events and post to Discord. `POST /amazon/ads/batch` (`{ prices: [{ id, prices }], deleted: [id] }`, what the
+  store `*_sent` events and post to Discord. `POST /amazon/ads/batch` (`{ prices: [{ id, prices, missingCountryIds? }], deleted: [id] }`, what the
   scraper sends) does the same for many ads with one `createMany` of all prices (prices of ads missing in the database skipped; one by one per ad when it fails on a row, logged once per batch; rethrown on P1001/P1002/P1008/P1017/P2024 so the scraper retries), running the anomaly checks in the background through one `ConcurrencyQueue` of the service, 40 at a time, and deletes
-  `deleted` with one `deleteMany`; with an `Idempotency-Key` header the prices of a key are stored once (`IdempotencyCache`, in memory, 10 min, a failed store is forgotten), the delete always runs. `POST /amazon/ads` with an array upserts the category names and inserts the ads with one
+  `deleted` with one `deleteMany`; `missingCountryIds` of ads found in the database go to `AmazonAdMissing` with one `createMany` that skips existing rows (a failure is logged, the batch still succeeds), `AmazonAdMissingCleanupCronService` deletes them 30 days after `createdAt` (daily 04:30); with an `Idempotency-Key` header the prices of a key are stored once (`IdempotencyCache`, in memory, 10 min, a failed store is forgotten), the delete always runs. `POST /amazon/ads` with an array upserts the category names and inserts the ads with one
   `createMany` that skips existing ASINs, answering `{ count }`. JSON bodies up to 5 MB. Idle keep-alive connections stay open 15 s (`keepAliveTimeout`) so scrapers reuse one socket between batches (every ~5 s).
 - Amazon countries: keep Amazon's countries in `AmazonCountry` (`countryId` = `Country.id`, `tld`, `scraped`, `active`, `proxyType` = `datacenter` | `isp`, `pdpSource` = comma-separated list of `aod` | `twister` | `awd` (PDP from the AOD fragment, the twister fragment or the mobile product page; a 404 moves to the next one, e.g. `twister,awd`; fits `VarChar(15)`), `priority`),
   changed through `GET|POST /amazon/countries` and `PUT /amazon/countries/:id`; never delete rows, set `scraped = false`

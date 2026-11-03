@@ -24,6 +24,7 @@ import { AmazonAdPriceCreateDto } from "@/modules/marketplaces/amazon/dtos/Amazo
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
 import { ConcurrencyQueue } from "@/shared/utils/ConcurrencyQueue";
+import { AmazonAdMissingService } from "@/modules/marketplaces/amazon/services/AmazonAdMissingService";
 
 const ANOMALY_CHECK_CONCURRENCY = 40;
 const ANOMALY_CHECK_LAG_MS = 60_000;
@@ -42,6 +43,7 @@ export class AmazonAdService {
   private categoryRepository;
   private idempotencyCache;
   private anomalyCheckQueue;
+  private missingService;
   private lastLagWarningAt = 0;
   private static isGetting = false;
   selectable;
@@ -65,7 +67,8 @@ export class AmazonAdService {
     logger = SystemLogService.getInstance(),
     categoryRepository = new AmazonAdCategoryRepository(),
     idempotencyCache = IdempotencyCache.getInstance(),
-    anomalyCheckQueue = new ConcurrencyQueue(ANOMALY_CHECK_CONCURRENCY)
+    anomalyCheckQueue = new ConcurrencyQueue(ANOMALY_CHECK_CONCURRENCY),
+    missingService = new AmazonAdMissingService()
   ) {
     this.logger = logger;
     this.repository = repository;
@@ -80,6 +83,7 @@ export class AmazonAdService {
     this.categoryRepository = categoryRepository;
     this.idempotencyCache = idempotencyCache;
     this.anomalyCheckQueue = anomalyCheckQueue;
+    this.missingService = missingService;
   }
 
   getAll() {
@@ -153,9 +157,20 @@ export class AmazonAdService {
     }
 
     await this.storePrices(found.flatMap((item) => item.prices));
+    await this.storeMissing(found);
     found.forEach((item) => {
       this.countScraped(item.prices);
       this.queueAnomalyCheck(ads[item.id], item.prices);
+    });
+  }
+
+  private async storeMissing(batch: AmazonAdBatchDto["prices"]) {
+    const ads = batch.map((item) => ({ id: item.id, countryIds: item.missingCountryIds ?? [] }));
+    await this.missingService.store(ads).catch((error) => {
+      this.logger.error("AmazonAdService", "Storing the missing countries of ads failed", {
+        error,
+        adIds: ads.filter((ad) => ad.countryIds.length).map((ad) => ad.id),
+      });
     });
   }
 
@@ -241,7 +256,9 @@ export class AmazonAdService {
     else this.logger.warn("AmazonAdService", message, context);
   }
 
-  async getForScraping(batchSize: number): Promise<{ id: number; asin: string }[]> {
+  async getForScraping(
+    batchSize: number
+  ): Promise<{ id: number; asin: string; skipCountryIds: number[] }[]> {
     if (AmazonAdService.isGetting) {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       return this.getForScraping(batchSize);
@@ -260,7 +277,8 @@ export class AmazonAdService {
 
     const ids = ads.map((ad) => ad.id);
     await this.repository.updateScrapedAt(ids);
+    const missing = await this.missingService.getCountryIdsByAd(ids);
 
-    return ads;
+    return ads.map((ad) => ({ ...ad, skipCountryIds: missing[ad.id] ?? [] }));
   }
 }
