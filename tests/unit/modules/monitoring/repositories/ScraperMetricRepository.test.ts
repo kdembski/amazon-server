@@ -78,6 +78,50 @@ describe("ScraperMetricRepository", () => {
     });
   });
 
+  it("sumByScraperAnd groups the KPI metrics by the given column", async () => {
+    const db = fakePrisma();
+    db.scraperMetric.groupBy.mockResolvedValue([
+      { scraper: "amazon-pdp", country: "de", metric: "requests", outcome: "ok", _sum: { value: 5 } },
+      { scraper: "amazon-pdp", country: null, metric: "connections", outcome: null, _sum: { value: null } },
+    ]);
+    const repository = new ScraperMetricRepository(db.prisma);
+    const from = new Date(0);
+    const to = new Date(10);
+
+    expect(await repository.sumByScraperAnd("country", from, to)).toEqual([
+      { scraper: "amazon-pdp", group: "de", metric: "requests", outcome: "ok", value: 5 },
+      { scraper: "amazon-pdp", group: null, metric: "connections", outcome: null, value: 0 },
+    ]);
+
+    expect(db.scraperMetric.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        by: ["scraper", "country", "metric", "outcome"],
+        where: expect.objectContaining({ periodStart: { gte: from, lt: to } }),
+      })
+    );
+  });
+
+  it("getLastReports returns the newest cpu_percent row of every scraper since a date", async () => {
+    const db = fakePrisma();
+    const createdAt = new Date(5);
+    db.scraperMetric.groupBy.mockResolvedValue([
+      { scraper: "amazon-pdp", _max: { createdAt } },
+    ]);
+    const repository = new ScraperMetricRepository(db.prisma);
+    const since = new Date(1);
+
+    expect(await repository.getLastReports(since)).toEqual([
+      { scraper: "amazon-pdp", createdAt },
+    ]);
+
+    expect(db.scraperMetric.groupBy).toHaveBeenCalledWith({
+      by: ["scraper"],
+      where: { periodStart: { gte: since }, metric: "cpu_percent" },
+      _max: { createdAt: true },
+      orderBy: { scraper: "asc" },
+    });
+  });
+
   it("getSumByScraperAndHour converts the raw numbers", async () => {
     const db = fakePrisma();
     db.$queryRaw.mockResolvedValue([

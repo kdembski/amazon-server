@@ -12,6 +12,8 @@ const setup = () => {
     deleteOlderThan: vi.fn().mockResolvedValue(7),
     sumByScraper: vi.fn().mockResolvedValue([]),
     getSumByScraperAndHour: vi.fn().mockResolvedValue([]),
+    sumByScraperAnd: vi.fn().mockResolvedValue([]),
+    getLastReports: vi.fn().mockResolvedValue([]),
   };
   const mapper = {
     toCreateInputs: vi.fn().mockReturnValue([{ a: 1 }, { a: 2 }]),
@@ -126,6 +128,7 @@ describe("ScraperMetricService", () => {
     it("computes the KPIs of the window against the previous window", async () => {
       const { service, repository } = arrange(currentSums(), [
         sum("items", "data", 720),
+        sum("requests", "ok", 400),
       ]);
 
       const result = await service.getSummaries(from, to);
@@ -143,6 +146,10 @@ describe("ScraperMetricService", () => {
       expect(summary.kbPerItem).toBeCloseTo(26.25);
       expect(summary.reusePercent).toBeCloseTo(80);
       expect(summary.attemptsPerItem).toBeCloseTo(1045 / 865);
+      expect(summary.bytesIn).toBe(20_480_000);
+      expect(summary.bytesOut).toBe(1_024_000);
+      expect(summary.connections).toBe(200);
+      expect(summary.previousRequests).toBe(400);
     });
 
     it("uses the whole speed as the diff when the scraper was missing in the previous window", async () => {
@@ -174,6 +181,10 @@ describe("ScraperMetricService", () => {
         kbPerItem: null,
         reusePercent: 0,
         attemptsPerItem: null,
+        bytesIn: 0,
+        bytesOut: 0,
+        connections: 5,
+        previousRequests: 0,
       });
     });
 
@@ -197,6 +208,63 @@ describe("ScraperMetricService", () => {
       const result = await service.getSummaries(from, to);
 
       expect(result.map((s) => s.scraper)).toEqual(["amazon-pdp", "amazon-plp"]);
+    });
+  });
+
+  describe("getBreakdown", () => {
+    const from = new Date("2026-10-18T10:00:00Z");
+    const to = new Date("2026-10-18T11:00:00Z");
+    const row = (scraper: string, group: string | null, metric: string, outcome: string | null, value: number) => ({
+      scraper,
+      group,
+      metric,
+      outcome,
+      value,
+    });
+
+    it("summarizes every scraper and group, sorted, without the rows lacking a group", async () => {
+      const { service, repository } = setup();
+      repository.sumByScraperAnd.mockResolvedValue([
+        row("b", "de", "requests", "ok", 10),
+        row("a", "pl", "requests", "ok", 30),
+        row("a", "de", "requests", "ok", 90),
+        row("a", "de", "responses", "captcha", 9),
+        row("a", "de", "items", "data", 3600),
+        row("a", null, "connections", null, 50),
+      ]);
+
+      const result = await service.getBreakdown(from, to, "country");
+
+      expect(repository.sumByScraperAnd).toHaveBeenCalledWith("country", from, to);
+      expect(result.map(({ scraper, group }) => [scraper, group])).toEqual([
+        ["a", "de"],
+        ["a", "pl"],
+        ["b", "de"],
+      ]);
+      expect(result[0]).toMatchObject({
+        itemsPerSecond: 1,
+        requests: 90,
+        captchaPercent: 10,
+        connections: 0,
+      });
+    });
+  });
+
+  describe("getStatuses", () => {
+    it("returns the last report of every scraper of the last 7 days", async () => {
+      const { service, repository } = setup();
+      vi.useFakeTimers({ now: new Date("2026-10-18T12:00:00Z") });
+      repository.getLastReports.mockResolvedValue([
+        { scraper: "a", createdAt: new Date("2026-10-18T11:59:00Z") },
+        { scraper: "b", createdAt: null },
+      ]);
+
+      expect(await service.getStatuses()).toEqual([
+        { scraper: "a", lastReportAt: "2026-10-18T11:59:00.000Z" },
+      ]);
+
+      expect(repository.getLastReports).toHaveBeenCalledWith(new Date("2026-10-11T12:00:00Z"));
+      vi.useRealTimers();
     });
   });
 

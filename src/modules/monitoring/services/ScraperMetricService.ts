@@ -1,14 +1,21 @@
 import _ from "lodash";
 import {
+  ScraperBreakdown,
+  ScraperBreakdownKey,
+  ScraperMetrics,
   ScraperMetricSum,
   ScraperMetricSummary,
   ScraperMetricsDto,
   ScraperSeries,
+  ScraperStatus,
 } from "@/modules/monitoring/dtos/ScraperMetricDtos";
 import { TimeRange, toHourIso } from "@/modules/monitoring/helpers/parseTimeRange";
 import { ScraperMetricCreateMapper } from "@/modules/monitoring/mappers/ScraperMetricCreateMapper";
 import { ScraperMetricRepository } from "@/modules/monitoring/repositories/ScraperMetricRepository";
 import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
+
+// Scrapers without a report in this window drop out of the statuses
+const STATUS_WINDOW_MS = 7 * 86_400_000;
 
 export class ScraperMetricService {
   private repository;
@@ -60,8 +67,40 @@ export class ScraperMetricService {
           scraper,
           ...summary,
           itemsPerSecondDiff: summary.itemsPerSecond - previousItemsPerSecond,
+          previousRequests: this.total(previousByScraper[scraper] ?? [], "requests"),
         };
       });
+  }
+
+  async getBreakdown(
+    from: Date,
+    to: Date,
+    by: ScraperBreakdownKey
+  ): Promise<ScraperBreakdown[]> {
+    const sums = await this.repository.sumByScraperAnd(by, from, to);
+    // Metrics without a country (connections, bytes) would form a group of their own
+    const groups = _.groupBy(
+      sums.filter((sum) => sum.group !== null),
+      (sum) => JSON.stringify([sum.scraper, sum.group])
+    );
+
+    return _.sortBy(
+      Object.values(groups).map((groupSums) => ({
+        scraper: groupSums[0].scraper,
+        group: groupSums[0].group as string,
+        ...this.summarize(groupSums, from, to),
+      })),
+      ["scraper", "group"]
+    );
+  }
+
+  async getStatuses(): Promise<ScraperStatus[]> {
+    const since = new Date(Date.now() - STATUS_WINDOW_MS);
+    const reports = await this.repository.getLastReports(since);
+
+    return reports.flatMap(({ scraper, createdAt }) =>
+      createdAt ? [{ scraper, lastReportAt: createdAt.toISOString() }] : []
+    );
   }
 
   async getSeries(range: TimeRange): Promise<ScraperSeries[]> {
@@ -89,11 +128,13 @@ export class ScraperMetricService {
       }));
   }
 
-  private summarize(sums: ScraperMetricSum[], from: Date, to: Date) {
+  private summarize(sums: ScraperMetricSum[], from: Date, to: Date): ScraperMetrics {
     const requests = this.total(sums, "requests");
     const items = this.total(sums, "items");
     const dataItems = this.total(sums, "items", ["data"]);
-    const bytes = this.total(sums, "bytes_in") + this.total(sums, "bytes_out");
+    const bytesIn = this.total(sums, "bytes_in");
+    const bytesOut = this.total(sums, "bytes_out");
+    const bytes = bytesIn + bytesOut;
     const connections = this.total(sums, "connections");
     const wasted =
       requests -
@@ -109,6 +150,9 @@ export class ScraperMetricService {
       kbPerItem: dataItems > 0 ? bytes / 1024 / dataItems : null,
       reusePercent: requests > 0 ? Math.max(0, 1 - connections / requests) * 100 : 0,
       attemptsPerItem: items > 0 ? this.total(sums, "item_attempts") / items : null,
+      bytesIn,
+      bytesOut,
+      connections,
     };
   }
 

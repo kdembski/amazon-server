@@ -26,6 +26,12 @@ export class ScraperRouter implements SubRouterI {
     this.router.get("/series", (req, res) =>
       this.metricController.getSeries(req, res)
     );
+    this.router.get("/breakdown", (req, res) =>
+      this.metricController.getBreakdown(req, res)
+    );
+    this.router.get("/statuses", (req, res) =>
+      this.metricController.getStatuses(res)
+    );
     this.router.post("/:name/metrics", (req, res) =>
       this.metricController.addMetrics(req, res)
     );

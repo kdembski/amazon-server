@@ -39,7 +39,7 @@ describe("/stats", () => {
       totals: { ad_scraped: 3, country_outlier_sent: 0, price_drop_sent: 0 },
       previousTotals: { ad_scraped: 5, country_outlier_sent: 0, price_drop_sent: 0 },
       comparable: { minPrices: 3, total: 2, previousTotal: 0 },
-      channelNames: Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map((id) => [id, `channel-${id}`])),
+      countryOutlierChannels: [3, 2, 1, 4, 5, 6].map((id) => ({ id: String(id), name: `channel-${id}` })),
     });
   });
 

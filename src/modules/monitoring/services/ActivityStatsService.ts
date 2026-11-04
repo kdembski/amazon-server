@@ -32,7 +32,6 @@ export class ActivityStatsService {
     const current = await this.repository.getSumByTypeChannelAndHour(range.from, range.to);
     const before = await this.repository.getSumByTypeChannelAndHour(previous.from, previous.to);
     const comparable = await this.getComparable(range, previous);
-    const channels = await this.settingService.getChannels();
 
     const groups = _.groupBy(current, (row) => `${row.type}\u0000${row.channel ?? ""}`);
     const series = _.sortBy(Object.values(groups), [
@@ -49,8 +48,19 @@ export class ActivityStatsService {
       totals: this.totals(current),
       previousTotals: this.totals(before),
       comparable,
-      channelNames: Object.fromEntries(channels.map((channel) => [String(channel.id), channel.name])),
+      countryOutlierChannels: await this.getCountryOutlierChannels(),
     };
+  }
+
+  private async getCountryOutlierChannels() {
+    const channels = await this.settingService.getChannels();
+    const ruleGroups = await this.settingService.get("countryOutlier.ruleGroups");
+    const ids = _.uniq((ruleGroups ?? []).flat().map((rule) => rule.channelId));
+
+    return ids.map((id) => {
+      const name = channels.find((channel) => channel.id === id)?.name ?? `#${id}`;
+      return { id: String(id), name };
+    });
   }
 
   private async getComparable(range: TimeRange, previous: TimeRange) {
