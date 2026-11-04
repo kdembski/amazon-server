@@ -123,6 +123,62 @@ describe("/scrapers", () => {
     ]);
   });
 
+  it("GET /breakdown sums the metrics of the range per country and per flow", async () => {
+    await request(app)
+      .post("/scrapers/amazon-pdp/metrics")
+      .send({
+        ...body(),
+        metrics: [
+          { metric: "requests", country: "de", outcome: "ok", value: 90 },
+          { metric: "requests", country: "pl", outcome: "ok", value: 10 },
+          { metric: "bytes_in", value: 2048 },
+        ],
+      })
+      .expect(200);
+    const range = { from: "2026-10-18T10:00:00.000Z", to: "2026-10-18T11:00:00.000Z" };
+
+    const countries = await request(app)
+      .get("/scrapers/breakdown")
+      .query({ ...range, by: "country" })
+      .expect(200);
+    const flows = await request(app)
+      .get("/scrapers/breakdown")
+      .query({ ...range, by: "flow" })
+      .expect(200);
+
+    expect(countries.body).toEqual([
+      expect.objectContaining({ scraper: "amazon-pdp", group: "de", requests: 90, bytesIn: 0 }),
+      expect.objectContaining({ scraper: "amazon-pdp", group: "pl", requests: 10 }),
+    ]);
+    expect(flows.body).toEqual([
+      expect.objectContaining({ scraper: "amazon-pdp", group: "pdp", requests: 100, bytesIn: 2048 }),
+    ]);
+  });
+
+  it("GET /breakdown answers 400 for an invalid key", async () => {
+    await request(app)
+      .get("/scrapers/breakdown")
+      .query({ from: "2026-10-18T10:00:00.000Z", to: "2026-10-18T11:00:00.000Z", by: "x" })
+      .expect(400);
+  });
+
+  it("GET /statuses returns when every scraper last reported", async () => {
+    const before = Date.now();
+    await request(app)
+      .post("/scrapers/amazon-pdp/metrics")
+      .send({
+        ...body(),
+        periodStart: new Date(before - 60_000).toISOString(),
+        metrics: [{ metric: "cpu_percent", value: 12 }],
+      })
+      .expect(200);
+
+    const response = await request(app).get("/scrapers/statuses").expect(200);
+
+    expect(response.body).toEqual([{ scraper: "amazon-pdp", lastReportAt: expect.any(String) }]);
+    expect(Date.parse(response.body[0].lastReportAt)).toBeGreaterThanOrEqual(before - 1000);
+  });
+
   it("GET /series answers 400 for an invalid range", async () => {
     await request(app).get("/scrapers/series").query({ from: "x", to: "y" }).expect(400);
   });

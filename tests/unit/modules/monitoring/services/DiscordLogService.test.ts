@@ -31,6 +31,10 @@ const summary = (
   kbPerItem: 24.5,
   reusePercent: 81.2,
   attemptsPerItem: 1.3,
+  bytesIn: 0,
+  bytesOut: 0,
+  connections: 0,
+  previousRequests: 0,
   ...overrides,
 });
 

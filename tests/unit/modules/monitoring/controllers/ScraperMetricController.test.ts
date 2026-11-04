@@ -120,18 +120,64 @@ describe("ScraperMetricController", () => {
     expect(json).toHaveBeenCalledWith([{ scraper: "a", points: [] }]);
   });
 
-  it.each(["getSummaries", "getSeries"] as const)(
+  it("getBreakdown returns the breakdown of the range by the given key", async () => {
+    const { controller, getBreakdown } = setup();
+    getBreakdown.mockResolvedValue([{ scraper: "a", group: "de" }]);
+    const { response, json } = fakeResponse();
+
+    await controller.getBreakdown(fakeRequest({ query: { ...query, by: "country" } }), response);
+
+    expect(getBreakdown).toHaveBeenCalledWith(range.from, range.to, "country");
+    expect(json).toHaveBeenCalledWith([{ scraper: "a", group: "de" }]);
+  });
+
+  it("getBreakdown answers 400 for an invalid key", async () => {
+    const { controller, getBreakdown } = setup();
+    const { response, status, send } = fakeResponse();
+
+    await controller.getBreakdown(fakeRequest({ query: { ...query, by: "x" } }), response);
+
+    expect(status).toHaveBeenCalledWith(400);
+    expect(send).toHaveBeenCalledWith("by must be one of: country, flow");
+    expect(getBreakdown).not.toHaveBeenCalled();
+  });
+
+  it("getStatuses returns the statuses", async () => {
+    const { controller, getStatuses } = setup();
+    getStatuses.mockResolvedValue([{ scraper: "a", lastReportAt: "t" }]);
+    const { response, json } = fakeResponse();
+
+    await controller.getStatuses(response);
+
+    expect(json).toHaveBeenCalledWith([{ scraper: "a", lastReportAt: "t" }]);
+  });
+
+  it("getStatuses sends an error response when the service throws", async () => {
+    const { controller, getStatuses } = setup();
+    getStatuses.mockRejectedValue(new Error("a"));
+    const { response, status } = fakeResponse();
+
+    await controller.getStatuses(response);
+
+    expect(status).toHaveBeenCalledWith(500);
+  });
+
+  it.each(["getSummaries", "getSeries", "getBreakdown"] as const)(
     "%s answers 400 for an invalid range",
     async (method) => {
-      const { controller, getSummaries, getSeries } = setup();
+      const { controller, getSummaries, getSeries, getBreakdown } = setup();
       const { response, status, json } = fakeResponse();
 
-      await controller[method](fakeRequest({ query: { from: "x", to: "y" } }), response);
+      await controller[method](
+        fakeRequest({ query: { from: "x", to: "y", by: "country" } }),
+        response
+      );
 
       expect(status).toHaveBeenCalledWith(400);
       expect(json).not.toHaveBeenCalled();
       expect(getSummaries).not.toHaveBeenCalled();
       expect(getSeries).not.toHaveBeenCalled();
+      expect(getBreakdown).not.toHaveBeenCalled();
     }
   );
 });

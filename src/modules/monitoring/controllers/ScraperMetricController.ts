@@ -1,4 +1,5 @@
 import { assertScraperName } from "@/modules/monitoring/helpers/assertScraperName";
+import { parseBreakdownKey } from "@/modules/monitoring/helpers/parseBreakdownKey";
 import { parseScraperMetrics } from "@/modules/monitoring/helpers/parseScraperMetrics";
 import { parseTimeRange } from "@/modules/monitoring/helpers/parseTimeRange";
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
@@ -45,6 +46,24 @@ export class ScraperMetricController {
     try {
       const range = parseTimeRange(request.query);
       response.json(await this.service.getSeries(range));
+    } catch (error: any) {
+      new ResponseErrorService(response).send(error);
+    }
+  }
+
+  async getBreakdown(request: Request, response: Response) {
+    try {
+      const { from, to } = parseTimeRange(request.query);
+      const by = parseBreakdownKey(request.query.by);
+      response.json(await this.service.getBreakdown(from, to, by));
+    } catch (error: any) {
+      new ResponseErrorService(response).send(error);
+    }
+  }
+
+  async getStatuses(response: Response) {
+    try {
+      response.json(await this.service.getStatuses());
     } catch (error: any) {
       new ResponseErrorService(response).send(error);
     }

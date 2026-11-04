@@ -6,7 +6,13 @@ import { fakeRouter, routeTable } from "../../../../support/fakes";
 
 describe("ScraperRouter", () => {
   it("is mounted at /scrapers and registers the summaries, series, metrics and config routes", () => {
-    const metricController = { addMetrics: vi.fn(), getSummaries: vi.fn(), getSeries: vi.fn() };
+    const metricController = {
+      addMetrics: vi.fn(),
+      getSummaries: vi.fn(),
+      getSeries: vi.fn(),
+      getBreakdown: vi.fn(),
+      getStatuses: vi.fn(),
+    };
     const configController = { getConfig: vi.fn() };
     const { router, calls } = fakeRouter();
     const scraperRouter = new ScraperRouter(
@@ -20,6 +26,8 @@ describe("ScraperRouter", () => {
     expect(routeTable(calls)).toEqual([
       ["get", "/summaries"],
       ["get", "/series"],
+      ["get", "/breakdown"],
+      ["get", "/statuses"],
       ["post", "/:name/metrics"],
       ["get", "/:name/config"],
     ]);
@@ -29,8 +37,12 @@ describe("ScraperRouter", () => {
     (calls[1].handler as Function)("req", "res");
     expect(metricController.getSeries).toHaveBeenCalledWith("req", "res");
     (calls[2].handler as Function)("req", "res");
-    expect(metricController.addMetrics).toHaveBeenCalledWith("req", "res");
+    expect(metricController.getBreakdown).toHaveBeenCalledWith("req", "res");
     (calls[3].handler as Function)("req", "res");
+    expect(metricController.getStatuses).toHaveBeenCalledWith("res");
+    (calls[4].handler as Function)("req", "res");
+    expect(metricController.addMetrics).toHaveBeenCalledWith("req", "res");
+    (calls[5].handler as Function)("req", "res");
     expect(configController.getConfig).toHaveBeenCalledWith("req", "res");
   });
 });

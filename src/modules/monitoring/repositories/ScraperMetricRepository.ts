@@ -1,6 +1,10 @@
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { Prisma } from "@prisma/client";
-import { ScraperMetricSum } from "@/modules/monitoring/dtos/ScraperMetricDtos";
+import {
+  ScraperBreakdownKey,
+  ScraperMetricGroupSum,
+  ScraperMetricSum,
+} from "@/modules/monitoring/dtos/ScraperMetricDtos";
 
 const SUMMARY_METRICS = [
   "requests",
@@ -42,6 +46,41 @@ export class ScraperMetricRepository {
       outcome: group.outcome,
       value: group._sum.value ?? 0,
     }));
+  }
+
+  async sumByScraperAnd(
+    by: ScraperBreakdownKey,
+    from: Date,
+    to: Date
+  ): Promise<ScraperMetricGroupSum[]> {
+    const groups = await this.delegate.groupBy({
+      by: ["scraper", by, "metric", "outcome"],
+      where: {
+        periodStart: { gte: from, lt: to },
+        metric: { in: SUMMARY_METRICS },
+      },
+      _sum: { value: true },
+    });
+
+    return groups.map((group) => ({
+      scraper: group.scraper,
+      group: group[by],
+      metric: group.metric,
+      outcome: group.outcome,
+      value: group._sum.value ?? 0,
+    }));
+  }
+
+  // Every report carries cpu_percent, so its newest row is the newest report.
+  async getLastReports(since: Date) {
+    const groups = await this.delegate.groupBy({
+      by: ["scraper"],
+      where: { periodStart: { gte: since }, metric: "cpu_percent" },
+      _max: { createdAt: true },
+      orderBy: { scraper: "asc" },
+    });
+
+    return groups.map((group) => ({ scraper: group.scraper, createdAt: group._max.createdAt }));
   }
 
   // hour = epoch seconds of the UTC hour start, independent of the session time zone

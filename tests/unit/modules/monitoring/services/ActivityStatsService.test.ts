@@ -6,7 +6,7 @@ import { fakeActivityCountService, fakeSettingService } from "../../../../suppor
 const HOUR = 3600;
 const range = { from: new Date(10 * HOUR * 1000), to: new Date(12 * HOUR * 1000) };
 
-const setup = (current: unknown[], previous: unknown[], minPrices: number | null = 4) => {
+const setup = (current: unknown[], previous: unknown[], withSettings = true) => {
   const repository = {
     getSumByTypeChannelAndHour: vi
       .fn()
@@ -15,7 +15,10 @@ const setup = (current: unknown[], previous: unknown[], minPrices: number | null
   };
   const counter = fakeActivityCountService();
   counter.getCountWithMinPrices.mockResolvedValueOnce(9).mockResolvedValueOnce(30);
-  const settings = fakeSettingService({ "countryOutlier.minPrices": minPrices ?? undefined }, [
+  const values = withSettings
+    ? { "countryOutlier.minPrices": 4 }
+    : { "countryOutlier.minPrices": undefined, "countryOutlier.ruleGroups": undefined };
+  const settings = fakeSettingService(values, [
     { id: 1, name: "outliers-de", token: "t", createdAt: new Date(0), updatedAt: new Date(0) },
   ]);
   const service = new ActivityStatsService(
@@ -74,7 +77,14 @@ describe("ActivityStatsService", () => {
       totals: { ad_scraped: 12, country_outlier_sent: 3, price_drop_sent: 1 },
       previousTotals: { ad_scraped: 40, country_outlier_sent: 0, price_drop_sent: 0 },
       comparable: { minPrices: 4, total: 9, previousTotal: 30 },
-      channelNames: { "1": "outliers-de" },
+      countryOutlierChannels: [
+        { id: "3", name: "#3" },
+        { id: "2", name: "#2" },
+        { id: "1", name: "outliers-de" },
+        { id: "4", name: "#4" },
+        { id: "5", name: "#5" },
+        { id: "6", name: "#6" },
+      ],
     });
   });
 
@@ -89,15 +99,15 @@ describe("ActivityStatsService", () => {
     ]);
   });
 
-  it("returns no series, zero totals and no comparable count without events and minPrices", async () => {
-    const { service, counter } = setup([], [], null);
+  it("returns no series, zero totals, no comparable count and no channels without events and settings", async () => {
+    const { service, counter } = setup([], [], false);
 
     expect(await service.get(range)).toEqual({
       series: [],
       totals: { ad_scraped: 0, country_outlier_sent: 0, price_drop_sent: 0 },
       previousTotals: { ad_scraped: 0, country_outlier_sent: 0, price_drop_sent: 0 },
       comparable: undefined,
-      channelNames: { "1": "outliers-de" },
+      countryOutlierChannels: [],
     });
     expect(counter.getCountWithMinPrices).not.toHaveBeenCalled();
   });
