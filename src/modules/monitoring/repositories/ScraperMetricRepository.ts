@@ -5,6 +5,7 @@ import {
   ScraperMetricGroupSum,
   ScraperMetricSum,
 } from "@/modules/monitoring/dtos/ScraperMetricDtos";
+import { HOUR_MS } from "@/modules/monitoring/helpers/splitByRollup";
 
 const SUMMARY_METRICS = [
   "requests",
@@ -30,8 +31,8 @@ export class ScraperMetricRepository {
     return count;
   }
 
-  async sumByScraper(from: Date, to: Date): Promise<ScraperMetricSum[]> {
-    const groups = await this.delegate.groupBy({
+  async sumByScraper(from: Date, to: Date, hourly = false): Promise<ScraperMetricSum[]> {
+    const groups = await this.getDelegate(hourly).groupBy({
       by: ["scraper", "metric", "outcome"],
       where: {
         periodStart: { gte: from, lt: to },
@@ -51,9 +52,10 @@ export class ScraperMetricRepository {
   async sumByScraperAnd(
     by: ScraperBreakdownKey,
     from: Date,
-    to: Date
+    to: Date,
+    hourly = false
   ): Promise<ScraperMetricGroupSum[]> {
-    const groups = await this.delegate.groupBy({
+    const groups = await this.getDelegate(hourly).groupBy({
       by: ["scraper", by, "metric", "outcome"],
       where: {
         periodStart: { gte: from, lt: to },
@@ -84,16 +86,51 @@ export class ScraperMetricRepository {
   }
 
   // hour = epoch seconds of the UTC hour start, independent of the session time zone
-  async getSumByScraperAndHour(from: Date, to: Date) {
+  async getSumByScraperAndHour(from: Date, to: Date, hourly = false) {
     const rows = await this.prisma.$queryRaw<(ScraperMetricSum & { hour: bigint })[]>`
       SELECT scraper, metric, outcome,
         CAST(FLOOR(UNIX_TIMESTAMP(periodStart) / 3600) * 3600 AS SIGNED) AS hour,
         SUM(value) AS value
-      FROM ScraperMetric
+      FROM ${Prisma.raw(hourly ? "ScraperMetricHourly" : "ScraperMetric")}
       WHERE periodStart >= ${from} AND periodStart < ${to}
         AND metric IN (${Prisma.join(SUMMARY_METRICS)})
       GROUP BY scraper, metric, outcome, hour`;
     return rows.map((row) => ({ ...row, hour: Number(row.hour), value: Number(row.value) }));
+  }
+
+  // End of the newest rolled-up hour
+  async getRolledUpUntil() {
+    const { _max } = await this.prisma.scraperMetricHourly.aggregate({
+      _max: { periodStart: true },
+    });
+    return _max.periodStart && new Date(_max.periodStart.getTime() + HOUR_MS);
+  }
+
+  async getOldestPeriodStart() {
+    const { _min } = await this.delegate.aggregate({ _min: { periodStart: true } });
+    return _min.periodStart;
+  }
+
+  async rollUpHour(hour: Date) {
+    const end = new Date(hour.getTime() + HOUR_MS);
+    const [, inserted] = await this.prisma.$transaction([
+      this.prisma.scraperMetricHourly.deleteMany({ where: { periodStart: hour } }),
+      this.prisma.$executeRaw`
+        INSERT INTO ScraperMetricHourly (scraper, flow, metric, country, outcome, value, periodStart)
+        SELECT scraper, flow, metric, country, outcome, SUM(value), ${hour}
+        FROM ScraperMetric
+        WHERE periodStart >= ${hour} AND periodStart < ${end}
+          AND metric IN (${Prisma.join(SUMMARY_METRICS)})
+        GROUP BY scraper, flow, metric, country, outcome`,
+    ]);
+    return inserted;
+  }
+
+  // The hourly table has every column the sums read, under the same names
+  private getDelegate(hourly: boolean) {
+    return hourly
+      ? (this.prisma.scraperMetricHourly as unknown as typeof this.delegate)
+      : this.delegate;
   }
 
   async deleteOlderThan(date: Date, batchSize = 10_000) {
@@ -105,6 +142,7 @@ export class ScraperMetricRepository {
         .$executeRaw`DELETE FROM ScraperMetric WHERE periodStart < ${date} LIMIT ${batchSize}`;
       total += deleted;
     } while (deleted === batchSize);
+    await this.prisma.scraperMetricHourly.deleteMany({ where: { periodStart: { lt: date } } });
 
     return total;
   }

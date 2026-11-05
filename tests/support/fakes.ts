@@ -30,16 +30,18 @@ export function fakeBusinessLogService() {
 
 export function fakeActivityCountService() {
   const increment = vi.fn();
+  const incrementBy = vi.fn();
   const flush = vi.fn().mockResolvedValue(undefined);
   const getCount = vi.fn().mockResolvedValue(0);
   const getCountWithMinPrices = vi.fn().mockResolvedValue(0);
   const service = {
     increment,
+    incrementBy,
     flush,
     getCount,
     getCountWithMinPrices,
   } as unknown as ActivityCountService;
-  return { service, increment, flush, getCount, getCountWithMinPrices };
+  return { service, increment, incrementBy, flush, getCount, getCountWithMinPrices };
 }
 
 export function fakeSystemLogService() {
@@ -68,6 +70,7 @@ export function fakeScraperMetricService() {
   const getSeries = vi.fn().mockResolvedValue([]);
   const getBreakdown = vi.fn().mockResolvedValue([]);
   const getStatuses = vi.fn().mockResolvedValue([]);
+  const rollUp = vi.fn().mockResolvedValue(0);
   const service = {
     add,
     deleteOlderThan,
@@ -75,8 +78,9 @@ export function fakeScraperMetricService() {
     getSeries,
     getBreakdown,
     getStatuses,
+    rollUp,
   } as unknown as ScraperMetricService;
-  return { service, add, deleteOlderThan, getSummaries, getSeries, getBreakdown, getStatuses };
+  return { service, add, deleteOlderThan, getSummaries, getSeries, getBreakdown, getStatuses, rollUp };
 }
 
 export function fakeScraperConfigService() {
@@ -231,6 +235,7 @@ export function fakePrisma() {
       createMany: vi.fn(),
       groupBy: vi.fn(),
     },
+    scraperMetricHourly: { ...fakeDelegate(), groupBy: vi.fn(), deleteMany: vi.fn() },
     scraperConfig: { upsert: vi.fn() },
     exclusionRuleFingerprint: { findUnique: vi.fn(), upsert: vi.fn() },
     amazonCountryOutlierReport: { findUnique: vi.fn(), upsert: vi.fn() },

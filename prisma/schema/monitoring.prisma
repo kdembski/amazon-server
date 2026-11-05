@@ -2,6 +2,8 @@ enum BusinessLogType {
   ad_scraped
   country_outlier_sent
   price_drop_sent
+  ad_created
+  ad_deleted
 }
 
 model BusinessLog {
@@ -46,6 +48,21 @@ model ScraperMetric {
   createdAt   DateTime    @db.Timestamp(2)
 
   @@index([periodStart, metric])
+  @@index([metric, periodStart])
+}
+
+// Hourly sums of the ScraperMetric summary metrics; periodStart = UTC hour start
+model ScraperMetricHourly {
+  id          Int      @id @default(autoincrement())
+  scraper     String   @db.VarChar(63)
+  flow        String   @db.VarChar(15)
+  metric      String   @db.VarChar(63)
+  country     String?  @db.VarChar(7)
+  outcome     String?  @db.VarChar(31)
+  value       Float
+  periodStart DateTime @db.Timestamp(2)
+
+  @@index([periodStart])
 }
 
 model ScraperConfig {

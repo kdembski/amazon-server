@@ -16,6 +16,7 @@ export const TABLES = [
   "CurrencyExchangeRate",
   "BusinessLog",
   "ScraperMetric",
+  "ScraperMetricHourly",
   "ScraperConfig",
   "ExclusionRuleFingerprint",
   "SystemLog",

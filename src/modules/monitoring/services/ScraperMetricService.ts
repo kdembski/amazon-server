@@ -10,12 +10,20 @@ import {
   ScraperStatus,
 } from "@/modules/monitoring/dtos/ScraperMetricDtos";
 import { TimeRange, toHourIso } from "@/modules/monitoring/helpers/parseTimeRange";
+import {
+  floorHour,
+  HOUR_MS,
+  RangePart,
+  splitByRollup,
+} from "@/modules/monitoring/helpers/splitByRollup";
 import { ScraperMetricCreateMapper } from "@/modules/monitoring/mappers/ScraperMetricCreateMapper";
 import { ScraperMetricRepository } from "@/modules/monitoring/repositories/ScraperMetricRepository";
 import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
 
 // Scrapers without a report in this window drop out of the statuses
 const STATUS_WINDOW_MS = 7 * 86_400_000;
+// shortcut: metrics of an hour that arrive later than this are missing from its hourly sums; re-roll the hour if scrapers start sending late
+const ROLLUP_DELAY_MS = 5 * 60_000;
 
 export class ScraperMetricService {
   private repository;
@@ -45,9 +53,15 @@ export class ScraperMetricService {
     const previousFrom = new Date(
       from.getTime() - (to.getTime() - from.getTime())
     );
+    const rolledUpUntil = await this.repository.getRolledUpUntil();
+    const sum = (range: TimeRange) => {
+      return this.sumParts(range, rolledUpUntil, (part) =>
+        this.repository.sumByScraper(part.from, part.to, part.hourly)
+      );
+    };
     const [current, previous] = await Promise.all([
-      this.repository.sumByScraper(from, to),
-      this.repository.sumByScraper(previousFrom, from),
+      sum({ from, to }),
+      sum({ from: previousFrom, to: from }),
     ]);
 
     const currentByScraper = _.groupBy(current, "scraper");
@@ -77,7 +91,11 @@ export class ScraperMetricService {
     to: Date,
     by: ScraperBreakdownKey
   ): Promise<ScraperBreakdown[]> {
-    const sums = await this.repository.sumByScraperAnd(by, from, to);
+    const sums = await this.sumParts(
+      { from, to },
+      await this.repository.getRolledUpUntil(),
+      (part) => this.repository.sumByScraperAnd(by, part.from, part.to, part.hourly)
+    );
     // Metrics without a country (connections, bytes) would form a group of their own
     const groups = _.groupBy(
       sums.filter((sum) => sum.group !== null),
@@ -104,7 +122,11 @@ export class ScraperMetricService {
   }
 
   async getSeries(range: TimeRange): Promise<ScraperSeries[]> {
-    const rows = await this.repository.getSumByScraperAndHour(range.from, range.to);
+    const rows = await this.sumParts(
+      range,
+      await this.repository.getRolledUpUntil(),
+      (part) => this.repository.getSumByScraperAndHour(part.from, part.to, part.hourly)
+    );
 
     return Object.entries(_.groupBy(rows, "scraper"))
       .sort(([a], [b]) => a.localeCompare(b))
@@ -158,6 +180,33 @@ export class ScraperMetricService {
 
   deleteOlderThan(date: Date) {
     return this.repository.deleteOlderThan(date);
+  }
+
+  // Rolls up every finished hour after the newest rolled-up one; returns the number of hours
+  async rollUp(now: Date) {
+    const end = floorHour(new Date(now.getTime() - ROLLUP_DELAY_MS));
+    const oldest = await this.repository.getOldestPeriodStart();
+    const start = (await this.repository.getRolledUpUntil()) ?? (oldest && floorHour(oldest));
+    if (!start) {
+      return 0;
+    }
+
+    let hours = 0;
+    for (let hour = start; hour < end; hour = new Date(hour.getTime() + HOUR_MS)) {
+      await this.repository.rollUpHour(hour);
+      hours++;
+    }
+    return hours;
+  }
+
+  // The parts do not overlap, so concatenated sums add up like one query over the range
+  private async sumParts<T>(
+    range: TimeRange,
+    rolledUpUntil: Date | null,
+    read: (part: RangePart) => Promise<T[]>
+  ) {
+    const parts = await Promise.all(splitByRollup(range, rolledUpUntil).map(read));
+    return parts.flat();
   }
 
   private total(sums: ScraperMetricSum[], metric: string, outcomes?: string[]) {
