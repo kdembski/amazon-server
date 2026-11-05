@@ -30,16 +30,18 @@ export function fakeBusinessLogService() {
 
 export function fakeActivityCountService() {
   const increment = vi.fn();
+  const incrementBy = vi.fn();
   const flush = vi.fn().mockResolvedValue(undefined);
   const getCount = vi.fn().mockResolvedValue(0);
   const getCountWithMinPrices = vi.fn().mockResolvedValue(0);
   const service = {
     increment,
+    incrementBy,
     flush,
     getCount,
     getCountWithMinPrices,
   } as unknown as ActivityCountService;
-  return { service, increment, flush, getCount, getCountWithMinPrices };
+  return { service, increment, incrementBy, flush, getCount, getCountWithMinPrices };
 }
 
 export function fakeSystemLogService() {

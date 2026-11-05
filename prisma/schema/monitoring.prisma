@@ -2,6 +2,8 @@ enum BusinessLogType {
   ad_scraped
   country_outlier_sent
   price_drop_sent
+  ad_created
+  ad_deleted
 }
 
 model BusinessLog {

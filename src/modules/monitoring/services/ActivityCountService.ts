@@ -31,6 +31,11 @@ export class ActivityCountService {
     });
   }
 
+  incrementBy(type: BusinessLogType, marketplace: Marketplace, count: number) {
+    if (count === 0) return;
+    this.add({ type, marketplace, count, prices: {}, countries: {} });
+  }
+
   // Increments during the write go to a new map; a failed write puts its counts back
   async flush() {
     const counts = [...this.counter.counts.values()];

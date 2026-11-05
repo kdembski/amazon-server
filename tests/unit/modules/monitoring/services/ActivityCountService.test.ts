@@ -43,6 +43,16 @@ describe("ActivityCountService", () => {
     ]);
   });
 
+  it("incrementBy adds a count without countries and skips 0", () => {
+    const { service, counter } = setup();
+
+    service.incrementBy("ad_created", "amazon", 3);
+    service.incrementBy("ad_created", "amazon", 2);
+    service.incrementBy("ad_deleted", "amazon", 0);
+
+    expect([...counter.counts.values()]).toEqual([count("ad_created", 5)]);
+  });
+
   it("counts items by their number of distinct countries and by country", () => {
     const { service, counter } = setup();
 

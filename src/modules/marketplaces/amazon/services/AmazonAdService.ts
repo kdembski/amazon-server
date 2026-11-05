@@ -113,6 +113,7 @@ export class AmazonAdService {
         updatedAt: now,
       }))
     );
+    this.activityCountService.incrementBy("ad_created", "amazon", count);
     return { count };
   }
 
@@ -131,6 +132,7 @@ export class AmazonAdService {
     }
 
     const deletedCount = deleted.length ? await this.repository.deleteMany(deleted) : 0;
+    this.activityCountService.incrementBy("ad_deleted", "amazon", deletedCount);
     const durationMs = Date.now() - startedAt;
     if (durationMs > SLOW_BATCH_MS) {
       this.logger.warn("AmazonAdService", `Batch of ${prices.length} ads took ${durationMs} ms`, {

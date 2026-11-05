@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, Mock } from "vitest";
 import _ from "lodash";
 import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
+import { AmazonAdCategoryRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdCategoryRepository";
 import { AmazonAdPriceService } from "@/modules/marketplaces/amazon/services/AmazonAdPriceService";
 import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
 import { CountryOutlierManager } from "@/modules/anomalies/country-outlier/CountryOutlierManager";
@@ -39,6 +40,7 @@ const setup = (anomalyCheckQueue?: ConcurrencyQueue) => {
     getForScraping: vi.fn().mockResolvedValue([]),
     updateScrapedAt: vi.fn().mockResolvedValue(0),
     create: vi.fn(),
+    createMany: vi.fn().mockResolvedValue(2),
     update: vi.fn(),
     delete: vi.fn(),
   };
@@ -48,6 +50,9 @@ const setup = (anomalyCheckQueue?: ConcurrencyQueue) => {
     getRecentByAd: vi.fn().mockResolvedValue([]),
   };
   const counter = fakeActivityCountService();
+  const categoryRepository = {
+    upsertByName: vi.fn(async (name: string) => ({ id: name === "Books" ? 7 : 8 })),
+  };
   const anomalyManager = { check: vi.fn() };
   const listingPrices = [[buildListingPrice()]];
   const priceMapper = { map: vi.fn().mockReturnValue(listingPrices) };
@@ -67,7 +72,7 @@ const setup = (anomalyCheckQueue?: ConcurrencyQueue) => {
     undefined,
     priceMapper as unknown as AmazonAdListingPriceMapper,
     undefined,
-    undefined,
+    categoryRepository as unknown as AmazonAdCategoryRepository,
     undefined,
     anomalyCheckQueue,
     missingService as unknown as AmazonAdMissingService
@@ -99,6 +104,39 @@ describe("AmazonAdService delegation", () => {
   });
 });
 
+describe("AmazonAdService.createMany", () => {
+  it("stores the ads under their categories and counts the created ones", async () => {
+    vi.useFakeTimers({ now: new Date("2026-11-04T10:00:00Z") });
+    const { service, repository, counter } = setup();
+    const ad = (asin: string, categoryName: string) => {
+      return { asin, name: `n-${asin}`, image: "i", categoryName };
+    };
+
+    expect(await service.createMany([ad("A", "Books"), ad("B", "Toys"), ad("C", "Books")])).toEqual({
+      count: 2,
+    });
+
+    const now = new Date("2026-11-04T10:00:00Z");
+    expect(repository.createMany).toHaveBeenCalledWith(
+      [
+        ["A", 7],
+        ["B", 8],
+        ["C", 7],
+      ].map(([asin, categoryId]) => ({
+        asin,
+        name: `n-${asin}`,
+        image: "i",
+        excluded: null,
+        categoryId,
+        createdAt: now,
+        updatedAt: now,
+      }))
+    );
+    expect(counter.incrementBy).toHaveBeenCalledWith("ad_created", "amazon", 2);
+    vi.useRealTimers();
+  });
+});
+
 describe("AmazonAdService.applyBatch with an idempotency key", () => {
   const price = { value: 1, adId: 1, countryId: 1, dispatchFrom: "Amazon" };
   const batch = { prices: [{ id: 1, prices: [price] }], deleted: [5] };
@@ -124,6 +162,7 @@ describe("AmazonAdService.applyBatch with an idempotency key", () => {
     expect(priceService.createMany).toHaveBeenCalledTimes(1);
     expect(counter.increment).toHaveBeenCalledTimes(1);
     expect(repository.deleteMany).toHaveBeenCalledTimes(2);
+    expect(counter.incrementBy).toHaveBeenCalledWith("ad_deleted", "amazon", 1);
   });
 
   it("stores the prices again for another key or without one", async () => {

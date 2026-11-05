@@ -74,8 +74,8 @@ describe("ActivityStatsService", () => {
           points: [{ t: "1970-01-01T11:00:00.000Z", value: 1 }],
         },
       ],
-      totals: { ad_scraped: 12, country_outlier_sent: 3, price_drop_sent: 1 },
-      previousTotals: { ad_scraped: 40, country_outlier_sent: 0, price_drop_sent: 0 },
+      totals: { ad_scraped: 12, country_outlier_sent: 3, price_drop_sent: 1, ad_created: 0, ad_deleted: 0 },
+      previousTotals: { ad_scraped: 40, country_outlier_sent: 0, price_drop_sent: 0, ad_created: 0, ad_deleted: 0 },
       comparable: { minPrices: 4, total: 9, previousTotal: 30 },
       countryOutlierChannels: [
         { id: "3", name: "#3" },
@@ -104,8 +104,8 @@ describe("ActivityStatsService", () => {
 
     expect(await service.get(range)).toEqual({
       series: [],
-      totals: { ad_scraped: 0, country_outlier_sent: 0, price_drop_sent: 0 },
-      previousTotals: { ad_scraped: 0, country_outlier_sent: 0, price_drop_sent: 0 },
+      totals: { ad_scraped: 0, country_outlier_sent: 0, price_drop_sent: 0, ad_created: 0, ad_deleted: 0 },
+      previousTotals: { ad_scraped: 0, country_outlier_sent: 0, price_drop_sent: 0, ad_created: 0, ad_deleted: 0 },
       comparable: undefined,
       countryOutlierChannels: [],
     });
