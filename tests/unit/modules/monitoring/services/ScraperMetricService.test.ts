@@ -155,6 +155,26 @@ describe("ScraperMetricService", () => {
       expect(summary.previousRequests).toBe(400);
     });
 
+    it("sums the traffic in both directions per route, proxy and direct", async () => {
+      const { service } = arrange(
+        [
+          sum("bytes_in", "proxy", 3000),
+          sum("bytes_out", "proxy", 500),
+          sum("bytes_in", "direct4", 9000),
+          sum("bytes_out", "direct6", 900),
+        ],
+        [sum("bytes_in", "proxy", 1000), sum("bytes_in", "direct4", 7000)]
+      );
+
+      const [summary] = await service.getSummaries(from, to);
+
+      expect(summary.proxyBytes).toBe(3500);
+      expect(summary.previousProxyBytes).toBe(1000);
+      expect(summary.directBytes).toBe(9900);
+      expect(summary.previousDirectBytes).toBe(7000);
+      expect(summary.bytesIn).toBe(12_000);
+    });
+
     it("uses the whole speed as the diff when the scraper was missing in the previous window", async () => {
       const { service } = arrange(currentSums(), []);
 
@@ -188,6 +208,10 @@ describe("ScraperMetricService", () => {
         bytesOut: 0,
         connections: 5,
         previousRequests: 0,
+        proxyBytes: 0,
+        previousProxyBytes: 0,
+        directBytes: 0,
+        previousDirectBytes: 0,
       });
     });
 

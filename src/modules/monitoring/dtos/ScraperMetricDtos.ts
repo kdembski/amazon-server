@@ -44,6 +44,11 @@ export interface ScraperMetricSummary extends ScraperMetrics {
   scraper: string;
   itemsPerSecondDiff: number;
   previousRequests: number;
+  // bytes_in + bytes_out through proxies and over direct connections
+  proxyBytes: number;
+  previousProxyBytes: number;
+  directBytes: number;
+  previousDirectBytes: number;
 }
 
 // connections and bytes carry no country: per country they are 0 and kbPerItem and reusePercent mean nothing

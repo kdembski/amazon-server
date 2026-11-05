@@ -24,6 +24,8 @@ import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
 const STATUS_WINDOW_MS = 7 * 86_400_000;
 // shortcut: metrics of an hour that arrive later than this are missing from its hourly sums; re-roll the hour if scrapers start sending late
 const ROLLUP_DELAY_MS = 5 * 60_000;
+// The scraper labels traffic with its route: proxy, direct4 or direct6
+const DIRECT_ROUTES = ["direct4", "direct6"];
 
 export class ScraperMetricService {
   private repository;
@@ -70,18 +72,19 @@ export class ScraperMetricService {
     return Object.keys(currentByScraper)
       .sort()
       .map((scraper) => {
+        const previousSums = previousByScraper[scraper] ?? [];
         const summary = this.summarize(currentByScraper[scraper], from, to);
-        const previousItemsPerSecond = this.itemsPerSecond(
-          previousByScraper[scraper] ?? [],
-          previousFrom,
-          from
-        );
+        const previousItemsPerSecond = this.itemsPerSecond(previousSums, previousFrom, from);
 
         return {
           scraper,
           ...summary,
           itemsPerSecondDiff: summary.itemsPerSecond - previousItemsPerSecond,
-          previousRequests: this.total(previousByScraper[scraper] ?? [], "requests"),
+          previousRequests: this.total(previousSums, "requests"),
+          proxyBytes: this.bytes(currentByScraper[scraper], ["proxy"]),
+          previousProxyBytes: this.bytes(previousSums, ["proxy"]),
+          directBytes: this.bytes(currentByScraper[scraper], DIRECT_ROUTES),
+          previousDirectBytes: this.bytes(previousSums, DIRECT_ROUTES),
         };
       });
   }
@@ -216,6 +219,10 @@ export class ScraperMetricService {
         ? sum.value
         : 0
     );
+  }
+
+  private bytes(sums: ScraperMetricSum[], routes: string[]) {
+    return this.total(sums, "bytes_in", routes) + this.total(sums, "bytes_out", routes);
   }
 
   private itemsPerSecond(sums: ScraperMetricSum[], from: Date, to: Date) {
