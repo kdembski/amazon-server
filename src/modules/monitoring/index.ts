@@ -6,6 +6,7 @@ import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronS
 import { ActivityCountFlushCronService } from "@/modules/monitoring/cron/ActivityCountFlushCronService";
 import { BusinessLogCleanupCronService } from "@/modules/monitoring/cron/BusinessLogCleanupCronService";
 import { ScraperMetricCleanupCronService } from "@/modules/monitoring/cron/ScraperMetricCleanupCronService";
+import { ScraperMetricRollupCronService } from "@/modules/monitoring/cron/ScraperMetricRollupCronService";
 import { SystemLogCleanupCronService } from "@/modules/monitoring/cron/SystemLogCleanupCronService";
 import { ProcessMetricsCronService } from "@/modules/monitoring/cron/ProcessMetricsCronService";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
@@ -22,6 +23,7 @@ export function createMonitoringModule(
       new DailyStatsCronService(sections),
       new BusinessLogCleanupCronService(),
       new ScraperMetricCleanupCronService(),
+      new ScraperMetricRollupCronService(),
       new SystemLogCleanupCronService(),
       new ProcessMetricsCronService("worker"),
     ],

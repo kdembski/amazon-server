@@ -7,6 +7,7 @@ import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronS
 import { ActivityCountFlushCronService } from "@/modules/monitoring/cron/ActivityCountFlushCronService";
 import { BusinessLogCleanupCronService } from "@/modules/monitoring/cron/BusinessLogCleanupCronService";
 import { ScraperMetricCleanupCronService } from "@/modules/monitoring/cron/ScraperMetricCleanupCronService";
+import { ScraperMetricRollupCronService } from "@/modules/monitoring/cron/ScraperMetricRollupCronService";
 import { SystemLogCleanupCronService } from "@/modules/monitoring/cron/SystemLogCleanupCronService";
 import { ProcessMetricsCronService } from "@/modules/monitoring/cron/ProcessMetricsCronService";
 import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
@@ -36,6 +37,7 @@ describe("createMonitoringModule", () => {
       DailyStatsCronService,
       BusinessLogCleanupCronService,
       ScraperMetricCleanupCronService,
+      ScraperMetricRollupCronService,
       SystemLogCleanupCronService,
       ProcessMetricsCronService,
     ]);

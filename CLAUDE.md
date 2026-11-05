@@ -124,7 +124,10 @@ npm run test:integration  # tests/integration, needs a running Docker
   `AmazonCountry.active = true` (`ListingPrice.country.active`).
 - Scraper metrics: scrapers send `POST /scrapers/:name/metrics` every minute; rows go to the `ScraperMetric`
   table (retention 30 days); with an `Idempotency-Key` header the metrics of a key are stored once (`IdempotencyCache`). Build the "Scrapers" field of the hourly Discord report from these metrics via
-  `ScraperMetricService.getSummaries`.
+  `ScraperMetricService.getSummaries`. `ScraperMetricRollupCronService` (worker, minute 5 of every hour) sums every
+  finished hour of the summary metrics into `ScraperMetricHourly` (`periodStart` = UTC hour start, same retention);
+  summaries, breakdown and series read whole rolled-up hours from it and the rest of the range from `ScraperMetric`
+  (`splitByRollup`).
 - API token: every route requires `Authorization: Bearer <API_TOKEN>` (`ApiTokenMiddleware`); scrapers and
   amazon-admin send it; integration tests get it from `createTestApp()`.
 - Stats: `GET /stats/activity|logs` and `GET /scrapers/summaries|series` take `from`/`to` (ISO, at most 30 days,

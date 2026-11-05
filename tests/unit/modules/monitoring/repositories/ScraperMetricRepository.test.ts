@@ -41,6 +41,61 @@ describe("ScraperMetricRepository", () => {
       "DELETE FROM ScraperMetric WHERE periodStart < ? LIMIT ?"
     );
     expect(values).toEqual([date, 2]);
+    expect(db.scraperMetricHourly.deleteMany).toHaveBeenCalledWith({
+      where: { periodStart: { lt: date } },
+    });
+  });
+
+  it("sums the hourly table when asked to", async () => {
+    const db = fakePrisma();
+    db.scraperMetricHourly.groupBy.mockResolvedValue([]);
+    const repository = new ScraperMetricRepository(db.prisma);
+
+    await repository.sumByScraper(new Date(0), new Date(10), true);
+    await repository.sumByScraperAnd("flow", new Date(0), new Date(10), true);
+    await repository.getSumByScraperAndHour(new Date(0), new Date(10), true);
+
+    expect(db.scraperMetricHourly.groupBy).toHaveBeenCalledTimes(2);
+    expect(db.scraperMetric.groupBy).not.toHaveBeenCalled();
+    expect(db.$queryRaw.mock.calls[0].slice(1)).toContainEqual(
+      expect.objectContaining({ strings: ["ScraperMetricHourly"] })
+    );
+  });
+
+  it.each([
+    [new Date(3_600_000), new Date(7_200_000)],
+    [null, null],
+  ])("getRolledUpUntil returns the end of the newest rolled-up hour (%s)", async (max, until) => {
+    const db = fakePrisma();
+    db.scraperMetricHourly.aggregate.mockResolvedValue({ _max: { periodStart: max } });
+    const repository = new ScraperMetricRepository(db.prisma);
+
+    expect(await repository.getRolledUpUntil()).toEqual(until);
+  });
+
+  it("getOldestPeriodStart returns the oldest raw periodStart", async () => {
+    const db = fakePrisma();
+    const oldest = new Date(5);
+    db.scraperMetric.aggregate.mockResolvedValue({ _min: { periodStart: oldest } });
+    const repository = new ScraperMetricRepository(db.prisma);
+
+    expect(await repository.getOldestPeriodStart()).toBe(oldest);
+  });
+
+  it("rollUpHour replaces the sums of the hour in one transaction", async () => {
+    const db = fakePrisma();
+    db.scraperMetricHourly.deleteMany.mockResolvedValue({ count: 0 });
+    db.$executeRaw.mockResolvedValue(4);
+    const repository = new ScraperMetricRepository(db.prisma);
+    const hour = new Date(3_600_000);
+
+    expect(await repository.rollUpHour(hour)).toBe(4);
+
+    expect(db.$transaction).toHaveBeenCalledTimes(1);
+    expect(db.scraperMetricHourly.deleteMany).toHaveBeenCalledWith({ where: { periodStart: hour } });
+    const [strings, ...values] = db.$executeRaw.mock.calls[0];
+    expect(strings.join("?")).toContain("INSERT INTO ScraperMetricHourly");
+    expect(values.slice(0, 3)).toEqual([hour, hour, new Date(7_200_000)]);
   });
 
   it("sumByScraper groups the KPI metrics in the window and maps null sums to 0", async () => {

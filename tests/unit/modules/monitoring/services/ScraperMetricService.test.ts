@@ -14,6 +14,9 @@ const setup = () => {
     getSumByScraperAndHour: vi.fn().mockResolvedValue([]),
     sumByScraperAnd: vi.fn().mockResolvedValue([]),
     getLastReports: vi.fn().mockResolvedValue([]),
+    getRolledUpUntil: vi.fn().mockResolvedValue(null),
+    getOldestPeriodStart: vi.fn().mockResolvedValue(null),
+    rollUpHour: vi.fn().mockResolvedValue(1),
   };
   const mapper = {
     toCreateInputs: vi.fn().mockReturnValue([{ a: 1 }, { a: 2 }]),
@@ -133,8 +136,8 @@ describe("ScraperMetricService", () => {
 
       const result = await service.getSummaries(from, to);
 
-      expect(repository.sumByScraper).toHaveBeenCalledWith(from, to);
-      expect(repository.sumByScraper).toHaveBeenCalledWith(previous, from);
+      expect(repository.sumByScraper).toHaveBeenCalledWith(from, to, false);
+      expect(repository.sumByScraper).toHaveBeenCalledWith(previous, from, false);
       expect(result).toHaveLength(1);
       const summary = result[0];
       expect(summary.scraper).toBe("amazon-pdp");
@@ -235,7 +238,7 @@ describe("ScraperMetricService", () => {
 
       const result = await service.getBreakdown(from, to, "country");
 
-      expect(repository.sumByScraperAnd).toHaveBeenCalledWith("country", from, to);
+      expect(repository.sumByScraperAnd).toHaveBeenCalledWith("country", from, to, false);
       expect(result.map(({ scraper, group }) => [scraper, group])).toEqual([
         ["a", "de"],
         ["a", "pl"],
@@ -296,7 +299,7 @@ describe("ScraperMetricService", () => {
 
       const series = await service.getSeries(range);
 
-      expect(repository.getSumByScraperAndHour).toHaveBeenCalledWith(range.from, range.to);
+      expect(repository.getSumByScraperAndHour).toHaveBeenCalledWith(range.from, range.to, false);
       expect(series.map((s) => s.scraper)).toEqual(["amazon-pdp", "b"]);
       expect(series[0].points.map((p) => p.t)).toEqual([
         "2026-10-18T10:00:00.000Z",
@@ -333,6 +336,57 @@ describe("ScraperMetricService", () => {
       });
 
       expect(series.points[0]).toMatchObject({ wastedPercent: 0, captchaPercent: 0, requests: 0 });
+    });
+
+    it("reads the rolled-up whole hours from the hourly sums and adds the raw edges", async () => {
+      const { service, repository } = setup();
+      repository.getRolledUpUntil.mockResolvedValue(new Date("2026-10-18T12:00:00Z"));
+      repository.getSumByScraperAndHour.mockImplementation(async (_f: Date, _t: Date, hourly: boolean) =>
+        hourly ? [row(h(1), "requests", "ok", 30)] : [row(h(0), "requests", "ok", 1)]
+      );
+      const at = (time: string) => new Date(`2026-10-18T${time}Z`);
+
+      const [series] = await service.getSeries({ from: at("10:30:00"), to: at("12:30:00") });
+
+      expect(repository.getSumByScraperAndHour.mock.calls).toEqual([
+        [at("10:30:00"), at("11:00:00"), false],
+        [at("11:00:00"), at("12:00:00"), true],
+        [at("12:00:00"), at("12:30:00"), false],
+      ]);
+      expect(series.points.map((p) => [p.t, p.requests])).toEqual([
+        ["2026-10-18T10:00:00.000Z", 2],
+        ["2026-10-18T11:00:00.000Z", 30],
+      ]);
+    });
+  });
+
+  describe("rollUp", () => {
+    const at = (time: string) => new Date(`2026-10-18T${time}Z`);
+
+    it("rolls up the finished hours after the newest rolled-up one", async () => {
+      const { service, repository } = setup();
+      repository.getRolledUpUntil.mockResolvedValue(at("09:00:00"));
+
+      expect(await service.rollUp(at("12:04:00"))).toBe(2);
+
+      expect(repository.rollUpHour.mock.calls).toEqual([[at("09:00:00")], [at("10:00:00")]]);
+    });
+
+    it("starts at the hour of the oldest raw row when nothing is rolled up", async () => {
+      const { service, repository } = setup();
+      repository.getOldestPeriodStart.mockResolvedValue(at("10:42:00"));
+
+      expect(await service.rollUp(at("11:05:00"))).toBe(1);
+
+      expect(repository.rollUpHour).toHaveBeenCalledWith(at("10:00:00"));
+    });
+
+    it("does nothing without metrics", async () => {
+      const { service, repository } = setup();
+
+      expect(await service.rollUp(at("11:05:00"))).toBe(0);
+
+      expect(repository.rollUpHour).not.toHaveBeenCalled();
     });
   });
 });

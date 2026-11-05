@@ -1,3 +1,4 @@
+import _ from "lodash";
 import { describe, expect, it } from "vitest";
 import { ScraperMetricRepository } from "@/modules/monitoring/repositories/ScraperMetricRepository";
 import { FIXED_DATE } from "../../../../support/factories";
@@ -69,6 +70,43 @@ describe("ScraperMetricRepository (MySQL)", () => {
         { scraper: "amazon-plp", metric: "requests", outcome: "ok", hour: hour(0), value: 9 },
       ])
     );
+  });
+
+  it("rollUpHour stores the hour's KPI sums once, and the hourly reads match the raw ones", async () => {
+    await seedScraperMetric({ metric: "requests", outcome: "ok", country: "de", value: 3, periodStart: minute(0) });
+    await seedScraperMetric({ metric: "requests", outcome: "ok", country: "de", value: 4, periodStart: minute(59) });
+    await seedScraperMetric({ metric: "requests", outcome: "ok", country: "pl", value: 5, periodStart: minute(10) });
+    await seedScraperMetric({ metric: "bytes_in", outcome: null, value: 7, periodStart: minute(2) });
+    await seedScraperMetric({ metric: "pending", outcome: null, value: 50, periodStart: minute(3) });
+    await seedScraperMetric({ metric: "requests", outcome: "ok", value: 100, periodStart: minute(60) });
+
+    expect(await repository.rollUpHour(minute(0))).toBe(3);
+    expect(await repository.rollUpHour(minute(0))).toBe(3);
+
+    expect(await prisma.scraperMetricHourly.count()).toBe(3);
+    expect(await repository.getRolledUpUntil()).toEqual(minute(60));
+    expect(await repository.getOldestPeriodStart()).toEqual(minute(0));
+    const sort = <T>(rows: T[]) => _.sortBy(rows, (row) => JSON.stringify(row));
+    for (const read of [
+      (hourly: boolean) => repository.sumByScraper(minute(0), minute(60), hourly),
+      (hourly: boolean) => repository.sumByScraperAnd("country", minute(0), minute(60), hourly),
+      (hourly: boolean) => repository.getSumByScraperAndHour(minute(0), minute(60), hourly),
+    ]) {
+      expect(sort(await read(true))).toEqual(sort(await read(false)));
+    }
+  });
+
+  it("deleteOlderThan removes hourly sums before the date", async () => {
+    await seedScraperMetric({ periodStart: minute(0) });
+    await seedScraperMetric({ periodStart: minute(60) });
+    await repository.rollUpHour(minute(0));
+    await repository.rollUpHour(minute(60));
+
+    await repository.deleteOlderThan(minute(60));
+
+    expect((await prisma.scraperMetricHourly.findMany()).map((row) => row.periodStart)).toEqual([
+      minute(60),
+    ]);
   });
 
   it("deleteOlderThan removes rows with periodStart strictly before the date across batches", async () => {
