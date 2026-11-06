@@ -35,6 +35,10 @@ const summary = (
   bytesOut: 0,
   connections: 0,
   previousRequests: 0,
+  proxyBytes: 0,
+  previousProxyBytes: 0,
+  directBytes: 0,
+  previousDirectBytes: 0,
   ...overrides,
 });
 

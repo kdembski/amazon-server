@@ -15,4 +15,8 @@ export class ScraperConfigRepository {
       select: { concurrency: true, rps: true, batchSize: true },
     });
   }
+
+  findAll() {
+    return this.delegate.findMany({ select: { scraper: true, concurrency: true, rps: true } });
+  }
 }

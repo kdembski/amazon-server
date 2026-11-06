@@ -2,7 +2,10 @@ import { PrismaClient } from "@@prisma/PrismaClient";
 import { Prisma } from "@prisma/client";
 import {
   ScraperBreakdownKey,
+  ScraperCountKey,
+  ScraperGroupHourSum,
   ScraperMetricGroupSum,
+  ScraperReportSum,
   ScraperMetricSum,
 } from "@/modules/monitoring/dtos/ScraperMetricDtos";
 import { HOUR_MS } from "@/modules/monitoring/helpers/splitByRollup";
@@ -16,6 +19,7 @@ const SUMMARY_METRICS = [
   "bytes_in",
   "bytes_out",
 ];
+const STATUS_METRICS = ["cpu_percent", "requests", "items", "pending", "open_connections"];
 
 export class ScraperMetricRepository {
   private prisma;
@@ -73,16 +77,22 @@ export class ScraperMetricRepository {
     }));
   }
 
-  // Every report carries cpu_percent, so its newest row is the newest report.
-  async getLastReports(since: Date) {
-    const groups = await this.delegate.groupBy({
-      by: ["scraper"],
-      where: { periodStart: { gte: since }, metric: "cpu_percent" },
-      _max: { createdAt: true },
-      orderBy: { scraper: "asc" },
-    });
-
-    return groups.map((group) => ({ scraper: group.scraper, createdAt: group._max.createdAt }));
+  // Sums of the newest report of every scraper since the date. Every report carries cpu_percent,
+  // so its newest periodStart is the newest report and every scraper keeps at least that row.
+  async getLatestReports(since: Date): Promise<ScraperReportSum[]> {
+    const rows = await this.prisma.$queryRaw<ScraperReportSum[]>`
+      SELECT m.scraper, m.metric, m.outcome, SUM(m.value) AS value,
+        m.periodStart, MAX(m.createdAt) AS createdAt
+      FROM ScraperMetric m
+      JOIN (
+        SELECT scraper, MAX(periodStart) AS periodStart
+        FROM ScraperMetric
+        WHERE periodStart >= ${since} AND metric = 'cpu_percent'
+        GROUP BY scraper
+      ) latest ON latest.scraper = m.scraper AND latest.periodStart = m.periodStart
+      WHERE m.metric IN (${Prisma.join(STATUS_METRICS)})
+      GROUP BY m.scraper, m.metric, m.outcome, m.periodStart`;
+    return rows.map((row) => ({ ...row, value: Number(row.value) }));
   }
 
   // hour = epoch seconds of the UTC hour start, independent of the session time zone
@@ -95,6 +105,21 @@ export class ScraperMetricRepository {
       WHERE periodStart >= ${from} AND periodStart < ${to}
         AND metric IN (${Prisma.join(SUMMARY_METRICS)})
       GROUP BY scraper, metric, outcome, hour`;
+    return rows.map((row) => ({ ...row, hour: Number(row.hour), value: Number(row.value) }));
+  }
+
+  // Per country, rows without one (connections and bytes of older scrapers) are left out
+  async getSumByHourAnd(by: ScraperCountKey, from: Date, to: Date, hourly = false) {
+    const column = Prisma.raw(by);
+    const rows = await this.prisma.$queryRaw<(Omit<ScraperGroupHourSum, "hour"> & { hour: bigint })[]>`
+      SELECT ${column} AS \`group\`, metric, outcome,
+        CAST(FLOOR(UNIX_TIMESTAMP(periodStart) / 3600) * 3600 AS SIGNED) AS hour,
+        SUM(value) AS value
+      FROM ${Prisma.raw(hourly ? "ScraperMetricHourly" : "ScraperMetric")}
+      WHERE periodStart >= ${from} AND periodStart < ${to}
+        AND metric IN (${Prisma.join(SUMMARY_METRICS)})
+        AND ${column} IS NOT NULL
+      GROUP BY ${column}, metric, outcome, hour`;
     return rows.map((row) => ({ ...row, hour: Number(row.hour), value: Number(row.value) }));
   }
 

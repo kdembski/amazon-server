@@ -130,7 +130,7 @@ npm run test:integration  # tests/integration, needs a running Docker
   (`splitByRollup`).
 - API token: every route requires `Authorization: Bearer <API_TOKEN>` (`ApiTokenMiddleware`); scrapers and
   amazon-admin send it; integration tests get it from `createTestApp()`.
-- Stats: `GET /stats/activity|logs` and `GET /scrapers/summaries|series` take `from`/`to` (ISO, at most 30 days,
+- Stats: `GET /stats/activity|logs` and `GET /scrapers/summaries|series|count-series` take `from`/`to` (ISO, at most 30 days,
   `parseTimeRange`) and return hourly series with `t` = UTC hour start.
 - Scraper config: `ScraperConfig` (`scraper` = container `name`, `concurrency`, `rps`, `batchSize`) is the only source
   of these parameters, edited by hand in SQL. Scrapers poll `GET /scrapers/:name/config` every minute; an unknown

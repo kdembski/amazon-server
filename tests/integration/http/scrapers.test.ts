@@ -162,21 +162,38 @@ describe("/scrapers", () => {
       .expect(400);
   });
 
-  it("GET /statuses returns when every scraper last reported", async () => {
+  it("GET /statuses returns the newest report of every scraper with its config", async () => {
     const before = Date.now();
-    await request(app)
-      .post("/scrapers/amazon-pdp/metrics")
-      .send({
-        ...body(),
-        periodStart: new Date(before - 60_000).toISOString(),
-        metrics: [{ metric: "cpu_percent", value: 12 }],
-      })
-      .expect(200);
+    const report = (minutesAgo: number, requests: number, pending: number) => ({
+      ...body(),
+      periodStart: new Date(before - minutesAgo * 60_000).toISOString(),
+      metrics: [
+        { metric: "cpu_percent", value: 12 },
+        { metric: "requests", country: "de", outcome: "ok", value: requests },
+        { metric: "pending", value: pending },
+        { metric: "open_connections", value: 7 },
+      ],
+    });
+    await request(app).post("/scrapers/amazon-pdp/metrics").send(report(2, 6000, 99)).expect(200);
+    await request(app).post("/scrapers/amazon-pdp/metrics").send(report(1, 600, 40)).expect(200);
+    await request(app).get("/scrapers/amazon-pdp/config").expect(200);
 
     const response = await request(app).get("/scrapers/statuses").expect(200);
 
-    expect(response.body).toEqual([{ scraper: "amazon-pdp", lastReportAt: expect.any(String) }]);
+    expect(response.body).toEqual([
+      {
+        scraper: "amazon-pdp",
+        lastReportAt: expect.any(String),
+        itemsPerSecond: 0,
+        requestsPerSecond: expect.any(Number),
+        rps: 0,
+        pending: 40,
+        concurrency: 10,
+        openConnections: 7,
+      },
+    ]);
     expect(Date.parse(response.body[0].lastReportAt)).toBeGreaterThanOrEqual(before - 1000);
+    expect(response.body[0].requestsPerSecond).toBeCloseTo(10, 0);
   });
 
   it("GET /series answers 400 for an invalid range", async () => {

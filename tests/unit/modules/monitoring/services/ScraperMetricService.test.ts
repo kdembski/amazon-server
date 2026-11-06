@@ -1,6 +1,7 @@
 import { Marketplace } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
+import { ScraperConfigRepository } from "@/modules/monitoring/repositories/ScraperConfigRepository";
 import { ScraperMetricRepository } from "@/modules/monitoring/repositories/ScraperMetricRepository";
 import { ScraperMetricCreateMapper } from "@/modules/monitoring/mappers/ScraperMetricCreateMapper";
 import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
@@ -12,8 +13,9 @@ const setup = () => {
     deleteOlderThan: vi.fn().mockResolvedValue(7),
     sumByScraper: vi.fn().mockResolvedValue([]),
     getSumByScraperAndHour: vi.fn().mockResolvedValue([]),
+    getSumByHourAnd: vi.fn().mockResolvedValue([]),
     sumByScraperAnd: vi.fn().mockResolvedValue([]),
-    getLastReports: vi.fn().mockResolvedValue([]),
+    getLatestReports: vi.fn().mockResolvedValue([]),
     getRolledUpUntil: vi.fn().mockResolvedValue(null),
     getOldestPeriodStart: vi.fn().mockResolvedValue(null),
     rollUpHour: vi.fn().mockResolvedValue(1),
@@ -21,13 +23,17 @@ const setup = () => {
   const mapper = {
     toCreateInputs: vi.fn().mockReturnValue([{ a: 1 }, { a: 2 }]),
   };
+  const configRepository = { findAll: vi.fn().mockResolvedValue([]) };
   resetSingleton(IdempotencyCache);
   return {
     repository,
     mapper,
+    configRepository,
     service: new ScraperMetricService(
       repository as unknown as ScraperMetricRepository,
-      mapper as unknown as ScraperMetricCreateMapper
+      mapper as unknown as ScraperMetricCreateMapper,
+      IdempotencyCache.getInstance(),
+      configRepository as unknown as ScraperConfigRepository
     ),
   };
 };
@@ -155,6 +161,26 @@ describe("ScraperMetricService", () => {
       expect(summary.previousRequests).toBe(400);
     });
 
+    it("sums the traffic in both directions per route, proxy and direct", async () => {
+      const { service } = arrange(
+        [
+          sum("bytes_in", "proxy", 3000),
+          sum("bytes_out", "proxy", 500),
+          sum("bytes_in", "direct4", 9000),
+          sum("bytes_out", "direct6", 900),
+        ],
+        [sum("bytes_in", "proxy", 1000), sum("bytes_in", "direct4", 7000)]
+      );
+
+      const [summary] = await service.getSummaries(from, to);
+
+      expect(summary.proxyBytes).toBe(3500);
+      expect(summary.previousProxyBytes).toBe(1000);
+      expect(summary.directBytes).toBe(9900);
+      expect(summary.previousDirectBytes).toBe(7000);
+      expect(summary.bytesIn).toBe(12_000);
+    });
+
     it("uses the whole speed as the diff when the scraper was missing in the previous window", async () => {
       const { service } = arrange(currentSums(), []);
 
@@ -188,6 +214,10 @@ describe("ScraperMetricService", () => {
         bytesOut: 0,
         connections: 5,
         previousRequests: 0,
+        proxyBytes: 0,
+        previousProxyBytes: 0,
+        directBytes: 0,
+        previousDirectBytes: 0,
       });
     });
 
@@ -254,19 +284,56 @@ describe("ScraperMetricService", () => {
   });
 
   describe("getStatuses", () => {
-    it("returns the last report of every scraper of the last 7 days", async () => {
-      const { service, repository } = setup();
+    const periodStart = new Date("2026-10-18T11:58:00Z");
+    const createdAt = new Date("2026-10-18T11:59:00Z");
+    const sum = (scraper: string, metric: string, outcome: string | null, value: number) => ({
+      scraper,
+      metric,
+      outcome,
+      value,
+      periodStart,
+      createdAt,
+    });
+
+    it("returns the rates and gauges of the newest report of every scraper of the last 7 days", async () => {
+      const { service, repository, configRepository } = setup();
       vi.useFakeTimers({ now: new Date("2026-10-18T12:00:00Z") });
-      repository.getLastReports.mockResolvedValue([
-        { scraper: "a", createdAt: new Date("2026-10-18T11:59:00Z") },
-        { scraper: "b", createdAt: null },
+      repository.getLatestReports.mockResolvedValue([
+        sum("b", "cpu_percent", null, 3),
+        sum("a", "cpu_percent", null, 10),
+        sum("a", "requests", "ok", 540),
+        sum("a", "requests", "timeout", 60),
+        sum("a", "items", "data", 120),
+        sum("a", "items", "given_up", 60),
+        sum("a", "pending", null, 40),
+        sum("a", "open_connections", null, 25),
       ]);
+      configRepository.findAll.mockResolvedValue([{ scraper: "a", rps: 12, concurrency: 50 }]);
 
       expect(await service.getStatuses()).toEqual([
-        { scraper: "a", lastReportAt: "2026-10-18T11:59:00.000Z" },
+        {
+          scraper: "a",
+          lastReportAt: "2026-10-18T11:59:00.000Z",
+          itemsPerSecond: 2,
+          requestsPerSecond: 10,
+          rps: 12,
+          pending: 40,
+          concurrency: 50,
+          openConnections: 25,
+        },
+        {
+          scraper: "b",
+          lastReportAt: "2026-10-18T11:59:00.000Z",
+          itemsPerSecond: 0,
+          requestsPerSecond: 0,
+          rps: null,
+          pending: 0,
+          concurrency: null,
+          openConnections: 0,
+        },
       ]);
 
-      expect(repository.getLastReports).toHaveBeenCalledWith(new Date("2026-10-11T12:00:00Z"));
+      expect(repository.getLatestReports).toHaveBeenCalledWith(new Date("2026-10-11T12:00:00Z"));
       vi.useRealTimers();
     });
   });
@@ -357,6 +424,67 @@ describe("ScraperMetricService", () => {
         ["2026-10-18T10:00:00.000Z", 2],
         ["2026-10-18T11:00:00.000Z", 30],
       ]);
+    });
+  });
+
+  describe("getCountSeries", () => {
+    const h = (n: number) => Date.parse("2026-10-18T10:00:00Z") / 1000 + n * 3600;
+    const row = (
+      hour: number,
+      metric: string,
+      outcome: string | null,
+      value: number,
+      group = "de"
+    ) => ({ group, metric, outcome, hour, value });
+
+    it("returns the counts per scraper and per country, each per hour and sorted", async () => {
+      const { service, repository } = setup();
+      repository.getSumByHourAnd.mockImplementation(async (by: string) =>
+        by === "country" ? countryRows : [row(h(0), "requests", "ok", 3, "amazon-pdp")]
+      );
+      const countryRows = [
+        row(h(0), "requests", "ok", 7, "pl"),
+        row(h(1), "requests", "ok", 80),
+        row(h(1), "requests", "http_503", 15),
+        row(h(1), "requests", "timeout", 5),
+        row(h(1), "responses", "captcha", 4),
+        row(h(1), "items", "data", 50),
+        row(h(1), "item_attempts", "data", 60),
+        row(h(1), "bytes_in", "proxy", 300),
+        row(h(1), "bytes_out", "proxy", 30),
+        row(h(1), "bytes_in", "direct4", 200),
+        row(h(1), "bytes_out", "direct6", 20),
+        row(h(0), "requests", "ok", 1),
+      ];
+      const range = {
+        from: new Date("2026-10-18T10:00:00Z"),
+        to: new Date("2026-10-18T12:00:00Z"),
+      };
+
+      const result = await service.getCountSeries(range);
+      const series = result.country;
+
+      expect(repository.getSumByHourAnd).toHaveBeenCalledWith("scraper", range.from, range.to, false);
+      expect(repository.getSumByHourAnd).toHaveBeenCalledWith("country", range.from, range.to, false);
+      expect(result.scraper).toEqual([
+        { group: "amazon-pdp", points: [expect.objectContaining({ requests: 3 })] },
+      ]);
+      expect(series.map((s) => s.group)).toEqual(["de", "pl"]);
+      expect(series[0].points.map((p) => p.t)).toEqual([
+        "2026-10-18T10:00:00.000Z",
+        "2026-10-18T11:00:00.000Z",
+      ]);
+      expect(series[0].points[1]).toEqual({
+        t: "2026-10-18T11:00:00.000Z",
+        requests: 100,
+        wasted: 24,
+        captcha: 4,
+        http503: 15,
+        items: 50,
+        itemAttempts: 60,
+        proxyBytes: 330,
+        directBytes: 220,
+      });
     });
   });
 

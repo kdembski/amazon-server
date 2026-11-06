@@ -120,6 +120,17 @@ describe("ScraperMetricController", () => {
     expect(json).toHaveBeenCalledWith([{ scraper: "a", points: [] }]);
   });
 
+  it("getCountSeries returns the hourly count series of the range", async () => {
+    const { controller, getCountSeries } = setup();
+    getCountSeries.mockResolvedValue([{ group: "de", points: [] }]);
+    const { response, json } = fakeResponse();
+
+    await controller.getCountSeries(fakeRequest({ query }), response);
+
+    expect(getCountSeries).toHaveBeenCalledWith(range);
+    expect(json).toHaveBeenCalledWith([{ group: "de", points: [] }]);
+  });
+
   it("getBreakdown returns the breakdown of the range by the given key", async () => {
     const { controller, getBreakdown } = setup();
     getBreakdown.mockResolvedValue([{ scraper: "a", group: "de" }]);
@@ -162,10 +173,10 @@ describe("ScraperMetricController", () => {
     expect(status).toHaveBeenCalledWith(500);
   });
 
-  it.each(["getSummaries", "getSeries", "getBreakdown"] as const)(
+  it.each(["getSummaries", "getSeries", "getCountSeries", "getBreakdown"] as const)(
     "%s answers 400 for an invalid range",
     async (method) => {
-      const { controller, getSummaries, getSeries, getBreakdown } = setup();
+      const { controller, getSummaries, getSeries, getCountSeries, getBreakdown } = setup();
       const { response, status, json } = fakeResponse();
 
       await controller[method](
@@ -177,6 +188,7 @@ describe("ScraperMetricController", () => {
       expect(json).not.toHaveBeenCalled();
       expect(getSummaries).not.toHaveBeenCalled();
       expect(getSeries).not.toHaveBeenCalled();
+      expect(getCountSeries).not.toHaveBeenCalled();
       expect(getBreakdown).not.toHaveBeenCalled();
     }
   );
