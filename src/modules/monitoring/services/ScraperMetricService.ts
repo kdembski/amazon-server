@@ -2,13 +2,17 @@ import _ from "lodash";
 import {
   ScraperBreakdown,
   ScraperBreakdownKey,
+  ScraperCountSeries,
+  ScraperCountSeriesByKey,
+  ScraperGroupHourSum,
   ScraperMetrics,
-  ScraperMetricSum,
   ScraperMetricSummary,
   ScraperMetricsDto,
+  ScraperMetricValue,
   ScraperSeries,
   ScraperStatus,
 } from "@/modules/monitoring/dtos/ScraperMetricDtos";
+import { compareScrapers } from "@/modules/monitoring/helpers/compareScrapers";
 import { TimeRange, toHourIso } from "@/modules/monitoring/helpers/parseTimeRange";
 import {
   floorHour,
@@ -17,6 +21,7 @@ import {
   splitByRollup,
 } from "@/modules/monitoring/helpers/splitByRollup";
 import { ScraperMetricCreateMapper } from "@/modules/monitoring/mappers/ScraperMetricCreateMapper";
+import { ScraperConfigRepository } from "@/modules/monitoring/repositories/ScraperConfigRepository";
 import { ScraperMetricRepository } from "@/modules/monitoring/repositories/ScraperMetricRepository";
 import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
 
@@ -31,15 +36,18 @@ export class ScraperMetricService {
   private repository;
   private mapper;
   private idempotencyCache;
+  private configRepository;
 
   constructor(
     repository = new ScraperMetricRepository(),
     mapper = new ScraperMetricCreateMapper(),
-    idempotencyCache = IdempotencyCache.getInstance()
+    idempotencyCache = IdempotencyCache.getInstance(),
+    configRepository = new ScraperConfigRepository()
   ) {
     this.repository = repository;
     this.mapper = mapper;
     this.idempotencyCache = idempotencyCache;
+    this.configRepository = configRepository;
   }
 
   async add(scraper: string, dto: ScraperMetricsDto, key?: string) {
@@ -70,7 +78,7 @@ export class ScraperMetricService {
     const previousByScraper = _.groupBy(previous, "scraper");
 
     return Object.keys(currentByScraper)
-      .sort()
+      .sort(compareScrapers)
       .map((scraper) => {
         const previousSums = previousByScraper[scraper] ?? [];
         const summary = this.summarize(currentByScraper[scraper], from, to);
@@ -105,23 +113,43 @@ export class ScraperMetricService {
       (sum) => JSON.stringify([sum.scraper, sum.group])
     );
 
-    return _.sortBy(
-      Object.values(groups).map((groupSums) => ({
+    return Object.values(groups)
+      .map((groupSums) => ({
         scraper: groupSums[0].scraper,
         group: groupSums[0].group as string,
         ...this.summarize(groupSums, from, to),
-      })),
-      ["scraper", "group"]
-    );
+      }))
+      .sort((a, b) => compareScrapers(a.scraper, b.scraper) || a.group.localeCompare(b.group));
   }
 
   async getStatuses(): Promise<ScraperStatus[]> {
     const since = new Date(Date.now() - STATUS_WINDOW_MS);
-    const reports = await this.repository.getLastReports(since);
+    const [rows, configs] = await Promise.all([
+      this.repository.getLatestReports(since),
+      this.configRepository.findAll(),
+    ]);
+    const configByScraper = _.keyBy(configs, "scraper");
 
-    return reports.flatMap(({ scraper, createdAt }) =>
-      createdAt ? [{ scraper, lastReportAt: createdAt.toISOString() }] : []
-    );
+    return Object.entries(_.groupBy(rows, "scraper"))
+      .sort(([a], [b]) => compareScrapers(a, b))
+      .map(([scraper, sums]) => {
+        const config = configByScraper[scraper];
+        // The report covers periodStart until it was sent, which is about when it arrived
+        const { periodStart } = sums[0];
+        const reportedAt = _.maxBy(sums, (sum) => sum.createdAt.getTime())!.createdAt;
+        const seconds = Math.max(1, (reportedAt.getTime() - periodStart.getTime()) / 1000);
+
+        return {
+          scraper,
+          lastReportAt: reportedAt.toISOString(),
+          itemsPerSecond: this.itemsPerSecond(sums, periodStart, reportedAt),
+          requestsPerSecond: this.total(sums, "requests") / seconds,
+          rps: config?.rps ?? null,
+          pending: this.total(sums, "pending"),
+          concurrency: config?.concurrency ?? null,
+          openConnections: this.total(sums, "open_connections"),
+        };
+      });
   }
 
   async getSeries(range: TimeRange): Promise<ScraperSeries[]> {
@@ -131,29 +159,59 @@ export class ScraperMetricService {
       (part) => this.repository.getSumByScraperAndHour(part.from, part.to, part.hourly)
     );
 
-    return Object.entries(_.groupBy(rows, "scraper"))
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([scraper, scraperRows]) => ({
-        scraper,
-        points: _.sortBy(Object.entries(_.groupBy(scraperRows, "hour")), ([hour]) => Number(hour))
-          .map(([hour, sums]) => {
-            const hourStart = Number(hour) * 1000;
-            const from = new Date(Math.max(hourStart, range.from.getTime()));
-            const to = new Date(Math.min(hourStart + 3_600_000, range.to.getTime()));
-            const { itemsPerSecond, wastedPercent, captchaPercent, requests } =
-              this.summarize(sums, from, to);
-            return {
-              t: toHourIso(Number(hour)),
-              itemsPerSecond,
-              wastedPercent,
-              captchaPercent,
-              requests,
-            };
-          }),
-      }));
+    return this.groupByKeyAndHour(rows, "scraper").map(([scraper, hours]) => ({
+      scraper,
+      points: hours.map(([hour, sums]) => {
+        const hourStart = hour * 1000;
+        const from = new Date(Math.max(hourStart, range.from.getTime()));
+        const to = new Date(Math.min(hourStart + 3_600_000, range.to.getTime()));
+        const { itemsPerSecond, wastedPercent, captchaPercent, requests } = this.summarize(
+          sums,
+          from,
+          to
+        );
+        return {
+          t: toHourIso(hour),
+          itemsPerSecond,
+          wastedPercent,
+          captchaPercent,
+          requests,
+        };
+      }),
+    }));
   }
 
-  private summarize(sums: ScraperMetricSum[], from: Date, to: Date): ScraperMetrics {
+  async getCountSeries(range: TimeRange): Promise<ScraperCountSeriesByKey> {
+    const rolledUpUntil = await this.repository.getRolledUpUntil();
+    const [scraper, country] = await Promise.all(
+      (["scraper", "country"] as const).map((by) =>
+        this.sumParts(range, rolledUpUntil, (part) =>
+          this.repository.getSumByHourAnd(by, part.from, part.to, part.hourly)
+        )
+      )
+    );
+
+    return { scraper: this.toCountSeries(scraper), country: this.toCountSeries(country) };
+  }
+
+  private toCountSeries(rows: ScraperGroupHourSum[]): ScraperCountSeries[] {
+    return this.groupByKeyAndHour(rows, "group").map(([group, hours]) => ({
+      group,
+      points: hours.map(([hour, sums]) => ({
+        t: toHourIso(hour),
+        requests: this.total(sums, "requests"),
+        wasted: this.wasted(sums),
+        captcha: this.total(sums, "responses", ["captcha"]),
+        http503: this.total(sums, "requests", ["http_503"]),
+        items: this.total(sums, "items"),
+        itemAttempts: this.total(sums, "item_attempts"),
+        proxyBytes: this.bytes(sums, ["proxy"]),
+        directBytes: this.bytes(sums, DIRECT_ROUTES),
+      })),
+    }));
+  }
+
+  private summarize(sums: ScraperMetricValue[], from: Date, to: Date): ScraperMetrics {
     const requests = this.total(sums, "requests");
     const items = this.total(sums, "items");
     const dataItems = this.total(sums, "items", ["data"]);
@@ -161,10 +219,7 @@ export class ScraperMetricService {
     const bytesOut = this.total(sums, "bytes_out");
     const bytes = bytesIn + bytesOut;
     const connections = this.total(sums, "connections");
-    const wasted =
-      requests -
-      this.total(sums, "requests", ["ok", "http_404"]) +
-      this.total(sums, "responses", ["captcha", "invalid", "empty", "parse_error"]);
+    const wasted = this.wasted(sums);
 
     return {
       itemsPerSecond: this.itemsPerSecond(sums, from, to),
@@ -212,7 +267,30 @@ export class ScraperMetricService {
     return parts.flat();
   }
 
-  private total(sums: ScraperMetricSum[], metric: string, outcomes?: string[]) {
+  // Rows per key and hour, both sorted ascending
+  private groupByKeyAndHour<T extends ScraperMetricValue & { hour: number }>(
+    rows: T[],
+    key: keyof T & string
+  ) {
+    return Object.entries(_.groupBy(rows, key))
+      .sort(([a], [b]) => compareScrapers(a, b))
+      .map(([value, keyRows]) => {
+        const hours = Object.entries(_.groupBy(keyRows, "hour"))
+          .map(([hour, sums]): [number, T[]] => [Number(hour), sums])
+          .sort(([a], [b]) => a - b);
+        return [value, hours] as const;
+      });
+  }
+
+  private wasted(sums: ScraperMetricValue[]) {
+    return (
+      this.total(sums, "requests") -
+      this.total(sums, "requests", ["ok", "http_404"]) +
+      this.total(sums, "responses", ["captcha", "invalid", "empty", "parse_error"])
+    );
+  }
+
+  private total(sums: ScraperMetricValue[], metric: string, outcomes?: string[]) {
     return _.sumBy(sums, (sum) =>
       sum.metric === metric &&
       (!outcomes || (sum.outcome !== null && outcomes.includes(sum.outcome)))
@@ -221,11 +299,11 @@ export class ScraperMetricService {
     );
   }
 
-  private bytes(sums: ScraperMetricSum[], routes: string[]) {
+  private bytes(sums: ScraperMetricValue[], routes: string[]) {
     return this.total(sums, "bytes_in", routes) + this.total(sums, "bytes_out", routes);
   }
 
-  private itemsPerSecond(sums: ScraperMetricSum[], from: Date, to: Date) {
+  private itemsPerSecond(sums: ScraperMetricValue[], from: Date, to: Date) {
     const given = this.total(sums, "items", ["given_up"]);
     const seconds = (to.getTime() - from.getTime()) / 1000;
     return (this.total(sums, "items") - given) / seconds;

@@ -72,6 +72,33 @@ describe("ScraperMetricRepository (MySQL)", () => {
     );
   });
 
+  it("getSumByHourAnd sums per scraper or country, metric, outcome and UTC hour without the rows lacking the key", async () => {
+    await seedScraperMetric({ metric: "requests", outcome: "ok", country: "de", value: 3, periodStart: minute(0) });
+    await seedScraperMetric({ metric: "requests", outcome: "ok", country: "de", value: 4, periodStart: minute(30), scraper: "amazon-plp" });
+    await seedScraperMetric({ metric: "requests", outcome: "ok", country: "pl", value: 5, periodStart: minute(60) });
+    await seedScraperMetric({ metric: "bytes_in", outcome: "proxy", value: 7, periodStart: minute(2) });
+
+    const countries = await repository.getSumByHourAnd("country", minute(0), minute(120));
+    const scrapers = await repository.getSumByHourAnd("scraper", minute(0), minute(120));
+    const hour = (n: number) => minute(n * 60).getTime() / 1000;
+
+    expect(countries).toHaveLength(2);
+    expect(countries).toEqual(
+      expect.arrayContaining([
+        { group: "de", metric: "requests", outcome: "ok", hour: hour(0), value: 7 },
+        { group: "pl", metric: "requests", outcome: "ok", hour: hour(1), value: 5 },
+      ])
+    );
+    expect(scrapers).toHaveLength(4);
+    expect(scrapers).toEqual(
+      expect.arrayContaining([
+        { group: "amazon-pdp", metric: "requests", outcome: "ok", hour: hour(0), value: 3 },
+        { group: "amazon-plp", metric: "requests", outcome: "ok", hour: hour(0), value: 4 },
+        { group: "amazon-pdp", metric: "bytes_in", outcome: "proxy", hour: hour(0), value: 7 },
+      ])
+    );
+  });
+
   it("rollUpHour stores the hour's KPI sums once, and the hourly reads match the raw ones", async () => {
     await seedScraperMetric({ metric: "requests", outcome: "ok", country: "de", value: 3, periodStart: minute(0) });
     await seedScraperMetric({ metric: "requests", outcome: "ok", country: "de", value: 4, periodStart: minute(59) });
@@ -87,10 +114,11 @@ describe("ScraperMetricRepository (MySQL)", () => {
     expect(await repository.getRolledUpUntil()).toEqual(minute(60));
     expect(await repository.getOldestPeriodStart()).toEqual(minute(0));
     const sort = <T>(rows: T[]) => _.sortBy(rows, (row) => JSON.stringify(row));
-    for (const read of [
+    for (const read of <((hourly: boolean) => Promise<object[]>)[]>[
       (hourly: boolean) => repository.sumByScraper(minute(0), minute(60), hourly),
       (hourly: boolean) => repository.sumByScraperAnd("country", minute(0), minute(60), hourly),
       (hourly: boolean) => repository.getSumByScraperAndHour(minute(0), minute(60), hourly),
+      (hourly: boolean) => repository.getSumByHourAnd("country", minute(0), minute(60), hourly),
     ]) {
       expect(sort(await read(true))).toEqual(sort(await read(false)));
     }

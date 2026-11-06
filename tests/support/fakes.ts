@@ -68,6 +68,7 @@ export function fakeScraperMetricService() {
   const deleteOlderThan = vi.fn().mockResolvedValue(0);
   const getSummaries = vi.fn().mockResolvedValue([]);
   const getSeries = vi.fn().mockResolvedValue([]);
+  const getCountSeries = vi.fn().mockResolvedValue([]);
   const getBreakdown = vi.fn().mockResolvedValue([]);
   const getStatuses = vi.fn().mockResolvedValue([]);
   const rollUp = vi.fn().mockResolvedValue(0);
@@ -76,11 +77,22 @@ export function fakeScraperMetricService() {
     deleteOlderThan,
     getSummaries,
     getSeries,
+    getCountSeries,
     getBreakdown,
     getStatuses,
     rollUp,
   } as unknown as ScraperMetricService;
-  return { service, add, deleteOlderThan, getSummaries, getSeries, getBreakdown, getStatuses, rollUp };
+  return {
+    service,
+    add,
+    deleteOlderThan,
+    getSummaries,
+    getSeries,
+    getCountSeries,
+    getBreakdown,
+    getStatuses,
+    rollUp,
+  };
 }
 
 export function fakeScraperConfigService() {
@@ -236,7 +248,7 @@ export function fakePrisma() {
       groupBy: vi.fn(),
     },
     scraperMetricHourly: { ...fakeDelegate(), groupBy: vi.fn(), deleteMany: vi.fn() },
-    scraperConfig: { upsert: vi.fn() },
+    scraperConfig: { upsert: vi.fn(), findMany: vi.fn() },
     exclusionRuleFingerprint: { findUnique: vi.fn(), upsert: vi.fn() },
     amazonCountryOutlierReport: { findUnique: vi.fn(), upsert: vi.fn() },
     setting: { findMany: vi.fn(), upsert: vi.fn() },

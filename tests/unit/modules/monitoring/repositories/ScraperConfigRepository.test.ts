@@ -18,4 +18,17 @@ describe("ScraperConfigRepository", () => {
       select: { concurrency: true, rps: true, batchSize: true },
     });
   });
+
+  it("findAll returns the rps and concurrency of every scraper", async () => {
+    const db = fakePrisma();
+    const configs = [{ scraper: "amazon-pdp-1", concurrency: 150, rps: 0 }];
+    db.scraperConfig.findMany.mockResolvedValue(configs);
+    const repository = new ScraperConfigRepository(db.prisma);
+
+    expect(await repository.findAll()).toEqual(configs);
+
+    expect(db.scraperConfig.findMany).toHaveBeenCalledWith({
+      select: { scraper: true, concurrency: true, rps: true },
+    });
+  });
 });

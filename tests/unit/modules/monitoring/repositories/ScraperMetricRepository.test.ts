@@ -156,25 +156,18 @@ describe("ScraperMetricRepository", () => {
     );
   });
 
-  it("getLastReports returns the newest cpu_percent row of every scraper since a date", async () => {
+  it("getLatestReports converts the raw sums", async () => {
     const db = fakePrisma();
-    const createdAt = new Date(5);
-    db.scraperMetric.groupBy.mockResolvedValue([
-      { scraper: "amazon-pdp", _max: { createdAt } },
+    const periodStart = new Date(0);
+    const createdAt = new Date(60_000);
+    db.$queryRaw.mockResolvedValue([
+      { scraper: "amazon-pdp", metric: "pending", outcome: null, value: "12", periodStart, createdAt },
     ]);
     const repository = new ScraperMetricRepository(db.prisma);
-    const since = new Date(1);
 
-    expect(await repository.getLastReports(since)).toEqual([
-      { scraper: "amazon-pdp", createdAt },
+    expect(await repository.getLatestReports(new Date(1))).toEqual([
+      { scraper: "amazon-pdp", metric: "pending", outcome: null, value: 12, periodStart, createdAt },
     ]);
-
-    expect(db.scraperMetric.groupBy).toHaveBeenCalledWith({
-      by: ["scraper"],
-      where: { periodStart: { gte: since }, metric: "cpu_percent" },
-      _max: { createdAt: true },
-      orderBy: { scraper: "asc" },
-    });
   });
 
   it("getSumByScraperAndHour converts the raw numbers", async () => {

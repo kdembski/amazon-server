@@ -51,6 +51,15 @@ export class ScraperMetricController {
     }
   }
 
+  async getCountSeries(request: Request, response: Response) {
+    try {
+      const range = parseTimeRange(request.query);
+      response.json(await this.service.getCountSeries(range));
+    } catch (error: any) {
+      new ResponseErrorService(response).send(error);
+    }
+  }
+
   async getBreakdown(request: Request, response: Response) {
     try {
       const { from, to } = parseTimeRange(request.query);

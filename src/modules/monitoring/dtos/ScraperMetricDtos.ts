@@ -14,11 +14,22 @@ export interface ScraperMetricsDto {
   metrics: ScraperMetricDto[];
 }
 
-export interface ScraperMetricSum {
-  scraper: string;
+export interface ScraperMetricValue {
   metric: string;
   outcome: string | null;
   value: number;
+}
+
+export interface ScraperMetricSum extends ScraperMetricValue {
+  scraper: string;
+}
+
+export type ScraperCountKey = "scraper" | "country";
+
+// group = scraper or country; hour = epoch seconds of the UTC hour start
+export interface ScraperGroupHourSum extends ScraperMetricValue {
+  group: string;
+  hour: number;
 }
 
 export type ScraperBreakdownKey = "country" | "flow";
@@ -57,9 +68,22 @@ export interface ScraperBreakdown extends ScraperMetrics {
   group: string;
 }
 
+// Rates and gauges of the newest report; rps and concurrency from ScraperConfig, null without a row
 export interface ScraperStatus {
   scraper: string;
   lastReportAt: string;
+  itemsPerSecond: number;
+  requestsPerSecond: number;
+  // 0 = no limit
+  rps: number | null;
+  pending: number;
+  concurrency: number | null;
+  openConnections: number;
+}
+
+export interface ScraperReportSum extends ScraperMetricSum {
+  periodStart: Date;
+  createdAt: Date;
 }
 
 export interface ScraperSeriesPoint {
@@ -74,3 +98,24 @@ export interface ScraperSeries {
   scraper: string;
   points: ScraperSeriesPoint[];
 }
+
+// Counts of one UTC hour; the admin sums hours into days before dividing them
+export interface ScraperCountPoint {
+  t: string;
+  requests: number;
+  wasted: number;
+  captcha: number;
+  http503: number;
+  items: number;
+  itemAttempts: number;
+  proxyBytes: number;
+  directBytes: number;
+}
+
+export interface ScraperCountSeries {
+  group: string;
+  points: ScraperCountPoint[];
+}
+
+// The same counts per scraper (every country) and per country (every scraper)
+export type ScraperCountSeriesByKey = Record<ScraperCountKey, ScraperCountSeries[]>;
