@@ -162,7 +162,7 @@ describe("/scrapers", () => {
       .expect(400);
   });
 
-  it("GET /statuses returns the newest report of every scraper with its config", async () => {
+  it("GET /statuses returns the last hour averages of every scraper with its config", async () => {
     const before = Date.now();
     const report = (minutesAgo: number, requests: number, pending: number) => ({
       ...body(),
@@ -185,15 +185,14 @@ describe("/scrapers", () => {
         scraper: "amazon-pdp",
         lastReportAt: expect.any(String),
         itemsPerSecond: 0,
-        requestsPerSecond: expect.any(Number),
+        requestsPerSecond: 6600 / 3600,
         rps: 0,
-        pending: 40,
+        pending: 69.5,
         concurrency: 10,
         openConnections: 7,
       },
     ]);
     expect(Date.parse(response.body[0].lastReportAt)).toBeGreaterThanOrEqual(before - 1000);
-    expect(response.body[0].requestsPerSecond).toBeCloseTo(10, 0);
   });
 
   it("GET /series answers 400 for an invalid range", async () => {

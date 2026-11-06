@@ -156,17 +156,33 @@ describe("ScraperMetricRepository", () => {
     );
   });
 
-  it("getLatestReports converts the raw sums", async () => {
+  it("getLastReports dates the newest report of every scraper", async () => {
     const db = fakePrisma();
-    const periodStart = new Date(0);
-    const createdAt = new Date(60_000);
-    db.$queryRaw.mockResolvedValue([
-      { scraper: "amazon-pdp", metric: "pending", outcome: null, value: "12", periodStart, createdAt },
+    const reportedAt = new Date(60_000);
+    db.scraperMetric.groupBy.mockResolvedValue([
+      { scraper: "amazon-pdp", _max: { createdAt: reportedAt } },
     ]);
     const repository = new ScraperMetricRepository(db.prisma);
 
-    expect(await repository.getLatestReports(new Date(1))).toEqual([
-      { scraper: "amazon-pdp", metric: "pending", outcome: null, value: 12, periodStart, createdAt },
+    expect(await repository.getLastReports(new Date(1))).toEqual([
+      { scraper: "amazon-pdp", reportedAt },
+    ]);
+    expect(db.scraperMetric.groupBy).toHaveBeenCalledWith({
+      by: ["scraper"],
+      where: { periodStart: { gte: new Date(1) }, metric: "cpu_percent" },
+      _max: { createdAt: true },
+    });
+  });
+
+  it("sumStatusMetrics converts the raw sums", async () => {
+    const db = fakePrisma();
+    db.$queryRaw.mockResolvedValue([
+      { scraper: "amazon-pdp", metric: "pending", outcome: null, value: "12", reports: 3n },
+    ]);
+    const repository = new ScraperMetricRepository(db.prisma);
+
+    expect(await repository.sumStatusMetrics(new Date(1))).toEqual([
+      { scraper: "amazon-pdp", metric: "pending", outcome: null, value: 12, reports: 3 },
     ]);
   });
 
