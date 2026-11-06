@@ -15,7 +15,8 @@ const setup = () => {
     getSumByScraperAndHour: vi.fn().mockResolvedValue([]),
     getSumByHourAnd: vi.fn().mockResolvedValue([]),
     sumByScraperAnd: vi.fn().mockResolvedValue([]),
-    getLatestReports: vi.fn().mockResolvedValue([]),
+    getLastReports: vi.fn().mockResolvedValue([]),
+    sumStatusMetrics: vi.fn().mockResolvedValue([]),
     getRolledUpUntil: vi.fn().mockResolvedValue(null),
     getOldestPeriodStart: vi.fn().mockResolvedValue(null),
     rollUpHour: vi.fn().mockResolvedValue(1),
@@ -284,31 +285,37 @@ describe("ScraperMetricService", () => {
   });
 
   describe("getStatuses", () => {
-    const periodStart = new Date("2026-10-18T11:58:00Z");
-    const createdAt = new Date("2026-10-18T11:59:00Z");
-    const sum = (scraper: string, metric: string, outcome: string | null, value: number) => ({
-      scraper,
-      metric,
-      outcome,
-      value,
-      periodStart,
-      createdAt,
-    });
+    const sum = (
+      scraper: string,
+      metric: string,
+      outcome: string | null,
+      value: number,
+      reports = 60
+    ) => ({ scraper, metric, outcome, value, reports });
+    const reportedAt = new Date("2026-10-18T11:59:00Z");
 
-    it("returns the rates and gauges of the newest report of every scraper of the last 7 days", async () => {
+    it("returns the last hour averages of every scraper with a config, stopped ones as 0", async () => {
       const { service, repository, configRepository } = setup();
       vi.useFakeTimers({ now: new Date("2026-10-18T12:00:00Z") });
-      repository.getLatestReports.mockResolvedValue([
-        sum("b", "cpu_percent", null, 3),
-        sum("a", "cpu_percent", null, 10),
-        sum("a", "requests", "ok", 540),
-        sum("a", "requests", "timeout", 60),
-        sum("a", "items", "data", 120),
-        sum("a", "items", "given_up", 60),
-        sum("a", "pending", null, 40),
-        sum("a", "open_connections", null, 25),
+      repository.getLastReports.mockResolvedValue([
+        { scraper: "unconfigured", reportedAt },
+        { scraper: "stopped", reportedAt: new Date("2026-10-15T08:00:00Z") },
+        { scraper: "a", reportedAt },
       ]);
-      configRepository.findAll.mockResolvedValue([{ scraper: "a", rps: 12, concurrency: 50 }]);
+      repository.sumStatusMetrics.mockResolvedValue([
+        sum("unconfigured", "cpu_percent", null, 3),
+        sum("a", "cpu_percent", null, 600, 30),
+        sum("a", "requests", "ok", 32_400, 30),
+        sum("a", "requests", "timeout", 3600, 30),
+        sum("a", "items", "data", 7200, 30),
+        sum("a", "items", "given_up", 3600, 30),
+        sum("a", "pending", null, 1200, 30),
+        sum("a", "open_connections", null, 750, 30),
+      ]);
+      configRepository.findAll.mockResolvedValue([
+        { scraper: "a", rps: 12, concurrency: 50 },
+        { scraper: "stopped", rps: 5, concurrency: 10 },
+      ]);
 
       expect(await service.getStatuses()).toEqual([
         {
@@ -322,18 +329,19 @@ describe("ScraperMetricService", () => {
           openConnections: 25,
         },
         {
-          scraper: "b",
-          lastReportAt: "2026-10-18T11:59:00.000Z",
+          scraper: "stopped",
+          lastReportAt: "2026-10-15T08:00:00.000Z",
           itemsPerSecond: 0,
           requestsPerSecond: 0,
-          rps: null,
+          rps: 5,
           pending: 0,
-          concurrency: null,
+          concurrency: 10,
           openConnections: 0,
         },
       ]);
 
-      expect(repository.getLatestReports).toHaveBeenCalledWith(new Date("2026-10-11T12:00:00Z"));
+      expect(repository.getLastReports).toHaveBeenCalledWith(new Date("2026-10-11T12:00:00Z"));
+      expect(repository.sumStatusMetrics).toHaveBeenCalledWith(new Date("2026-10-18T11:00:00Z"));
       vi.useRealTimers();
     });
   });

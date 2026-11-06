@@ -123,32 +123,42 @@ export class ScraperMetricService {
   }
 
   async getStatuses(): Promise<ScraperStatus[]> {
-    const since = new Date(Date.now() - STATUS_WINDOW_MS);
-    const [rows, configs] = await Promise.all([
-      this.repository.getLatestReports(since),
+    const to = new Date();
+    const from = new Date(to.getTime() - HOUR_MS);
+    const since = new Date(to.getTime() - STATUS_WINDOW_MS);
+    const [lastReports, rows, configs] = await Promise.all([
+      this.repository.getLastReports(since),
+      this.repository.sumStatusMetrics(from),
       this.configRepository.findAll(),
     ]);
     const configByScraper = _.keyBy(configs, "scraper");
+    const sumsByScraper = _.groupBy(rows, "scraper");
 
-    return Object.entries(_.groupBy(rows, "scraper"))
-      .sort(([a], [b]) => compareScrapers(a, b))
-      .map(([scraper, sums]) => {
+    return lastReports
+      .sort((a, b) => compareScrapers(a.scraper, b.scraper))
+      .flatMap(({ scraper, reportedAt }) => {
         const config = configByScraper[scraper];
-        // The report covers periodStart until it was sent, which is about when it arrived
-        const { periodStart } = sums[0];
-        const reportedAt = _.maxBy(sums, (sum) => sum.createdAt.getTime())!.createdAt;
-        const seconds = Math.max(1, (reportedAt.getTime() - periodStart.getTime()) / 1000);
+        if (!config) {
+          return [];
+        }
 
-        return {
-          scraper,
-          lastReportAt: reportedAt.toISOString(),
-          itemsPerSecond: this.itemsPerSecond(sums, periodStart, reportedAt),
-          requestsPerSecond: this.total(sums, "requests") / seconds,
-          rps: config?.rps ?? null,
-          pending: this.total(sums, "pending"),
-          concurrency: config?.concurrency ?? null,
-          openConnections: this.total(sums, "open_connections"),
-        };
+        // Stopped for over an hour: no sums, so every average is 0
+        const sums = sumsByScraper[scraper] ?? [];
+        const reports = sums.find((sum) => sum.metric === "cpu_percent")?.reports ?? 0;
+        const average = (metric: string) => (reports > 0 ? this.total(sums, metric) / reports : 0);
+
+        return [
+          {
+            scraper,
+            lastReportAt: reportedAt.toISOString(),
+            itemsPerSecond: this.itemsPerSecond(sums, from, to),
+            requestsPerSecond: this.total(sums, "requests") / (HOUR_MS / 1000),
+            rps: config.rps,
+            pending: average("pending"),
+            concurrency: config.concurrency,
+            openConnections: average("open_connections"),
+          },
+        ];
       });
   }
 
