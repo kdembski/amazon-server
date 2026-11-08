@@ -42,6 +42,7 @@ npm run test:integration  # tests/integration, needs a running Docker
 - Comments only for logic the code does not show (non-obvious constraint, ordering, external behaviour).
   No justifications, rejected alternatives or history.
 - In CLAUDE.md write only what to do, never why.
+- Write `.claude/rules/` short and concise: one fact per step, no repetition; split long steps into smaller ones.
 - Keep the path aliases `@/*` → `src/*` and `@@prisma/*` → `prisma/*` in sync in `tsconfig.json` and
   `vite.config.ts`.
 - Write error messages in English.

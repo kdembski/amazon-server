@@ -53,30 +53,30 @@ Production rule groups (the values in parentheses are the production values too)
 
 ## Steps (`src/modules/anomalies/country-outlier/`)
 
-1. `CountryOutlierManager.check` drops countries missing from this scrape (`scraped = false`) and stops with fewer
-   than `minPrices` countries left.
-2. Takes the newest price of each country and converts it to PLN (`CurrencyExchangeRateService.getPlnRates`); the
-   copies keep the original `country` object.
-3. Sorts the PLN prices ascending; the first one is the cheapest.
-4. `CountryOutlierRuleMatcher.getMatches` returns nothing unless the cheapest price is reportable (country
-   `active` and `reportable`).
-5. It builds a `CountryOutlierRule` per rule setting and takes the first matching rule of each group, in list order.
-   A rule matches when the cheapest PLN price is at most `median × (1 − belowMedianPercent / 100)`
-   (`CountryOutlierEvaluator.isOverPercentageDifference`: the weighted median of all other PLN prices, sorted ascending
-   with weights `n`..`1` from the cheapest, the first price whose cumulative weight passes half, the mean with the next
-   one when it is exactly half) and `minPln ≤ cheapest < maxPln` (`isInRange`, a missing bound is open).
-6. Matches are merged by `channelId`; a channel matched in several groups uses the lowest `dropSinceSentPercent`.
-7. Duplicate check on the cheapest country, in its own currency, against one reported price per listing and country
-   (`getReportedPrice`, the last price sent to any channel): without a reported price every channel goes on;
-   otherwise a channel goes on only when the newest price is at least its `dropSinceSentPercent` below the reported
-   one. Without a remaining channel it stops. Changes of the other countries and of the previous scrape never pass it.
-8. For each remaining channel the marketplace's `CountryOutlierReporter.report` gets the listing, the sorted PLN
-   prices, the `channelId` and the change of the cheapest price against the previous price of its country (the
-   second newest of the 5 loaded prices) in percent (none without a previous price; shown next to the cheapest price
-   on Discord); it stores a `country_outlier_sent` event
-   (`data.channel` = `String(channelId)`) and posts to the channel's webhook through `DiscordChannelService.send` (a
-   missing channel logs an error). Then `setReportedPrice` stores the cheapest price once, in its own currency
-   (Amazon: `AmazonCountryOutlierReport`, one row per ad and country).
+1. `CountryOutlierManager.check` drops countries with `scraped = false`.
+2. Stops with fewer than `minPrices` countries left.
+3. Converts the newest price of each country to PLN (`CurrencyExchangeRateService.getPlnRates`), keeping the original
+   `country` object.
+4. Sorts the PLN prices ascending; the first is the cheapest.
+5. `CountryOutlierRuleMatcher.getMatches` returns nothing unless the cheapest country is `active` and `reportable`.
+6. Builds a `CountryOutlierRule` per rule setting and takes the first matching rule of each group, in list order.
+7. A rule matches when the cheapest is at most `median × (1 − belowMedianPercent / 100)`
+   (`CountryOutlierEvaluator.isOverPercentageDifference`) and `minPln ≤ cheapest < maxPln` (`isInRange`, a missing
+   bound is open).
+8. Median: weighted median of the other PLN prices, ascending, weights `n`..`1` from the cheapest; the first price whose
+   cumulative weight passes half, or the mean with the next one at exactly half.
+9. Merges matches by `channelId`; a channel in several groups keeps the lowest `dropSinceSentPercent`.
+10. Gets the reported price of the cheapest country (`getReportedPrice`: the last price sent to any channel, in its own
+    currency). Without one, every channel goes on.
+11. Otherwise a channel goes on only when the newest price is at least its `dropSinceSentPercent` below the reported one.
+    No channel left: stops. Changes of other countries or since the previous scrape never pass.
+12. Per remaining channel, `CountryOutlierReporter.report` gets the listing, the sorted PLN prices, the `channelId` and
+    the cheapest price's change in percent against the previous price of its country (second newest of the 5 loaded;
+    none without one; shown next to the cheapest price on Discord).
+13. The reporter stores a `country_outlier_sent` event (`data.channel` = `String(channelId)`) and posts through
+    `DiscordChannelService.send` (a missing channel logs an error).
+14. `setReportedPrice` stores the cheapest price once, in its own currency (Amazon: `AmazonCountryOutlierReport`, one
+    row per ad and country).
 
 ## Known limits
 
