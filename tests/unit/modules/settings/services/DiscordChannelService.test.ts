@@ -3,7 +3,7 @@ import { DiscordChannelService, maskToken } from "@/modules/settings/services/Di
 import { DiscordChannelRepository } from "@/modules/settings/repositories/DiscordChannelRepository";
 import { SettingCache } from "@/modules/settings/services/SettingCache";
 import { DiscordService } from "@/shared/discord/DiscordService";
-import { FIXED_DATE, TEST_SETTINGS } from "../../../../support/factories";
+import { FIXED_DATE } from "../../../../support/factories";
 import {
   fakeDiscordService,
   fakeSettingService,
@@ -37,12 +37,6 @@ const setup = (channels = [channel(1)]) => {
     delete: vi.fn(async () => channel(9)),
   };
   const settings = fakeSettingService({}, channels);
-  settings.getAll.mockResolvedValue(
-    [
-      ...Object.entries(TEST_SETTINGS).map(([key, value]) => ({ key, value })),
-      { key: "countryOutlier.ruleGroups", value: null },
-    ]
-  );
   const logger = fakeSystemLogService();
   const clients: ReturnType<typeof fakeDiscordService>[] = [];
   const createClient = vi.fn(() => {
@@ -147,17 +141,15 @@ describe("DiscordChannelService", () => {
     );
   });
 
-  it.each([
-    [3, "countryOutlier.ruleGroups"],
-    [7, "priceDrop.channelId"],
-    [8, "reports.channelId"],
-  ])("delete answers 422 for channel %s used by %s", async (id, key) => {
-    const { service, repository } = setup();
+  it("delete answers 422 for a channel settings use", async () => {
+    const { service, repository, settings } = setup();
+    settings.getKeysReferencingChannel.mockResolvedValue(["priceDrop.channelId", "reports.channelId"]);
 
-    await expect(service.delete(id)).rejects.toMatchObject({
+    await expect(service.delete(7)).rejects.toMatchObject({
       status: 422,
-      message: `Discord channel ${id} is used by the settings ${key}`,
+      message: "Discord channel 7 is used by the settings priceDrop.channelId, reports.channelId",
     });
+    expect(settings.getKeysReferencingChannel).toHaveBeenCalledWith(7);
     expect(repository.delete).not.toHaveBeenCalled();
   });
 

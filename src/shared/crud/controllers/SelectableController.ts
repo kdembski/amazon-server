@@ -1,25 +1,16 @@
 import { Request, Response } from "express";
 import { SelectableServiceI } from "@/shared/crud/interfaces/CRUDService";
 import { SelectableControllerI } from "@/shared/crud/interfaces/CRUDController";
-import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
+import { respond } from "@/shared/http/respond";
 
-export class SelectableController<SelectResult>
-  implements SelectableControllerI
-{
+export class SelectableController<SelectResult> implements SelectableControllerI {
   private service;
 
   constructor(service: SelectableServiceI<SelectResult>) {
     this.service = service;
   }
 
-  async getById(request: Request<{ id: string }>, response: Response) {
-    try {
-      const id = parseInt(request.params.id);
-
-      const item = await this.service.getById(id);
-      response.json(item);
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  getById(request: Request<{ id: string }>, response: Response) {
+    return respond(response, () => this.service.getById(parseInt(request.params.id)));
   }
 }

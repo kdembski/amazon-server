@@ -1,29 +1,21 @@
-import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
+import { ScraperMetricRollupService } from "@/modules/monitoring/services/ScraperMetricRollupService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
-import { CronJob } from "cron";
+import { CronService } from "@/shared/system/CronService";
 
-export class ScraperMetricRollupCronService {
-  private scraperMetricService;
-  private logger;
+export class ScraperMetricRollupCronService extends CronService {
+  protected readonly cronTime = "00 05 * * * *";
+  private rollupService;
 
   constructor(
-    scraperMetricService = new ScraperMetricService(),
+    rollupService = new ScraperMetricRollupService(),
     logger = SystemLogService.getInstance()
   ) {
-    this.scraperMetricService = scraperMetricService;
-    this.logger = logger;
-  }
-
-  schedule() {
-    new CronJob("00 05 * * * *", () =>
-      this.run().catch((error) =>
-        this.logger.error("ScraperMetricRollupCronService", "Cron run failed", { error })
-      )
-    ).start();
+    super(logger);
+    this.rollupService = rollupService;
   }
 
   async run() {
-    const hours = await this.scraperMetricService.rollUp(new Date());
+    const hours = await this.rollupService.rollUp(new Date());
     this.logger.info("ScraperMetricRollupCronService", `Rolled up ${hours} hours of scraper metrics`, {
       hours,
     });

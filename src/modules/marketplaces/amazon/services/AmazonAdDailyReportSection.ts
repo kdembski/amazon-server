@@ -1,7 +1,7 @@
+import { DiscordFormatter } from "@/shared/discord/DiscordFormatter";
+import { NumberFormatter } from "@/shared/utils/NumberFormatter";
 import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
-import { addSeparators } from "@/shared/utils/number";
-import { getSpacing } from "@/shared/discord/spacing";
 
 export class AmazonAdDailyReportSection implements DailyReportSection {
   private adService;
@@ -17,9 +17,9 @@ export class AmazonAdDailyReportSection implements DailyReportSection {
     return {
       name: "Collected asins",
       value: [
-        `Total: **${addSeparators(total)}**`,
-        `Last 24h: **${addSeparators(last)}**`,
-      ].join(getSpacing(4)),
+        `Total: **${NumberFormatter.addSeparators(total)}**`,
+        `Last 24h: **${NumberFormatter.addSeparators(last)}**`,
+      ].join(DiscordFormatter.spacing(4)),
     };
   }
 }

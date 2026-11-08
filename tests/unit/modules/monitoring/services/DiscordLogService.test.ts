@@ -1,16 +1,16 @@
+import { DiscordFormatter } from "@/shared/discord/DiscordFormatter";
 import { describe, expect, it, vi } from "vitest";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { SystemService } from "@/shared/system/SystemService";
-import { getSpacing } from "@/shared/discord/spacing";
 import type { ScraperMetricSummary } from "@/modules/monitoring/dtos/ScraperMetricDtos";
 import { fakeDiscordChannelService, fakeSettingService } from "../../../../support/fakes";
 
-const SP4 = getSpacing(4);
+const SP4 = DiscordFormatter.spacing(4);
 const RED = "<:rd:1345009441191362613>";
 const GREEN = "<:gn:1345009439916294154>";
 const UP = "<:au:1369710756358258748>";
 const DOWN = "<:ad:1369710758241374219>";
-const FLAT = `${getSpacing(3)}-${getSpacing(3)}`;
+const FLAT = `${DiscordFormatter.spacing(3)}-${DiscordFormatter.spacing(3)}`;
 const COUNTS = {
   scraped: 0,
   comparable: 0,

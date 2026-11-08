@@ -26,7 +26,7 @@ npm run test:integration  # tests/integration, needs a running Docker
 - One test file per source file under the same relative path; mappers share `tests/unit/mappers/mappers.test.ts`.
 - Inject dependencies through constructor default parameters. Use `vi.mock` only for external modules,
   private-constructor singletons (`resetSingleton()`) and composition roots that build dependencies inline.
-- Unit fakes and factories: `tests/support`. Put cron job bodies in `run()`; `schedule()` only wires the `CronJob`.
+- Unit fakes and factories: `tests/support`. A cron extends `CronService` (`src/shared/system`): set `cronTime`, put the job body in `run()`; a retention cleanup is a `RetentionCleanupCronService(cronTime, label, retentionDays, target)` built in the module's `index.ts`.
 - Integration: `repositories/`, `services/` and `cron/` mirror `src/` (`tests/integration/modules/currency/...`);
   `http/` has one file per router, using supertest on `createApp()`. Seed with `tests/support/integration/seed.ts` and use the returned ids. Wait
   for anomaly managers with `vi.waitFor`. Set env in `tests/integration/env.ts` with plain `process.env`
@@ -73,7 +73,7 @@ npm run test:integration  # tests/integration, needs a running Docker
 - Add a marketplace: (1) Prisma models and a `src/modules/marketplaces/<name>/` folder with the layers;
   (2) a mapper to `ListingPrice`, implementations of `CountryOutlierReporter`/`PriceDropReporter` that
   store an event and post to Discord through `DiscordChannelService.send` (`CountryOutlierReporter` also stores the reported price per listing and country), and a call to `AnomalyManager([...])` with the managers of the chosen
-  detectors after storing prices; (3) implementations of `ExclusionRuleTarget` and `DailyReportSection`;
+  detectors after storing prices; (3) implementations of `ExclusionRuleTarget` (a service over the repositories, Amazon: `AmazonExclusionRuleTarget`) and `DailyReportSection`;
   (4) `create<Name>Module()` returning `MarketplaceModule`, added to `marketplaces` in `src/modules.ts`.
 - Anomaly detectors work on `ListingPrice` only; each marketplace passes its reporters to the managers. Rule matching goes through `ExclusionRuleTarget`; the daily Discord report gets its
   sections through `DailyReportSection`.
@@ -91,14 +91,14 @@ npm run test:integration  # tests/integration, needs a running Docker
   country (the last one sent to any channel), a channel gets the listing only when the cheapest price is its
   `dropSinceSentPercent` below that price. The hourly report labels every count with its `DiscordChannel.name`.
 - Cross-cutting services are `getInstance()` singletons. `*SelectDto` types derive from repository return
-  types. Controller errors go through `ResponseErrorService` (`error.status` if set, P2002/P2003 → 422, P1001 → 503).
+  types. Controller methods answer through `respond(response, () => ...)` (`src/shared/http/respond.ts`), errors go through `ResponseErrorService` (`error.status` if set, P2002/P2003 → 422, P1001 → 503); throw `HttpError(status, message)` for 4xx.
 - Exclusion rules are per marketplace (`AmazonExclusionRule`, optional `categoryId`; `NULL` = every category;
   `inverted` only with a `categoryId`: the category keeps only ads matching one of its inverted rules). Change
   them only through `GET|POST /amazon/exclusion-rules`, `PUT|DELETE /amazon/exclusion-rules/:id` and
   `POST /amazon/exclusion-rules/batch` (`{create, update: [{id, ...}], delete: [id]}` in one transaction: deletes,
   updates, then creates; returns all rules) (skill `exclusion-rules`); writes are validated with
   `ExclusionRuleValidator` (invalid → 400).
-- Scraping: `GET /amazon/ads/scrap` hands out ads with `excluded = false`, oldest `scrapedAt` first, each with
+- Scraping: `GET /amazon/ads/scrap` (`AmazonAdScrapingService`, one call at a time through a shared `Mutex`) hands out ads with `excluded = false`, oldest `scrapedAt` first, each with
   `skipCountryIds` (its `AmazonAdMissing` countries), and stamps
   them; never filter it by `name LIKE` or by category. An ad of an inactive category or matching a rule of its
   category or a rule without one, or matching none of its category's inverted rules, gets `excluded = true`; otherwise
@@ -112,13 +112,13 @@ npm run test:integration  # tests/integration, needs a running Docker
   `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices with one `createMany`,
   counts `ad_scraped` through `ActivityCountService.increment` and asynchronously runs the anomaly managers (`src/modules/anomalies`); their marketplace reporters
   store `*_sent` events and post to Discord. `POST /amazon/ads/batch` (`{ prices: [{ id, prices, missingCountryIds? }], deleted: [id] }`, what the
-  scraper sends) does the same for many ads with one `createMany` of all prices (prices of ads missing in the database skipped; one by one per ad when it fails on a row, logged once per batch; rethrown on P1001/P1002/P1008/P1017/P2024 so the scraper retries), running the anomaly checks in the background through one `ConcurrencyQueue` of the service, 40 at a time, and deletes
-  `deleted` with one `deleteMany`; `missingCountryIds` of ads found in the database go to `AmazonAdMissing` with one `createMany` that skips existing rows (a failure is logged, the batch still succeeds), `AmazonAdMissingCleanupCronService` deletes them 30 days after `createdAt` (daily 04:30); with an `Idempotency-Key` header the prices of a key are stored once (`IdempotencyCache`, in memory, 10 min, a failed store is forgotten), the delete always runs. `POST /amazon/ads` with an array upserts the category names and inserts the ads with one
+  scraper sends) does the same for many ads with one `createMany` of all prices (prices of ads missing in the database skipped; one by one per ad when it fails on a row, logged once per batch; rethrown on P1001/P1002/P1008/P1017/P2024 so the scraper retries), running the anomaly checks in the background through one `AnomalyCheckQueue` of the service (`src/modules/anomalies`), 40 at a time, and deletes
+  `deleted` with one `deleteMany`; `missingCountryIds` of ads found in the database go to `AmazonAdMissing` with one `createMany` that skips existing rows (a failure is logged, the batch still succeeds), a `RetentionCleanupCronService` deletes them 30 days after `createdAt` (daily 04:30); with an `Idempotency-Key` header the prices of a key are stored once (`IdempotencyCache`, in memory, 10 min, a failed store is forgotten), the delete always runs. `POST /amazon/ads` with an array upserts the category names and inserts the ads with one
   `createMany` that skips existing ASINs, answering `{ count }`. JSON bodies up to 5 MB. Idle keep-alive connections stay open 15 s (`keepAliveTimeout`) so scrapers reuse one socket between batches (every ~5 s).
 - Amazon countries: keep Amazon's countries in `AmazonCountry` (`countryId` = `Country.id`, `tld`, `scraped`, `active`, `proxyType` = `datacenter` | `isp`, `pdpSource` = comma-separated list of `aod` | `twister` | `awd` (PDP from the AOD fragment, the twister fragment or the mobile product page; a 404 moves to the next one, e.g. `twister,awd`; fits `VarChar(15)`), `priority`),
   changed through `GET|POST /amazon/countries` and `PUT /amazon/countries/:id`; never delete rows, set `scraped = false`
   instead. `GET /amazon/countries/scrap` hands out `countryId`, `tld`, `active`, `proxyType`, `pdpSource` and `priority` of `scraped` countries.
-  `AmazonAdPrice.countryId` references `AmazonCountry`; `AmazonAdPriceCleanupCronService` deletes prices 90 days after
+  `AmazonAdPrice.countryId` references `AmazonCountry`; a `RetentionCleanupCronService` deletes prices 90 days after
   `createdAt` (daily 04:00). Build
   listing URLs as `https://www.amazon.<tld>/dp/<asin>` (`ListingPrice.url`). Report anomalies only for countries with
   `AmazonCountry.active = true` (`ListingPrice.country.active`).
@@ -127,11 +127,11 @@ npm run test:integration  # tests/integration, needs a running Docker
   `ScraperMetricService.getSummaries`. `ScraperMetricRollupCronService` (worker, minute 5 of every hour) sums every
   finished hour of the summary metrics into `ScraperMetricHourly` (`periodStart` = UTC hour start, same retention);
   summaries, breakdown and series read whole rolled-up hours from it and the rest of the range from `ScraperMetric`
-  (`splitByRollup`).
+  (`ScraperMetricRollupService.getParts`).
 - API token: every route requires `Authorization: Bearer <API_TOKEN>` (`ApiTokenMiddleware`); scrapers and
   amazon-admin send it; integration tests get it from `createTestApp()`.
 - Stats: `GET /stats/activity|logs` and `GET /scrapers/summaries|series|count-series` take `from`/`to` (ISO, at most 30 days,
-  `parseTimeRange`) and return hourly series with `t` = UTC hour start.
+  `TimeRangeValidator`) and return hourly series with `t` = UTC hour start.
 - Scraper config: `ScraperConfig` (`scraper` = container `name`, `concurrency`, `rps`, `batchSize`) is the only source
   of these parameters, edited by hand in SQL. Scrapers poll `GET /scrapers/:name/config` every minute; an unknown
   name gets a row with the defaults (10 / 0 / 50).

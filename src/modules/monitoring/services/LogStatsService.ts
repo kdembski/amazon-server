@@ -1,10 +1,7 @@
 import _ from "lodash";
 import { LogLevelCounts, LogStatsDto } from "@/modules/monitoring/dtos/StatsDtos";
-import {
-  previousRange,
-  TimeRange,
-  toHourIso,
-} from "@/modules/monitoring/helpers/parseTimeRange";
+import { previousRange, toHourIso } from "@/modules/monitoring/helpers/hours";
+import { TimeRange } from "@/modules/monitoring/interfaces/TimeRange";
 import { SystemLogRepository } from "@/shared/logging/repositories/SystemLogRepository";
 
 const LEVELS = ["error", "warn"] as const;

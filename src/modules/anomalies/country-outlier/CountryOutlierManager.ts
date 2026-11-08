@@ -7,6 +7,7 @@ import { CurrencyExchangeRateService } from "@/modules/currency/services/Currenc
 import { CountryOutlierRuleI } from "@/modules/anomalies/interfaces/CountryOutlierRuleI";
 import { SettingService } from "@/modules/settings/services/SettingService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
+import { LogThrottle } from "@/shared/logging/services/LogThrottle";
 
 const MISSING_RATE_WARNING_INTERVAL_MS = 60 * 60 * 1000;
 
@@ -16,7 +17,8 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
   private strategy;
   private logger;
   private settingService;
-  private missingRateWarnedAt = new Map<number, number>();
+  // one warning an hour per currency
+  private missingRateThrottle = new LogThrottle(MISSING_RATE_WARNING_INTERVAL_MS);
 
   constructor(
     reporter: CountryOutlierReporter<T>,
@@ -96,13 +98,8 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     });
   }
 
-  // At most once an hour per currency
   private warnMissingRate({ country }: ListingPrice) {
-    const now = Date.now();
-    const warnedAt = this.missingRateWarnedAt.get(country.currencyId);
-    if (warnedAt !== undefined && now - warnedAt < MISSING_RATE_WARNING_INTERVAL_MS) return;
-
-    this.missingRateWarnedAt.set(country.currencyId, now);
+    if (!this.missingRateThrottle.shouldLog(country.currencyId)) return;
     this.logger.warn(
       "CountryOutlierManager",
       `No PLN exchange rate for ${country.currencyCode}, compared without conversion`,

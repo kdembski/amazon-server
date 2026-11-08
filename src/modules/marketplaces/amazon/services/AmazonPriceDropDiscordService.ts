@@ -1,20 +1,24 @@
+import { AmazonAdEmbedBuilder } from "@/modules/marketplaces/amazon/services/AmazonAdEmbedBuilder";
+import { NumberFormatter } from "@/shared/utils/NumberFormatter";
 import { format } from "date-fns";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { DiscordChannelService } from "@/modules/settings/services/DiscordChannelService";
 import { SettingService } from "@/modules/settings/services/SettingService";
-import { roundToTwoDecimals } from "@/shared/utils/number";
 
 export class AmazonPriceDropDiscordService {
   private service;
   private settingService;
+  private embedBuilder;
 
   constructor(
     service = new DiscordChannelService(),
-    settingService = new SettingService()
+    settingService = new SettingService(),
+    embedBuilder = new AmazonAdEmbedBuilder()
   ) {
     this.service = service;
     this.settingService = settingService;
+    this.embedBuilder = embedBuilder;
   }
 
   async send(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][]) {
@@ -41,17 +45,7 @@ export class AmazonPriceDropDiscordService {
       };
     });
 
-    const embed = {
-      title: ad.name,
-      description: ad.asin,
-      image: {
-        url: ad.image,
-        height: 200,
-      },
-      fields,
-      footer: { text: ad.category.name },
-      color: process.env.NODE_ENV === "development" ? 0xe50000 : undefined,
-    };
+    const embed = this.embedBuilder.build(ad, fields);
 
     const channelId = await this.settingService.get("priceDrop.channelId");
     await this.service.send(channelId, { embeds: [embed] }, { asin: ad.asin });
@@ -72,7 +66,7 @@ export class AmazonPriceDropDiscordService {
   }
 
   getValueWithCurrency(value: number, currencyCode: string) {
-    return `**${roundToTwoDecimals(value)} ${currencyCode}**`;
+    return `**${NumberFormatter.round(value, 2)} ${currencyCode}**`;
   }
 
   getFullText(withCurrency: string, difference?: number) {

@@ -1,9 +1,11 @@
+import { BatchDeleter } from "@/shared/crud/repositories/BatchDeleter";
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { Prisma } from "@prisma/client";
 import { AmazonAdRecentPriceRow } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
 import { AmazonAdRecentPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdRecentPriceMapper";
 
 export class AmazonAdPriceRepository {
+  private batchDeleter;
   private delegate;
   private prisma;
   private recentPriceMapper;
@@ -34,8 +36,10 @@ export class AmazonAdPriceRepository {
 
   constructor(
     prisma = PrismaClient.getInstance(),
-    recentPriceMapper = new AmazonAdRecentPriceMapper()
+    recentPriceMapper = new AmazonAdRecentPriceMapper(),
+    batchDeleter = new BatchDeleter(prisma)
   ) {
+    this.batchDeleter = batchDeleter;
     this.delegate = prisma.amazonAdPrice;
     this.prisma = prisma;
     this.recentPriceMapper = recentPriceMapper;
@@ -85,16 +89,7 @@ export class AmazonAdPriceRepository {
     return this.delegate.delete({ where: { id } });
   }
 
-  async deleteOlderThan(date: Date, batchSize = 10_000) {
-    let total = 0;
-    let deleted;
-
-    do {
-      deleted = await this.prisma
-        .$executeRaw`DELETE FROM AmazonAdPrice WHERE createdAt < ${date} LIMIT ${batchSize}`;
-      total += deleted;
-    } while (deleted === batchSize);
-
-    return total;
+  deleteOlderThan(date: Date, batchSize = 10_000) {
+    return this.batchDeleter.deleteOlderThan("AmazonAdPrice", "createdAt", date, batchSize);
   }
 }

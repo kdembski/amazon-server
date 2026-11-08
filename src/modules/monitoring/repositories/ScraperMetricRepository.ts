@@ -1,3 +1,4 @@
+import { BatchDeleter } from "@/shared/crud/repositories/BatchDeleter";
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { Prisma } from "@prisma/client";
 import {
@@ -9,7 +10,7 @@ import {
   ScraperMetricSum,
   ScraperStatusSum,
 } from "@/modules/monitoring/dtos/ScraperMetricDtos";
-import { HOUR_MS } from "@/modules/monitoring/helpers/splitByRollup";
+import { HOUR_MS } from "@/modules/monitoring/helpers/hours";
 
 const SUMMARY_METRICS = [
   "requests",
@@ -23,10 +24,12 @@ const SUMMARY_METRICS = [
 const STATUS_METRICS = ["cpu_percent", "requests", "items", "pending", "open_connections"];
 
 export class ScraperMetricRepository {
+  private batchDeleter;
   private prisma;
   private delegate;
 
-  constructor(prisma = PrismaClient.getInstance()) {
+  constructor(prisma = PrismaClient.getInstance(), batchDeleter = new BatchDeleter(prisma)) {
+    this.batchDeleter = batchDeleter;
     this.prisma = prisma;
     this.delegate = prisma.scraperMetric;
   }
@@ -164,16 +167,8 @@ export class ScraperMetricRepository {
   }
 
   async deleteOlderThan(date: Date, batchSize = 10_000) {
-    let total = 0;
-    let deleted;
-
-    do {
-      deleted = await this.prisma
-        .$executeRaw`DELETE FROM ScraperMetric WHERE periodStart < ${date} LIMIT ${batchSize}`;
-      total += deleted;
-    } while (deleted === batchSize);
+    const total = await this.batchDeleter.deleteOlderThan("ScraperMetric", "periodStart", date, batchSize);
     await this.prisma.scraperMetricHourly.deleteMany({ where: { periodStart: { lt: date } } });
-
     return total;
   }
 }

@@ -108,3 +108,35 @@ describe("IdempotencyCache", () => {
     expect([...cache.entries.keys()]).toEqual(["new"]);
   });
 });
+
+describe("IdempotencyCache without a key", () => {
+  it("runs the callback every time", async () => {
+    resetSingleton(IdempotencyCache);
+    const cache = IdempotencyCache.getInstance();
+    const callback = vi.fn().mockResolvedValue(1);
+
+    await cache.run(undefined, callback);
+    await cache.run(undefined, callback);
+
+    expect(callback).toHaveBeenCalledTimes(2);
+    expect(cache.entries.size).toBe(0);
+  });
+
+  it("treats an empty key as none", async () => {
+    resetSingleton(IdempotencyCache);
+    const callback = vi.fn().mockResolvedValue(1);
+
+    await IdempotencyCache.getInstance().run("", callback);
+    await IdempotencyCache.getInstance().run("", callback);
+
+    expect(callback).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    [{ "idempotency-key": "k1" }, "k1"],
+    [{}, undefined],
+    [{ "idempotency-key": ["a", "b"] }, undefined],
+  ])("getKey reads the Idempotency-Key header %j", (headers, key) => {
+    expect(IdempotencyCache.getKey({ headers } as never)).toBe(key);
+  });
+});

@@ -2,8 +2,10 @@ import { Response, Request } from "express";
 import { CreatableController } from "@/shared/crud/controllers/CreatableController";
 import { DeletableController } from "@/shared/crud/controllers/DeletableController";
 import { SelectableController } from "@/shared/crud/controllers/SelectableController";
-import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
+import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
+import { respond } from "@/shared/http/respond";
 import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
+import { AmazonAdScrapingService } from "@/modules/marketplaces/amazon/services/AmazonAdScrapingService";
 import { AmazonAdPriceCreateDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
 import {
   AmazonAdBatchDto,
@@ -13,6 +15,7 @@ import _ from "lodash";
 
 export class AmazonAdController {
   private service;
+  private scrapingService;
   creatable;
   selectable;
   deletable;
@@ -21,75 +24,40 @@ export class AmazonAdController {
     service = new AmazonAdService(),
     selectable = new SelectableController(service.selectable),
     creatable = new CreatableController(service.creatable),
-    deletable = new DeletableController(service.deletable)
+    deletable = new DeletableController(service.deletable),
+    scrapingService = new AmazonAdScrapingService()
   ) {
+    this.scrapingService = scrapingService;
     this.service = service;
     this.selectable = selectable;
     this.creatable = creatable;
     this.deletable = deletable;
   }
 
-  async getAll(response: Response) {
-    try {
-      const results = await this.service.getAll();
-      response.json(results);
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  getAll(response: Response) {
+    return respond(response, () => this.service.getAll());
   }
 
-  async getForScraping(
-    request: Request<{}, {}, {}, { batchSize: string }>,
-    response: Response
-  ) {
-    try {
-      const batchSize = parseInt(request.query.batchSize) || 50;
-      const results = await this.service.getForScraping(batchSize);
-      response.json(results);
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  getForScraping(request: Request<{}, {}, {}, { batchSize: string }>, response: Response) {
+    return respond(response, () => this.scrapingService.getForScraping(parseInt(request.query.batchSize) || 50));
   }
 
-  async update(
+  update(
     request: Request<{ id: string }, {}, { prices: AmazonAdPriceCreateDto[] }>,
     response: Response
   ) {
-    try {
-      const id = parseInt(request.params.id);
-      const data = request.body;
-
-      const results = await this.service.updatePrices(id, data.prices);
-      response.json(results);
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+    return respond(response, () => {
+      return this.service.updatePrices(parseInt(request.params.id), request.body.prices);
+    });
   }
 
-  async create(
-    request: Request<{}, {}, AmazonAdCreateDto | AmazonAdCreateDto[]>,
-    response: Response
-  ) {
+  create(request: Request<{}, {}, AmazonAdCreateDto | AmazonAdCreateDto[]>, response: Response) {
     if (!_.isArray(request.body)) return this.creatable.create(request, response);
 
-    try {
-      const results = await this.service.createMany(request.body);
-      response.json(results);
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+    return respond(response, () => this.service.createMany(request.body as AmazonAdCreateDto[]));
   }
 
-  async applyBatch(request: Request<{}, {}, AmazonAdBatchDto>, response: Response) {
-    try {
-      const key = request.headers["idempotency-key"];
-      const results = await this.service.applyBatch(
-        request.body,
-        typeof key === "string" ? key : undefined
-      );
-      response.json(results);
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  applyBatch(request: Request<{}, {}, AmazonAdBatchDto>, response: Response) {
+    return respond(response, () => this.service.applyBatch(request.body, IdempotencyCache.getKey(request)));
   }
 }

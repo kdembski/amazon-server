@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { DiscordChannelService, maskToken } from "@/modules/settings/services/DiscordChannelService";
 import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
+import { respond } from "@/shared/http/respond";
 
 export class DiscordChannelController {
   private service;
@@ -9,38 +10,28 @@ export class DiscordChannelController {
     this.service = service;
   }
 
-  async getAll(response: Response) {
-    try {
-      response.json(await this.service.getAll());
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  getAll(response: Response) {
+    return respond(response, () => this.service.getAll());
   }
 
-  async create(request: Request, response: Response) {
-    try {
-      response.json(await this.service.create(request.body));
-    } catch (error: any) {
-      this.sendError(request, response, error);
-    }
+  create(request: Request, response: Response) {
+    return respond(
+      response,
+      () => this.service.create(request.body),
+      (error) => this.sendError(request, response, error)
+    );
   }
 
-  async update(request: Request<{ id: string }>, response: Response) {
-    try {
-      const id = parseInt(request.params.id);
-      response.json(await this.service.update(id, request.body));
-    } catch (error: any) {
-      this.sendError(request, response, error);
-    }
+  update(request: Request<{ id: string }>, response: Response) {
+    return respond(
+      response,
+      () => this.service.update(parseInt(request.params.id), request.body),
+      (error) => this.sendError(request, response, error)
+    );
   }
 
-  async delete(request: Request<{ id: string }>, response: Response) {
-    try {
-      const id = parseInt(request.params.id);
-      response.json(await this.service.delete(id));
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  delete(request: Request<{ id: string }>, response: Response) {
+    return respond(response, () => this.service.delete(parseInt(request.params.id)));
   }
 
   // ResponseErrorService logs the request body.

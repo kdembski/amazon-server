@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { CreatableController } from "@/shared/crud/controllers/CreatableController";
 import { DeletableController } from "@/shared/crud/controllers/DeletableController";
-import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
+import { respond } from "@/shared/http/respond";
 import { UpdatableController } from "@/shared/crud/controllers/UpdatableController";
 import { AmazonAdCategoryService } from "@/modules/marketplaces/amazon/services/AmazonAdCategoryService";
 
@@ -23,21 +23,11 @@ export class AmazonAdCategoryController {
     this.deletable = deletable;
   }
 
-  async getAll(response: Response) {
-    try {
-      const results = await this.service.getAll();
-      response.json(results);
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  getAll(response: Response) {
+    return respond(response, () => this.service.getAll());
   }
 
-  async getForScraping(response: Response) {
-    try {
-      const results = await this.service.getForScraping();
-      response.json(results);
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  getForScraping(response: Response) {
+    return respond(response, () => this.service.getForScraping());
   }
 }

@@ -1,9 +1,9 @@
+import { DiscordFormatter } from "@/shared/discord/DiscordFormatter";
 import { describe, expect, it, vi } from "vitest";
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { AmazonAdDailyReportSection } from "@/modules/marketplaces/amazon/services/AmazonAdDailyReportSection";
 import { ExchangeRateDailyReportSection } from "@/modules/currency/services/ExchangeRateDailyReportSection";
-import { getSpacing } from "@/shared/discord/spacing";
 import {
   seedAd,
   seedCurrency,
@@ -41,7 +41,7 @@ describe("DailyStatsCronService (MySQL)", () => {
       [
         {
           name: "Collected asins",
-          value: ["Total: **2**", "Last 24h: **1**"].join(getSpacing(4)),
+          value: ["Total: **2**", "Last 24h: **1**"].join(DiscordFormatter.spacing(4)),
         },
         { name: "Exchange rates", value: "EUR -> PLN: **4.3**" },
       ],

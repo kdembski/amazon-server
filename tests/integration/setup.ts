@@ -38,7 +38,7 @@ beforeEach(async () => {
   settingCache.values = undefined;
   settingCache.channels = undefined;
   settingCache.clients.clear();
-  settingCache.missingLoggedAt.clear();
+  settingCache.missingLogThrottle.clear();
   await seedDiscordChannels();
   await seedSettings();
   discordInbox.length = 0;

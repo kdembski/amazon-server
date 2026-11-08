@@ -1,3 +1,4 @@
+import { HttpError } from "@/shared/http/HttpError";
 import { MessagePayload, WebhookMessageCreateOptions } from "discord.js";
 import { DiscordChannelSelectDto } from "@/modules/settings/dtos/DiscordChannelDtos";
 import { DiscordChannelRepository } from "@/modules/settings/repositories/DiscordChannelRepository";
@@ -70,12 +71,9 @@ export class DiscordChannelService {
   }
 
   async delete(id: number) {
-    const keys = await this.getReferencingKeys(id);
+    const keys = await this.settingService.getKeysReferencingChannel(id);
     if (keys.length) {
-      throw Object.assign(
-        new Error(`Discord channel ${id} is used by the settings ${keys.join(", ")}`),
-        { status: 422 }
-      );
+      throw new HttpError(422, `Discord channel ${id} is used by the settings ${keys.join(", ")}`);
     }
 
     const channel = await this.repository.delete(id);
@@ -116,21 +114,6 @@ export class DiscordChannelService {
       this.cache.clients.set(channel.token, client);
     }
     return client;
-  }
-
-  private async getReferencingKeys(id: number) {
-    const settings = await this.settingService.getAll();
-    return settings
-      .filter(({ key, value }) => {
-        if (key.endsWith(".channelId")) return value === id;
-        if (key === "countryOutlier.ruleGroups" && value) {
-          return (value as { channelId: number }[][]).some((group) =>
-            group.some((rule) => rule.channelId === id)
-          );
-        }
-        return false;
-      })
-      .map(({ key }) => key);
   }
 
   private mask(channel: DiscordChannelSelectDto) {

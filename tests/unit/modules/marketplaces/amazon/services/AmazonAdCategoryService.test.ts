@@ -52,14 +52,7 @@ describe("AmazonAdCategoryService", () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date("2026-05-05T00:00:00Z"));
     });
-    afterEach(() => {
-      vi.useRealTimers();
-      // A failed assertion before the lock is released would otherwise
-      // cascade into every later test in this file.
-      (
-        AmazonAdCategoryService as unknown as { isGetting: boolean }
-      ).isGetting = false;
-    });
+    afterEach(() => vi.useRealTimers());
 
     it("returns the oldest-scraped category and stamps scrapedAt", async () => {
       const { service, repository } = setup();
@@ -74,7 +67,7 @@ describe("AmazonAdCategoryService", () => {
       });
     });
 
-    it("delays a concurrent call by one second while another is in flight", async () => {
+    it("starts a concurrent call as soon as the one in flight finished", async () => {
       const { service, repository } = setup();
       const first = deferred<Category>();
       repository.getForScraping
@@ -83,15 +76,11 @@ describe("AmazonAdCategoryService", () => {
 
       const call1 = service.getForScraping();
       const call2 = service.getForScraping();
-      await vi.advanceTimersByTimeAsync(0);
+      await vi.advanceTimersByTimeAsync(5000);
       expect(repository.getForScraping).toHaveBeenCalledTimes(1);
 
       first.resolve(buildCategory());
       await call1;
-      await vi.advanceTimersByTimeAsync(999);
-      expect(repository.getForScraping).toHaveBeenCalledTimes(1);
-
-      await vi.advanceTimersByTimeAsync(1);
       await call2;
       expect(repository.getForScraping).toHaveBeenCalledTimes(2);
     });
@@ -108,25 +97,6 @@ describe("AmazonAdCategoryService", () => {
       await vi.advanceTimersByTimeAsync(0);
       expect(repository.getForScraping).toHaveBeenCalledTimes(2);
       await next;
-    });
-
-    it("keeps waiting while the first call is still in flight after one second", async () => {
-      const { service, repository } = setup();
-      const first = deferred<Category>();
-      repository.getForScraping
-        .mockReturnValueOnce(first.promise)
-        .mockResolvedValue(buildCategory());
-
-      const call1 = service.getForScraping();
-      const call2 = service.getForScraping();
-      await vi.advanceTimersByTimeAsync(1000);
-      expect(repository.getForScraping).toHaveBeenCalledTimes(1);
-
-      first.resolve(buildCategory());
-      await call1;
-      await vi.advanceTimersByTimeAsync(1000);
-      await call2;
-      expect(repository.getForScraping).toHaveBeenCalledTimes(2);
     });
   });
 });

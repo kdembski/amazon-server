@@ -1,30 +1,26 @@
 import { ProcessMetricsService } from "@/shared/system/ProcessMetricsService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
-import { CronJob } from "cron";
+import { CronService } from "@/shared/system/CronService";
 
-export class ProcessMetricsCronService {
+export class ProcessMetricsCronService extends CronService {
+  // Second 45 keeps the log away from the activity flush at second 30
+  protected readonly cronTime = "45 * * * * *";
   private role;
   private metricsService;
-  private logger;
 
   constructor(
     role: "api" | "worker",
     metricsService = new ProcessMetricsService(),
     logger = SystemLogService.getInstance()
   ) {
+    super(logger);
     this.role = role;
     this.metricsService = metricsService;
-    this.logger = logger;
   }
 
-  // Second 45 keeps the log away from the activity flush at second 30
   schedule() {
     this.metricsService.start();
-    new CronJob("45 * * * * *", () =>
-      this.run().catch((error) =>
-        this.logger.error("ProcessMetricsCronService", "Cron run failed", { error })
-      )
-    ).start();
+    super.schedule();
   }
 
   async run() {

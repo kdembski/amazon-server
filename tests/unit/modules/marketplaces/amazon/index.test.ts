@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { createAmazonModule } from "@/modules/marketplaces/amazon";
-import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
+import { AmazonExclusionRuleTarget } from "@/modules/marketplaces/amazon/services/AmazonExclusionRuleTarget";
 import { AmazonAdDailyReportSection } from "@/modules/marketplaces/amazon/services/AmazonAdDailyReportSection";
-import { AmazonAdPriceCleanupCronService } from "@/modules/marketplaces/amazon/cron/AmazonAdPriceCleanupCronService";
-import { AmazonAdMissingCleanupCronService } from "@/modules/marketplaces/amazon/cron/AmazonAdMissingCleanupCronService";
+import { RetentionCleanupCronService } from "@/shared/system/RetentionCleanupCronService";
+import { AmazonAdPriceService } from "@/modules/marketplaces/amazon/services/AmazonAdPriceService";
+import { AmazonAdMissingService } from "@/modules/marketplaces/amazon/services/AmazonAdMissingService";
 
 vi.mock("@/modules/marketplaces/amazon/routes/AmazonAdCategoryRouter", () => ({
   AmazonAdCategoryRouter: vi.fn(function () {
@@ -30,9 +31,9 @@ vi.mock("@/modules/marketplaces/amazon/routes/AmazonCountryRouter", () => ({
     return { path: "/amazon/countries" };
   }),
 }));
-vi.mock("@/modules/marketplaces/amazon/repositories/AmazonAdRepository", () => ({
-  AmazonAdRepository: vi.fn(function () {
-    return { id: "ad-repository" };
+vi.mock("@/modules/marketplaces/amazon/services/AmazonExclusionRuleTarget", () => ({
+  AmazonExclusionRuleTarget: vi.fn(function () {
+    return { id: "exclusion-rule-target" };
   }),
 }));
 vi.mock("@/modules/marketplaces/amazon/services/AmazonAdDailyReportSection", () => ({
@@ -40,15 +41,14 @@ vi.mock("@/modules/marketplaces/amazon/services/AmazonAdDailyReportSection", () 
     return { id: "ad-section" };
   }),
 }));
-vi.mock("@/modules/marketplaces/amazon/cron/AmazonAdPriceCleanupCronService", () => ({
-  AmazonAdPriceCleanupCronService: vi.fn(function () {
-    return { id: "price-cleanup" };
+vi.mock("@/modules/marketplaces/amazon/services/AmazonAdPriceService", () => ({
+  AmazonAdPriceService: vi.fn(function () {
+    return { id: "price-service" };
   }),
 }));
-
-vi.mock("@/modules/marketplaces/amazon/cron/AmazonAdMissingCleanupCronService", () => ({
-  AmazonAdMissingCleanupCronService: vi.fn(function () {
-    return { id: "missing-cleanup" };
+vi.mock("@/modules/marketplaces/amazon/services/AmazonAdMissingService", () => ({
+  AmazonAdMissingService: vi.fn(function () {
+    return { id: "missing-service" };
   }),
 }));
 
@@ -68,17 +68,24 @@ describe("createAmazonModule", () => {
   it("schedules the price and missing country cleanups", () => {
     const module = createAmazonModule();
 
-    expect(module.workerCrons).toEqual([
-      vi.mocked(AmazonAdPriceCleanupCronService).mock.results.at(-1)!.value,
-      vi.mocked(AmazonAdMissingCleanupCronService).mock.results.at(-1)!.value,
+    const crons = module.workerCrons as RetentionCleanupCronService[];
+    expect(crons.every((c) => c instanceof RetentionCleanupCronService)).toBe(true);
+    expect(crons.map((c) => [c["cronTime"], c["label"], c["retentionDays"], c["target"]])).toEqual([
+      ["00 00 04 * * *", "Amazon ad prices", 90, vi.mocked(AmazonAdPriceService).mock.results.at(-1)!.value],
+      [
+        "00 30 04 * * *",
+        "Amazon ad missing countries",
+        30,
+        vi.mocked(AmazonAdMissingService).mock.results.at(-1)!.value,
+      ],
     ]);
   });
 
-  it("matches exclusion rules through the ad repository", () => {
+  it("matches exclusion rules through the Amazon exclusion rule target", () => {
     const module = createAmazonModule();
 
     expect(module.exclusionRuleTarget).toBe(
-      vi.mocked(AmazonAdRepository).mock.results.at(-1)!.value
+      vi.mocked(AmazonExclusionRuleTarget).mock.results.at(-1)!.value
     );
   });
 

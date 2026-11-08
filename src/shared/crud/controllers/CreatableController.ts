@@ -1,35 +1,20 @@
 import { Request, Response } from "express";
 import { CreatableServiceI } from "@/shared/crud/interfaces/CRUDService";
 import { CreatableControllerI } from "@/shared/crud/interfaces/CRUDController";
-import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
+import { respond } from "@/shared/http/respond";
 import _ from "lodash";
 
-export class CreatableController<CreateDto, Model>
-  implements CreatableControllerI<CreateDto>
-{
+export class CreatableController<CreateDto, Model> implements CreatableControllerI<CreateDto> {
   private service;
 
   constructor(service: CreatableServiceI<CreateDto, Model>) {
     this.service = service;
   }
 
-  async create(
-    request: Request<{}, {}, CreateDto | CreateDto[]>,
-    response: Response
-  ) {
-    try {
+  create(request: Request<{}, {}, CreateDto | CreateDto[]>, response: Response) {
+    return respond(response, () => {
       const data = request.body;
-
-      if (_.isArray(data)) {
-        const results = await this.service.createMany(data);
-        response.json(results);
-        return;
-      }
-
-      const results = await this.service.create(data);
-      response.json(results);
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+      return _.isArray(data) ? this.service.createMany(data) : this.service.create(data);
+    });
   }
 }

@@ -16,6 +16,11 @@ export class AmazonAdCategoryRepository {
     return this.delegate.findMany();
   }
 
+  async getActiveIds() {
+    const categories = await this.delegate.findMany({ where: { active: true }, select: { id: true } });
+    return categories.map((category) => category.id);
+  }
+
   getForScraping() {
     return this.delegate.findFirstOrThrow({
       where: { active: true },

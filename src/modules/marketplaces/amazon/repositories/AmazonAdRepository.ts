@@ -1,12 +1,7 @@
-import { setImmediate } from "node:timers/promises";
-import { Marketplace, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { PrismaClient } from "@@prisma/PrismaClient";
-import { AmazonExclusionRuleRepository } from "@/modules/marketplaces/amazon/repositories/AmazonExclusionRuleRepository";
-
-const MATCH_YIELD_EVERY = 100;
 
 export class AmazonAdRepository {
-  readonly marketplace = Marketplace.amazon;
   private delegate;
   private prisma;
   private structure = {
@@ -27,18 +22,9 @@ export class AmazonAdRepository {
     },
   };
 
-  private matchBatchSize;
-  private exclusionRuleRepository;
-
-  constructor(
-    prisma = PrismaClient.getInstance(),
-    matchBatchSize = 5_000,
-    exclusionRuleRepository = new AmazonExclusionRuleRepository(prisma)
-  ) {
+  constructor(prisma = PrismaClient.getInstance()) {
     this.delegate = prisma.amazonAd;
     this.prisma = prisma;
-    this.matchBatchSize = matchBatchSize;
-    this.exclusionRuleRepository = exclusionRuleRepository;
   }
 
   getById(id: number) {
@@ -70,49 +56,26 @@ export class AmazonAdRepository {
     });
   }
 
-  // Ads with excluded = null have not been checked yet; only = "new" limits
-  // the check to them. A full rematch walks the table in id ranges so each UPDATE
-  // commits quickly and only briefly locks the rows /scrap stamps.
-  async getExclusionRules() {
-    const rules = await this.exclusionRuleRepository.getAll();
-    return rules.map((rule) => ({
-      value: rule.value,
-      scope: rule.categoryId,
-      inverted: rule.inverted,
-    }));
-  }
-
-  async getActiveScopes() {
-    const categories = await this.prisma.amazonAdCategory.findMany({
-      where: { active: true },
-      select: { id: true },
-    });
-    return categories.map((category) => category.id);
-  }
-
-  async matchExclusionRules(
-    isExcluded: (name: string, scope: number | null) => boolean,
-    only?: "new" | number[]
-  ) {
-    if (only === "new") {
-      return this.updateMatches(isExcluded, { excluded: null });
-    }
-
-    const where = only ? { categoryId: { in: only } } : {};
+  async getMaxId(where: Prisma.AmazonAdWhereInput) {
     const { _max } = await this.delegate.aggregate({ where, _max: { id: true } });
-    const total = { excluded: 0, included: 0, scanned: 0 };
+    return _max.id ?? 0;
+  }
 
-    for (let lastId = 0; lastId < (_max.id ?? 0); lastId += this.matchBatchSize) {
-      const result = await this.updateMatches(isExcluded, {
-        ...where,
-        id: { gt: lastId, lte: lastId + this.matchBatchSize },
-      });
-      total.excluded += result.excluded;
-      total.included += result.included;
-      total.scanned += result.scanned;
-    }
+  getForMatch(where: Prisma.AmazonAdWhereInput) {
+    return this.delegate.findMany({
+      where,
+      select: { id: true, name: true, categoryId: true, excluded: true },
+    });
+  }
 
-    return total;
+  async setExcluded(ids: number[], excluded: boolean) {
+    if (!ids.length) return 0;
+
+    const { count } = await this.delegate.updateMany({
+      where: { id: { in: ids } },
+      data: { excluded },
+    });
+    return count;
   }
 
   updateScrapedAt(ids: number[]): Promise<number> {
@@ -161,42 +124,4 @@ export class AmazonAdRepository {
     return count;
   }
 
-  // Includes ads before excluding the rest, so the scraping queue never runs
-  // empty in between.
-  private async updateMatches(
-    isExcluded: (name: string, scope: number | null) => boolean,
-    where: Prisma.AmazonAdWhereInput
-  ) {
-    const ads = await this.delegate.findMany({
-      where,
-      select: { id: true, name: true, categoryId: true, excluded: true },
-    });
-    const excluded: number[] = [];
-    const included: number[] = [];
-
-    for (const [index, ad] of ads.entries()) {
-      // Matching is synchronous; yield so requests are not blocked for a whole batch
-      if (index % MATCH_YIELD_EVERY === 0) await setImmediate();
-      const excludes = isExcluded(ad.name, ad.categoryId);
-      if (excludes && ad.excluded !== true) excluded.push(ad.id);
-      if (!excludes && ad.excluded !== false) included.push(ad.id);
-    }
-
-    const includedCount = await this.setExcluded(included, false);
-    return {
-      excluded: await this.setExcluded(excluded, true),
-      included: includedCount,
-      scanned: ads.length,
-    };
-  }
-
-  private async setExcluded(ids: number[], excluded: boolean) {
-    if (!ids.length) return 0;
-
-    const { count } = await this.delegate.updateMany({
-      where: { id: { in: ids } },
-      data: { excluded },
-    });
-    return count;
-  }
 }

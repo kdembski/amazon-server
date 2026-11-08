@@ -1,11 +1,14 @@
+import { BatchDeleter } from "@/shared/crud/repositories/BatchDeleter";
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { Prisma } from "@prisma/client";
 
 export class AmazonAdMissingRepository {
+  private batchDeleter;
   private delegate;
   private prisma;
 
-  constructor(prisma = PrismaClient.getInstance()) {
+  constructor(prisma = PrismaClient.getInstance(), batchDeleter = new BatchDeleter(prisma)) {
+    this.batchDeleter = batchDeleter;
     this.delegate = prisma.amazonAdMissing;
     this.prisma = prisma;
   }
@@ -22,16 +25,7 @@ export class AmazonAdMissingRepository {
     return count;
   }
 
-  async deleteOlderThan(date: Date, batchSize = 10_000) {
-    let total = 0;
-    let deleted;
-
-    do {
-      deleted = await this.prisma
-        .$executeRaw`DELETE FROM AmazonAdMissing WHERE createdAt < ${date} LIMIT ${batchSize}`;
-      total += deleted;
-    } while (deleted === batchSize);
-
-    return total;
+  deleteOlderThan(date: Date, batchSize = 10_000) {
+    return this.batchDeleter.deleteOlderThan("AmazonAdMissing", "createdAt", date, batchSize);
   }
 }
