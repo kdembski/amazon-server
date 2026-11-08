@@ -1,4 +1,5 @@
 # amazon-server
+<img width="1296" height="351" alt="1" src="https://github.com/user-attachments/assets/bc0582d6-ea8f-408e-8fa4-f2af9194d104" />
 
 Backend for Amazon price monitoring. Scrapers pull ASINs and countries from it, send back prices. The server stores them, detects price anomalies (country outliers, price drops) and reports them, plus hourly and daily stats, to Discord webhooks.
 
