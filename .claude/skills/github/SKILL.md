@@ -36,8 +36,35 @@ Issues hold the tasks to do: features, bugs, chores.
   (`amazon-server#12`). Refer to tasks only by it.
 - Type: label `bug` or `feature` (`gh label list` for others).
 - Title: a short description of what to do, starting with a verb (`Add ...`, `Fix ...`).
-- Body: a longer description: what and why, where (`file:line`, endpoint, logs), and when it is done.
+- Body: the sections below, nothing else (no "Why").
 - A PR that finishes a task gets `Closes #<number>` under the commit list in its body.
+
+### Body
+
+```markdown
+## What
+
+<the change and its rules, 1–3 sentences>
+
+## Where
+
+- `<path>:<line>` – <what changes there>.
+- <places that stay unchanged, when one could expect a change>.
+- `.claude/rules/...` and `CLAUDE.md` – <docs to update>.
+
+## Done when
+
+- <endpoint or behaviour that can be checked>.
+- Unit and integration tests are updated; coverage thresholds still pass.
+```
+
+### Flow
+
+1. The user gives a topic and asks to create an issue.
+2. Analyse the topic in the code: every place the change reaches.
+3. Propose the title, label and body in the chat.
+4. Ask about open design decisions.
+5. Create the issue only after the user accepts the proposal.
 
 ```bash
 gh issue list --state open
