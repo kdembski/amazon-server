@@ -4,7 +4,7 @@ import { SettingCache } from "@/modules/settings/services/SettingCache";
 import { SETTING_KEYS } from "@/modules/settings/services/SettingValidator";
 import { SettingRepository } from "@/modules/settings/repositories/SettingRepository";
 import { DiscordChannelRepository } from "@/modules/settings/repositories/DiscordChannelRepository";
-import { FIXED_DATE } from "../../../../support/factories";
+import { FIXED_DATE, TEST_SETTINGS } from "../../../../support/factories";
 import { fakeSystemLogService, resetSingleton } from "../../../../support/fakes";
 
 const channel = (id: number) => ({
@@ -186,5 +186,50 @@ describe("SettingService", () => {
     await service.getChannels();
 
     expect(repository.getAll).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("SettingService channels", () => {
+  const rows = Object.entries(TEST_SETTINGS).map(([key, value]) => ({ key, value }));
+
+  it.each([
+    [3, ["countryOutlier.ruleGroups"]],
+    [7, ["priceDrop.channelId"]],
+    [8, ["reports.channelId"]],
+    [99, []],
+  ])("getKeysReferencingChannel lists the settings using channel %s", async (id, keys) => {
+    const { service } = setup(rows);
+
+    expect(await service.getKeysReferencingChannel(id)).toEqual(keys);
+  });
+
+  it("getKeysReferencingChannel skips missing rule groups", async () => {
+    const { service } = setup([{ key: "reports.channelId", value: 3 }]);
+
+    expect(await service.getKeysReferencingChannel(3)).toEqual(["reports.channelId"]);
+  });
+
+  it("getChannelName names a missing channel by its id", async () => {
+    const { service } = setup([], [channel(1)]);
+
+    expect(await service.getChannelName(1)).toBe("channel-1");
+    expect(await service.getChannelName(5)).toBe("#5");
+  });
+
+  it("getCountryOutlierChannels lists the channels of the rules once, in rule order", async () => {
+    const groups = [[{ channelId: 2 }, { channelId: 1 }], [{ channelId: 2 }, { channelId: 9 }]];
+    const { service } = setup([{ key: "countryOutlier.ruleGroups", value: groups }], [channel(1), channel(2)]);
+
+    expect(await service.getCountryOutlierChannels()).toEqual([
+      { id: 2, name: "channel-2" },
+      { id: 1, name: "channel-1" },
+      { id: 9, name: "#9" },
+    ]);
+  });
+
+  it("getCountryOutlierChannels is empty without rule groups", async () => {
+    const { service } = setup();
+
+    expect(await service.getCountryOutlierChannels()).toEqual([]);
   });
 });

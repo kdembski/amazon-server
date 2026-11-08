@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ExclusionRuleMatchService } from "@/modules/exclusion-rules/services/ExclusionRuleMatchService";
-import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
-import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
+import { AmazonExclusionRuleTarget } from "@/modules/marketplaces/amazon/services/AmazonExclusionRuleTarget";
+import { AmazonAdScrapingService } from "@/modules/marketplaces/amazon/services/AmazonAdScrapingService";
 import { prisma } from "../../../../support/integration/db";
 import { seedAd, seedAmazonExclusionRule, seedCategory } from "../../../../support/integration/seed";
 
@@ -13,7 +13,7 @@ const flags = async () => {
 describe("ExclusionRuleMatchService (MySQL)", () => {
   it("excludes ads on the first run, then picks up new ads and rule changes made anywhere", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
-    const service = new ExclusionRuleMatchService([new AmazonAdRepository()]);
+    const service = new ExclusionRuleMatchService([new AmazonExclusionRuleTarget()]);
     await seedAd({ name: "Sony WH-1000XM5" });
     await seedAd({ name: "Bose QC45" });
     await seedAmazonExclusionRule({ value: "sony" });
@@ -38,22 +38,22 @@ describe("ExclusionRuleMatchService (MySQL)", () => {
     ]);
   });
 
-  it("feeds GET /scrap through AmazonAdService once the ads are checked", async () => {
+  it("feeds GET /scrap through AmazonAdScrapingService once the ads are checked", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     await seedAd({ name: "Sony WH-1000XM5" });
     const bose = await seedAd({ name: "Bose QC45" });
     await seedAmazonExclusionRule({ value: "sony" });
-    const adService = new AmazonAdService();
+    const adService = new AmazonAdScrapingService();
 
     expect(await adService.getForScraping(10)).toEqual([]);
-    await new ExclusionRuleMatchService([new AmazonAdRepository()]).sync();
+    await new ExclusionRuleMatchService([new AmazonExclusionRuleTarget()]).sync();
 
     expect((await adService.getForScraping(10)).map((ad) => ad.id)).toEqual([bose.id]);
   });
 
   it("excludes ads of an inactive category until it is activated", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
-    const service = new ExclusionRuleMatchService([new AmazonAdRepository()]);
+    const service = new ExclusionRuleMatchService([new AmazonExclusionRuleTarget()]);
     const inactive = await seedCategory({ active: false });
     await seedAd({ name: "Sony A7" });
     await seedAd({ name: "Sony A7 II", categoryId: inactive.id });
@@ -80,7 +80,7 @@ describe("ExclusionRuleMatchService (MySQL)", () => {
     await seedAd({ name: "Sony A7 II", categoryId: b.id });
     await seedAmazonExclusionRule({ value: "sony", categoryId: a.id });
 
-    await new ExclusionRuleMatchService([new AmazonAdRepository()]).sync();
+    await new ExclusionRuleMatchService([new AmazonExclusionRuleTarget()]).sync();
 
     expect(await flags()).toEqual([
       ["Sony A7", true],

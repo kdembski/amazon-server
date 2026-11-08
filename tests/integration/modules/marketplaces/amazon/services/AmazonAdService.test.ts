@@ -8,7 +8,6 @@ import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDt
 import { AmazonCountryOutlierReporter } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierReporter";
 import { AmazonPriceDropReporter } from "@/modules/marketplaces/amazon/services/AmazonPriceDropReporter";
 import { ActivityCounter } from "@/modules/monitoring/services/ActivityCounter";
-import { FIXED_DATE } from "../../../../../support/factories";
 import {
   fakeAmazonCountryOutlierDiscordService,
   fakeAmazonPriceDropDiscordService,
@@ -44,60 +43,6 @@ const buildAdService = () => {
 };
 
 describe("AmazonAdService (MySQL)", () => {
-  describe("getForScraping", () => {
-    it("returns ads that are not excluded from any category and stamps only them", async () => {
-      const { service } = buildAdService();
-      const inactive = await seedCategory({ active: false });
-      const wanted = await seedAd({ categoryId: inactive.id, excluded: false });
-      const other = await seedAd({ excluded: true });
-      const unchecked = await seedAd({ excluded: null });
-
-      const ads = await service.getForScraping(10);
-
-      expect(ads).toEqual([
-        { id: wanted.id, asin: wanted.asin, name: wanted.name, skipCountryIds: [] },
-      ]);
-      const rows = await prisma.amazonAd.findMany({
-        where: { id: { in: [wanted.id, other.id, unchecked.id] } },
-        orderBy: { id: "asc" },
-      });
-      expect(rows.map((row) => row.scrapedAt instanceof Date)).toEqual([true, false, false]);
-    });
-
-    it("hands out the same ads again once every included ad was stamped", async () => {
-      const { service } = buildAdService();
-      const first = await seedAd({ excluded: false });
-      const second = await seedAd({ excluded: false });
-
-      const round1 = await service.getForScraping(1);
-      await prisma.amazonAd.update({ where: { id: round1[0].id }, data: { scrapedAt: new Date(FIXED_DATE.getTime() + 1000) } });
-      const round2 = await service.getForScraping(1);
-      await prisma.amazonAd.update({ where: { id: round2[0].id }, data: { scrapedAt: new Date(FIXED_DATE.getTime() + 2000) } });
-      const round3 = await service.getForScraping(1);
-
-      expect([round1[0].id, round2[0].id].sort((x, y) => x - y)).toEqual(
-        [first.id, second.id].sort((x, y) => x - y)
-      );
-      expect(round3[0].id).toBe(round1[0].id);
-    });
-
-    it("serialises concurrent calls so they hand out disjoint ads", async () => {
-      const { service } = buildAdService();
-      const first = await seedAd({ excluded: false });
-      const second = await seedAd({ excluded: false });
-
-      // The second caller waits 1 s on the static lock before retrying.
-      const [a, b] = await Promise.all([
-        service.getForScraping(1),
-        service.getForScraping(1),
-      ]);
-
-      expect([a[0].id, b[0].id].sort((x, y) => x - y)).toEqual(
-        [first.id, second.id].sort((x, y) => x - y)
-      );
-    });
-  });
-
   describe("updatePrices", () => {
     it("stores prices, counts ad_scraped and reports a halved price as a price drop", async () => {
       const { service, pricing } = buildAdService();

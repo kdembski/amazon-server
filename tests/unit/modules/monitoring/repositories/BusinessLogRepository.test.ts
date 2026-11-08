@@ -60,11 +60,9 @@ describe("BusinessLogRepository", () => {
     expect(await repository.deleteOlderThan(date, 2)).toBe(5);
 
     expect(db.$executeRaw).toHaveBeenCalledTimes(3);
-    const [strings, ...values] = db.$executeRaw.mock.calls[0];
-    expect(strings.join("?")).toBe(
-      "DELETE FROM BusinessLog WHERE createdAt < ? LIMIT ?"
-    );
-    expect(values).toEqual([date, 2]);
+    const [query] = db.$executeRaw.mock.calls[0];
+    expect(query.sql).toBe("DELETE FROM BusinessLog WHERE createdAt < ? LIMIT ?");
+    expect(query.values).toEqual([date, 2]);
   });
 
   it("writes delegate to prisma", async () => {

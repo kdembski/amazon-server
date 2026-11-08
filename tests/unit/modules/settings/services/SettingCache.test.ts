@@ -14,6 +14,6 @@ describe("SettingCache", () => {
     expect(cache.refreshedAt).toBeUndefined();
     expect(cache.refreshFailing).toBe(false);
     expect(cache.clients.size).toBe(0);
-    expect(cache.missingLoggedAt.size).toBe(0);
+    expect(cache.missingLogThrottle.shouldLog("key")).toBe(true);
   });
 });

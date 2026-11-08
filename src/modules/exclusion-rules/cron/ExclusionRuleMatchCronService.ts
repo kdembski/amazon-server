@@ -1,25 +1,17 @@
 import { ExclusionRuleMatchService } from "@/modules/exclusion-rules/services/ExclusionRuleMatchService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
-import { CronJob } from "cron";
+import { CronService } from "@/shared/system/CronService";
 
-export class ExclusionRuleMatchCronService {
+export class ExclusionRuleMatchCronService extends CronService {
+  protected readonly cronTime = "00 * * * * *";
   private matchService;
-  private logger;
 
   constructor(
     matchService: ExclusionRuleMatchService,
     logger = SystemLogService.getInstance()
   ) {
+    super(logger);
     this.matchService = matchService;
-    this.logger = logger;
-  }
-
-  schedule() {
-    new CronJob("00 * * * * *", () =>
-      this.run().catch((error) =>
-        this.logger.error("ExclusionRuleMatchCronService", "Cron run failed", { error })
-      )
-    ).start();
   }
 
   run() {

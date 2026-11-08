@@ -1,3 +1,4 @@
+import { LogThrottle } from "@/shared/logging/services/LogThrottle";
 import { DiscordChannelSelectDto } from "@/modules/settings/dtos/DiscordChannelDtos";
 import { DiscordService } from "@/shared/discord/DiscordService";
 
@@ -7,7 +8,8 @@ export class SettingCache {
   channels?: DiscordChannelSelectDto[];
   refreshedAt?: number;
   refreshFailing = false;
-  missingLoggedAt = new Map<string, number>();
+  // one error a minute per missing setting key
+  missingLogThrottle = new LogThrottle(60_000);
   // keyed by token, so a changed token gets a new client
   clients = new Map<string, DiscordService>();
 

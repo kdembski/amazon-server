@@ -70,8 +70,6 @@ export function fakeScraperMetricService() {
   const getSeries = vi.fn().mockResolvedValue([]);
   const getCountSeries = vi.fn().mockResolvedValue([]);
   const getBreakdown = vi.fn().mockResolvedValue([]);
-  const getStatuses = vi.fn().mockResolvedValue([]);
-  const rollUp = vi.fn().mockResolvedValue(0);
   const service = {
     add,
     deleteOlderThan,
@@ -79,8 +77,6 @@ export function fakeScraperMetricService() {
     getSeries,
     getCountSeries,
     getBreakdown,
-    getStatuses,
-    rollUp,
   } as unknown as ScraperMetricService;
   return {
     service,
@@ -90,8 +86,6 @@ export function fakeScraperMetricService() {
     getSeries,
     getCountSeries,
     getBreakdown,
-    getStatuses,
-    rollUp,
   };
 }
 
@@ -119,8 +113,37 @@ export function fakeSettingService(
   const getChannels = vi.fn().mockResolvedValue(channels);
   const set = vi.fn();
   const invalidate = vi.fn();
-  const service = { get, getAll, getChannels, set, invalidate } as unknown as SettingService;
-  return { service, get, getAll, getChannels, set, invalidate };
+  // Same naming and order as SettingService, read from `values` and `channels`
+  const getChannelName = vi.fn(async (id: number) => {
+    return channels.find((channel) => channel.id === id)?.name ?? `#${id}`;
+  });
+  const getCountryOutlierChannels = vi.fn(async () => {
+    const groups = (await get("countryOutlier.ruleGroups")) as Settings["countryOutlier.ruleGroups"] | undefined;
+    const ids = [...new Set((groups ?? []).flat().map((rule) => rule.channelId))];
+    return Promise.all(ids.map(async (id) => ({ id, name: await getChannelName(id) })));
+  });
+  const getKeysReferencingChannel = vi.fn().mockResolvedValue([]);
+  const service = {
+    get,
+    getAll,
+    getChannels,
+    set,
+    invalidate,
+    getChannelName,
+    getCountryOutlierChannels,
+    getKeysReferencingChannel,
+  } as unknown as SettingService;
+  return {
+    service,
+    get,
+    getAll,
+    getChannels,
+    set,
+    invalidate,
+    getChannelName,
+    getCountryOutlierChannels,
+    getKeysReferencingChannel,
+  };
 }
 
 export function fakeDiscordChannelService() {
@@ -220,6 +243,8 @@ export function fakeDelegate() {
     findFirstOrThrow: vi.fn(),
     findMany: vi.fn(),
     updateMany: vi.fn(),
+    upsert: vi.fn(),
+    deleteMany: vi.fn(),
     aggregate: vi.fn(),
     count: vi.fn(),
     create: vi.fn(),

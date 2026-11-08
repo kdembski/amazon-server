@@ -1,26 +1,18 @@
 import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
-import { CronJob } from "cron";
+import { CronService } from "@/shared/system/CronService";
 
-export class ActivityCountFlushCronService {
+export class ActivityCountFlushCronService extends CronService {
+  // Second 30 keeps the write away from the reports that run on full minutes
+  protected readonly cronTime = "30 * * * * *";
   private activityCountService;
-  private logger;
 
   constructor(
     activityCountService = new ActivityCountService(),
     logger = SystemLogService.getInstance()
   ) {
+    super(logger);
     this.activityCountService = activityCountService;
-    this.logger = logger;
-  }
-
-  // Second 30 keeps the write away from the reports that run on full minutes
-  schedule() {
-    new CronJob("30 * * * * *", () =>
-      this.run().catch((error) =>
-        this.logger.error("ActivityCountFlushCronService", "Cron run failed", { error })
-      )
-    ).start();
   }
 
   run() {

@@ -1,11 +1,14 @@
+import { BatchDeleter } from "@/shared/crud/repositories/BatchDeleter";
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { BusinessLogType, Prisma } from "@prisma/client";
 
 export class BusinessLogRepository {
+  private batchDeleter;
   private prisma;
   private delegate;
 
-  constructor(prisma = PrismaClient.getInstance()) {
+  constructor(prisma = PrismaClient.getInstance(), batchDeleter = new BatchDeleter(prisma)) {
+    this.batchDeleter = batchDeleter;
     this.prisma = prisma;
     this.delegate = prisma.businessLog;
   }
@@ -23,17 +26,8 @@ export class BusinessLogRepository {
     });
   }
 
-  async deleteOlderThan(date: Date, batchSize = 10_000) {
-    let total = 0;
-    let deleted;
-
-    do {
-      deleted = await this.prisma
-        .$executeRaw`DELETE FROM BusinessLog WHERE createdAt < ${date} LIMIT ${batchSize}`;
-      total += deleted;
-    } while (deleted === batchSize);
-
-    return total;
+  deleteOlderThan(date: Date, batchSize = 10_000) {
+    return this.batchDeleter.deleteOlderThan("BusinessLog", "createdAt", date, batchSize);
   }
 
   // A row without data.count (a single event) counts as 1

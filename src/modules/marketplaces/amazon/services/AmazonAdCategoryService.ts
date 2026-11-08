@@ -5,13 +5,17 @@ import { AmazonAdCategoryRepository } from "@/modules/marketplaces/amazon/reposi
 import { CreatableService } from "@/shared/crud/services/CreatableService";
 import { DeletableService } from "@/shared/crud/services/DeletableService";
 import { UpdatableService } from "@/shared/crud/services/UpdatableService";
+import { Mutex } from "@/shared/utils/Mutex";
+
+// Shared by all instances: two requests must not hand out the same category
+const scrapingMutex = new Mutex();
 
 export class AmazonAdCategoryService {
   private repository;
   deletable;
   creatable;
   updatable;
-  private static isGetting = false;
+  private scrapingMutex;
 
   constructor(
     repository = new AmazonAdCategoryRepository(),
@@ -23,8 +27,10 @@ export class AmazonAdCategoryService {
     updatable = new UpdatableService(
       repository,
       new AmazonAdCategoryUpdateMapper()
-    )
+    ),
+    mutex = scrapingMutex
   ) {
+    this.scrapingMutex = mutex;
     this.repository = repository;
     this.deletable = deletable;
     this.creatable = creatable;
@@ -35,27 +41,11 @@ export class AmazonAdCategoryService {
     return this.repository.getAll();
   }
 
-  async getForScraping(): Promise<AmazonAdCategorySelectDto> {
-    if (AmazonAdCategoryService.isGetting) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return this.getForScraping();
-    }
-
-    AmazonAdCategoryService.isGetting = true;
-    try {
-      return await this._getForScraping();
-    } finally {
-      AmazonAdCategoryService.isGetting = false;
-    }
-  }
-
-  private async _getForScraping() {
-    const category = await this.repository.getForScraping();
-
-    await this.repository.update(category.id, {
-      scrapedAt: new Date(Date.now()),
+  getForScraping(): Promise<AmazonAdCategorySelectDto> {
+    return this.scrapingMutex.run(async () => {
+      const category = await this.repository.getForScraping();
+      await this.repository.update(category.id, { scrapedAt: new Date() });
+      return category;
     });
-
-    return category;
   }
 }

@@ -5,10 +5,11 @@ import { StatsRouter } from "@/modules/monitoring/routes/StatsRouter";
 import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCronService";
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
 import { ActivityCountFlushCronService } from "@/modules/monitoring/cron/ActivityCountFlushCronService";
-import { BusinessLogCleanupCronService } from "@/modules/monitoring/cron/BusinessLogCleanupCronService";
-import { ScraperMetricCleanupCronService } from "@/modules/monitoring/cron/ScraperMetricCleanupCronService";
 import { ScraperMetricRollupCronService } from "@/modules/monitoring/cron/ScraperMetricRollupCronService";
-import { SystemLogCleanupCronService } from "@/modules/monitoring/cron/SystemLogCleanupCronService";
+import { RetentionCleanupCronService } from "@/shared/system/RetentionCleanupCronService";
+import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
+import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
+import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { ProcessMetricsCronService } from "@/modules/monitoring/cron/ProcessMetricsCronService";
 import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
@@ -32,13 +33,21 @@ describe("createMonitoringModule", () => {
       ActivityCountFlushCronService,
       ProcessMetricsCronService,
     ]);
+    const cleanups = module.workerCrons!.filter((c) => c instanceof RetentionCleanupCronService);
+    expect(
+      cleanups.map((c) => [c["cronTime"], c["label"], c["retentionDays"], c["target"].constructor])
+    ).toEqual([
+      ["00 30 03 * * *", "activity events", 30, BusinessLogService],
+      ["00 45 03 * * *", "scraper metrics", 30, ScraperMetricService],
+      ["00 15 04 * * *", "system logs", 30, SystemLogService.getInstance().constructor],
+    ]);
     expect(module.workerCrons!.map((c) => c.constructor)).toEqual([
       HourlyStatsCronService,
       DailyStatsCronService,
-      BusinessLogCleanupCronService,
-      ScraperMetricCleanupCronService,
+      RetentionCleanupCronService,
+      RetentionCleanupCronService,
       ScraperMetricRollupCronService,
-      SystemLogCleanupCronService,
+      RetentionCleanupCronService,
       ProcessMetricsCronService,
     ]);
   });

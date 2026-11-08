@@ -5,6 +5,8 @@ import { ExclusionRuleParser } from "@/modules/exclusion-rules/services/Exclusio
 import { ScopedExclusionRuleMatcher } from "@/modules/exclusion-rules/services/ScopedExclusionRuleMatcher";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
+type ExclusionRuleRow = Awaited<ReturnType<ExclusionRuleTarget["getExclusionRules"]>>[number];
+
 export class ExclusionRuleMatchService {
   private targets;
   private parser;
@@ -51,39 +53,54 @@ export class ExclusionRuleMatchService {
     const exclusionRules = await target.getExclusionRules();
     const activeScopes = await target.getActiveScopes();
     const fingerprint = this.getFingerprint(exclusionRules, activeScopes);
-    const previous =
-      this.fingerprints.get(target) ?? (await this.getStoredFingerprint(target));
-    const only = this.getChangedScopes(previous, fingerprint);
-    const active = new Set(activeScopes);
+    const only = this.getChangedScopes(await this.getPreviousFingerprint(target), fingerprint);
     const startedAt = Date.now();
-    const matcher = new ScopedExclusionRuleMatcher(
-      this.parseExclusionRules(exclusionRules)
-    );
 
-    const { excluded, included, scanned } = await target.matchExclusionRules(
-      (name, scope) =>
-        (scope !== null && !active.has(scope)) || matcher.excludes(name, scope),
-      only
-    );
+    const result = await target.matchExclusionRules(this.getIsExcluded(exclusionRules, activeScopes), only);
     this.fingerprints.set(target, fingerprint);
 
     if (only !== "new") {
       await this.storeFingerprint(target, fingerprint);
-      this.logger.info(
-        "ExclusionRuleMatchService",
-        `${exclusionRules.length} exclusion rules excluded ${excluded} and included ${included} ads`,
-        {
-          target: target.constructor.name,
-          rules: exclusionRules.length,
-          activeScopes: [...active],
-          scopes: only ?? null,
-          excluded,
-          included,
-          scanned,
-          durationMs: Date.now() - startedAt,
-        }
-      );
+      this.logRematch(target, exclusionRules.length, activeScopes, only, result, Date.now() - startedAt);
     }
+  }
+
+  // The fingerprint of the last run in this process, otherwise the stored one
+  private async getPreviousFingerprint(target: ExclusionRuleTarget) {
+    return this.fingerprints.get(target) ?? (await this.getStoredFingerprint(target));
+  }
+
+  // An ad of an inactive scope is excluded without matching its name
+  private getIsExcluded(rules: ExclusionRuleRow[], activeScopes: number[]) {
+    const active = new Set(activeScopes);
+    const matcher = new ScopedExclusionRuleMatcher(this.parseExclusionRules(rules));
+    return (name: string, scope: number | null) => {
+      return (scope !== null && !active.has(scope)) || matcher.excludes(name, scope);
+    };
+  }
+
+  private logRematch(
+    target: ExclusionRuleTarget,
+    rules: number,
+    activeScopes: number[],
+    scopes: number[] | undefined,
+    { excluded, included, scanned }: { excluded: number; included: number; scanned: number },
+    durationMs: number
+  ) {
+    this.logger.info(
+      "ExclusionRuleMatchService",
+      `${rules} exclusion rules excluded ${excluded} and included ${included} ads`,
+      {
+        target: target.constructor.name,
+        rules,
+        activeScopes,
+        scopes: scopes ?? null,
+        excluded,
+        included,
+        scanned,
+        durationMs,
+      }
+    );
   }
 
   // Without a stored fingerprint every ad is rematched
@@ -117,7 +134,7 @@ export class ExclusionRuleMatchService {
 
   // One fingerprint per scope; the key "" holds the rules without a scope
   private getFingerprint(
-    rules: { value: string; scope: number | null; inverted: boolean }[],
+    rules: ExclusionRuleRow[],
     activeScopes: number[]
   ) {
     const lines = new Map<string, string[]>();
@@ -144,7 +161,7 @@ export class ExclusionRuleMatchService {
   }
 
   private parseExclusionRules(
-    rules: { value: string; scope: number | null; inverted: boolean }[]
+    rules: ExclusionRuleRow[]
   ): ScopedExclusionRule[] {
     return rules.flatMap(({ value, scope, inverted }) => {
       try {

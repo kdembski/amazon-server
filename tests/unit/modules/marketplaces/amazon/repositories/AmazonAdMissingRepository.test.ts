@@ -40,8 +40,8 @@ describe("AmazonAdMissingRepository", () => {
     expect(await repository.deleteOlderThan(date, 2)).toBe(3);
 
     expect($executeRaw).toHaveBeenCalledTimes(2);
-    const [strings, ...values] = $executeRaw.mock.calls[0];
-    expect(strings.join("?")).toBe("DELETE FROM AmazonAdMissing WHERE createdAt < ? LIMIT ?");
-    expect(values).toEqual([date, 2]);
+    const [query] = $executeRaw.mock.calls[0];
+    expect(query.sql).toBe("DELETE FROM AmazonAdMissing WHERE createdAt < ? LIMIT ?");
+    expect(query.values).toEqual([date, 2]);
   });
 });

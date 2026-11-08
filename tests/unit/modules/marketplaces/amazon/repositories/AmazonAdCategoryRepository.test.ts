@@ -48,4 +48,22 @@ describe("AmazonAdCategoryRepository", () => {
     });
     expect(delegate.delete).toHaveBeenCalledWith({ where: { id: 3 } });
   });
+
+  it("getActiveIds returns the ids of active categories", async () => {
+    const { repository, delegate } = setup();
+    delegate.findMany.mockResolvedValue([{ id: 1 }, { id: 3 }]);
+
+    expect(await repository.getActiveIds()).toEqual([1, 3]);
+    expect(delegate.findMany).toHaveBeenCalledWith({ where: { active: true }, select: { id: true } });
+  });
+
+  it("upsertByName creates a missing category and keeps an existing one", async () => {
+    const { repository, delegate } = setup();
+    delegate.upsert.mockResolvedValue({ id: 4 });
+
+    expect(await repository.upsertByName("Books")).toEqual({ id: 4 });
+    expect(delegate.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { name: "Books" }, update: {} })
+    );
+  });
 });

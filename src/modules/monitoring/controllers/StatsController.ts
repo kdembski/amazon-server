@@ -1,36 +1,29 @@
-import { parseTimeRange } from "@/modules/monitoring/helpers/parseTimeRange";
 import { ActivityStatsService } from "@/modules/monitoring/services/ActivityStatsService";
 import { LogStatsService } from "@/modules/monitoring/services/LogStatsService";
-import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
+import { TimeRangeValidator } from "@/modules/monitoring/services/TimeRangeValidator";
+import { respond } from "@/shared/http/respond";
 import { Request, Response } from "express";
 
 export class StatsController {
   private activityStatsService;
   private logStatsService;
+  private rangeValidator;
 
   constructor(
     activityStatsService = new ActivityStatsService(),
-    logStatsService = new LogStatsService()
+    logStatsService = new LogStatsService(),
+    rangeValidator = new TimeRangeValidator()
   ) {
     this.activityStatsService = activityStatsService;
     this.logStatsService = logStatsService;
+    this.rangeValidator = rangeValidator;
   }
 
-  async getActivity(request: Request, response: Response) {
-    try {
-      const range = parseTimeRange(request.query);
-      response.json(await this.activityStatsService.get(range));
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  getActivity(request: Request, response: Response) {
+    return respond(response, () => this.activityStatsService.get(this.rangeValidator.validate(request.query)));
   }
 
-  async getLogs(request: Request, response: Response) {
-    try {
-      const range = parseTimeRange(request.query);
-      response.json(await this.logStatsService.get(range));
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  getLogs(request: Request, response: Response) {
+    return respond(response, () => this.logStatsService.get(this.rangeValidator.validate(request.query)));
   }
 }

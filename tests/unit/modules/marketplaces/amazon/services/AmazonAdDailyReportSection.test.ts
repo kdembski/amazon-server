@@ -1,7 +1,7 @@
+import { DiscordFormatter } from "@/shared/discord/DiscordFormatter";
 import { describe, expect, it, vi } from "vitest";
 import { AmazonAdDailyReportSection } from "@/modules/marketplaces/amazon/services/AmazonAdDailyReportSection";
 import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
-import { getSpacing } from "@/shared/discord/spacing";
 
 describe("AmazonAdDailyReportSection", () => {
   it("reports the total and the from–to ad counts", async () => {
@@ -17,7 +17,7 @@ describe("AmazonAdDailyReportSection", () => {
 
     await expect(section.getField(from, to)).resolves.toEqual({
       name: "Collected asins",
-      value: ["Total: **12 345**", "Last 24h: **67**"].join(getSpacing(4)),
+      value: ["Total: **12 345**", "Last 24h: **67**"].join(DiscordFormatter.spacing(4)),
     });
     expect(getCount.mock.calls).toEqual([[], [from, to]]);
   });

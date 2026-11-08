@@ -1,80 +1,62 @@
-import { assertScraperName } from "@/modules/monitoring/helpers/assertScraperName";
-import { parseBreakdownKey } from "@/modules/monitoring/helpers/parseBreakdownKey";
-import { parseScraperMetrics } from "@/modules/monitoring/helpers/parseScraperMetrics";
-import { parseTimeRange } from "@/modules/monitoring/helpers/parseTimeRange";
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
-import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
+import { ScraperStatusService } from "@/modules/monitoring/services/ScraperStatusService";
+import { ScraperMetricValidator } from "@/modules/monitoring/services/ScraperMetricValidator";
+import { TimeRangeValidator } from "@/modules/monitoring/services/TimeRangeValidator";
+import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
+import { respond } from "@/shared/http/respond";
 import { Request, Response } from "express";
 
 export class ScraperMetricController {
   service;
+  private validator;
+  private rangeValidator;
+  private statusService;
 
-  constructor(service = new ScraperMetricService()) {
-    this.service = service;
-  }
-
-  async addMetrics(
-    request: Request<{ name: string }, {}, unknown>,
-    response: Response
+  constructor(
+    service = new ScraperMetricService(),
+    validator = new ScraperMetricValidator(),
+    rangeValidator = new TimeRangeValidator(),
+    statusService = new ScraperStatusService()
   ) {
-    try {
-      const { name } = request.params;
-      assertScraperName(name);
-      const dto = parseScraperMetrics(request.body);
-      const key = request.headers["idempotency-key"];
-      const stored = await this.service.add(
-        name,
-        dto,
-        typeof key === "string" ? key : undefined
-      );
-      response.json({ stored });
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+    this.statusService = statusService;
+    this.service = service;
+    this.validator = validator;
+    this.rangeValidator = rangeValidator;
   }
 
-  async getSummaries(request: Request, response: Response) {
-    try {
-      const { from, to } = parseTimeRange(request.query);
-      response.json(await this.service.getSummaries(from, to));
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  addMetrics(request: Request<{ name: string }, {}, unknown>, response: Response) {
+    return respond(response, async () => {
+      const name = this.validator.validateName(request.params.name);
+      const dto = this.validator.validateMetrics(request.body);
+      const stored = await this.service.add(name, dto, IdempotencyCache.getKey(request));
+      return { stored };
+    });
   }
 
-  async getSeries(request: Request, response: Response) {
-    try {
-      const range = parseTimeRange(request.query);
-      response.json(await this.service.getSeries(range));
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  getSummaries(request: Request, response: Response) {
+    return respond(response, () => {
+      const { from, to } = this.rangeValidator.validate(request.query);
+      return this.service.getSummaries(from, to);
+    });
   }
 
-  async getCountSeries(request: Request, response: Response) {
-    try {
-      const range = parseTimeRange(request.query);
-      response.json(await this.service.getCountSeries(range));
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  getSeries(request: Request, response: Response) {
+    return respond(response, () => this.service.getSeries(this.rangeValidator.validate(request.query)));
   }
 
-  async getBreakdown(request: Request, response: Response) {
-    try {
-      const { from, to } = parseTimeRange(request.query);
-      const by = parseBreakdownKey(request.query.by);
-      response.json(await this.service.getBreakdown(from, to, by));
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  getCountSeries(request: Request, response: Response) {
+    return respond(response, () => this.service.getCountSeries(this.rangeValidator.validate(request.query)));
   }
 
-  async getStatuses(response: Response) {
-    try {
-      response.json(await this.service.getStatuses());
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  getBreakdown(request: Request, response: Response) {
+    return respond(response, () => {
+      const { from, to } = this.rangeValidator.validate(request.query);
+      const by = this.validator.validateBreakdownKey(request.query.by);
+      return this.service.getBreakdown(from, to, by);
+    });
+  }
+
+  getStatuses(response: Response) {
+    return respond(response, () => this.statusService.getStatuses());
   }
 }

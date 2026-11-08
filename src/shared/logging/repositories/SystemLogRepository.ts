@@ -1,11 +1,14 @@
+import { BatchDeleter } from "@/shared/crud/repositories/BatchDeleter";
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { Prisma } from "@prisma/client";
 
 export class SystemLogRepository {
+  private batchDeleter;
   private prisma;
   private delegate;
 
-  constructor(prisma = PrismaClient.getInstance()) {
+  constructor(prisma = PrismaClient.getInstance(), batchDeleter = new BatchDeleter(prisma)) {
+    this.batchDeleter = batchDeleter;
     this.prisma = prisma;
     this.delegate = prisma.systemLog;
   }
@@ -44,16 +47,7 @@ export class SystemLogRepository {
     }));
   }
 
-  async deleteOlderThan(date: Date, batchSize = 10_000) {
-    let total = 0;
-    let deleted;
-
-    do {
-      deleted = await this.prisma
-        .$executeRaw`DELETE FROM SystemLog WHERE createdAt < ${date} LIMIT ${batchSize}`;
-      total += deleted;
-    } while (deleted === batchSize);
-
-    return total;
+  deleteOlderThan(date: Date, batchSize = 10_000) {
+    return this.batchDeleter.deleteOlderThan("SystemLog", "createdAt", date, batchSize);
   }
 }

@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ScraperStatusService } from "@/modules/monitoring/services/ScraperStatusService";
 import { ScraperMetricController } from "@/modules/monitoring/controllers/ScraperMetricController";
 import {
   fakeRequest,
@@ -15,7 +16,10 @@ const body = {
 
 const setup = () => {
   const fake = fakeScraperMetricService();
-  return { ...fake, controller: new ScraperMetricController(fake.service) };
+  const getStatuses = vi.fn().mockResolvedValue([]);
+  const statusService = { getStatuses } as unknown as ScraperStatusService;
+  const controller = new ScraperMetricController(fake.service, undefined, undefined, statusService);
+  return { ...fake, getStatuses, controller };
 };
 
 describe("ScraperMetricController", () => {

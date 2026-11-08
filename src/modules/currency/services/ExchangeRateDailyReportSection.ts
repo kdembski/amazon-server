@@ -1,6 +1,6 @@
+import { DiscordFormatter } from "@/shared/discord/DiscordFormatter";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
-import { getSpacing } from "@/shared/discord/spacing";
 
 export class ExchangeRateDailyReportSection implements DailyReportSection {
   private exchangeRateService;
@@ -20,7 +20,7 @@ export class ExchangeRateDailyReportSection implements DailyReportSection {
           (rate) =>
             `${rate.source.code} -> ${rate.target.code}: **${rate.value}**`
         )
-        .join(getSpacing(4)),
+        .join(DiscordFormatter.spacing(4)),
     };
   }
 }

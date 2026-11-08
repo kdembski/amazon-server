@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi, Mock } from "vitest";
+import { describe, expect, it, vi, Mock } from "vitest";
 import _ from "lodash";
 import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
@@ -10,7 +10,6 @@ import { PriceDropManager } from "@/modules/anomalies/price-drop/PriceDropManage
 import { AmazonAdListingPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdListingPriceMapper";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { IdempotencyCache } from "@/shared/http/IdempotencyCache";
-import { ConcurrencyQueue } from "@/shared/utils/ConcurrencyQueue";
 import { AmazonAdMissingService } from "@/modules/marketplaces/amazon/services/AmazonAdMissingService";
 import {
   buildAd,
@@ -30,9 +29,7 @@ vi.mock("discord.js", async (importOriginal) => {
   return { ...original, WebhookClient: vi.fn(function () { return {}; }) };
 });
 
-type ScrapAd = { id: number; asin: string; name: string };
-
-const setup = (anomalyCheckQueue?: ConcurrencyQueue) => {
+const setup = () => {
   const repository = {
     getById: vi.fn(),
     getAll: vi.fn().mockResolvedValue([]),
@@ -45,8 +42,7 @@ const setup = (anomalyCheckQueue?: ConcurrencyQueue) => {
     delete: vi.fn(),
   };
   const priceService = {
-    creatable: { create: vi.fn().mockResolvedValue({}) },
-    createMany: vi.fn().mockResolvedValue(1),
+    store: vi.fn().mockResolvedValue(undefined),
     getRecentByAd: vi.fn().mockResolvedValue([]),
   };
   const counter = fakeActivityCountService();
@@ -74,7 +70,7 @@ const setup = (anomalyCheckQueue?: ConcurrencyQueue) => {
     undefined,
     categoryRepository as unknown as AmazonAdCategoryRepository,
     undefined,
-    anomalyCheckQueue,
+    undefined,
     missingService as unknown as AmazonAdMissingService
   );
 
@@ -159,7 +155,7 @@ describe("AmazonAdService.applyBatch with an idempotency key", () => {
     await service.applyBatch(batch, "key");
     await service.applyBatch(batch, "key");
 
-    expect(priceService.createMany).toHaveBeenCalledTimes(1);
+    expect(priceService.store).toHaveBeenCalledTimes(1);
     expect(counter.increment).toHaveBeenCalledTimes(1);
     expect(repository.deleteMany).toHaveBeenCalledTimes(2);
     expect(counter.incrementBy).toHaveBeenCalledWith("ad_deleted", "amazon", 1);
@@ -173,7 +169,7 @@ describe("AmazonAdService.applyBatch with an idempotency key", () => {
     await service.applyBatch(batch);
     await service.applyBatch(batch);
 
-    expect(priceService.createMany).toHaveBeenCalledTimes(4);
+    expect(priceService.store).toHaveBeenCalledTimes(4);
   });
 
   it("does not store the prices again when the retry follows a failed delete", async () => {
@@ -183,7 +179,7 @@ describe("AmazonAdService.applyBatch with an idempotency key", () => {
     await expect(service.applyBatch(batch, "key")).rejects.toThrow("lock");
     await service.applyBatch(batch, "key");
 
-    expect(priceService.createMany).toHaveBeenCalledTimes(1);
+    expect(priceService.store).toHaveBeenCalledTimes(1);
     expect(repository.deleteMany).toHaveBeenCalledTimes(2);
   });
 
@@ -194,7 +190,7 @@ describe("AmazonAdService.applyBatch with an idempotency key", () => {
     await expect(service.applyBatch(batch, "key")).rejects.toThrow("down");
     await service.applyBatch(batch, "key");
 
-    expect(priceService.createMany).toHaveBeenCalledTimes(1);
+    expect(priceService.store).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -263,19 +259,18 @@ describe("AmazonAdService.applyBatch", () => {
     ["code", { code: "P2024" }],
     ["errorCode", { errorCode: "P1001" }],
   ])(
-    "rejects without storing one by one when the database cannot be reached (%s)",
+    "rejects when the prices cannot be stored (%s)",
     async (_field, fields) => {
       const { service, priceService, counter } = setupBatch([1]);
       const error = Object.assign(new Error("pool"), fields);
-      priceService.createMany.mockRejectedValueOnce(error);
+      priceService.store.mockRejectedValueOnce(error);
       const batch = { prices: [{ id: 1, prices: [price(1)] }], deleted: [] };
 
       await expect(service.applyBatch(batch, "key")).rejects.toBe(error);
-      expect(priceService.creatable.create).not.toHaveBeenCalled();
       expect(counter.increment).not.toHaveBeenCalled();
 
       await service.applyBatch(batch, "key");
-      expect(priceService.createMany).toHaveBeenCalledTimes(2);
+      expect(priceService.store).toHaveBeenCalledTimes(2);
     }
   );
 
@@ -291,7 +286,7 @@ describe("AmazonAdService.applyBatch", () => {
       deleted: [],
     });
 
-    expect(priceService.createMany).toHaveBeenCalledWith([price(1)]);
+    expect(priceService.store).toHaveBeenCalledWith([price(1)]);
     expect(counter.increment).toHaveBeenCalledTimes(1);
     expect(unitLogger().warn).toHaveBeenCalledWith(
       "AmazonAdService",
@@ -341,53 +336,6 @@ describe("AmazonAdService.applyBatch", () => {
     );
   });
 
-  it("warns once per batch when every price was stored one by one", async () => {
-    const { service, priceService } = setupBatch([1, 2]);
-    const error = new Error("FK");
-    priceService.createMany.mockRejectedValue(error);
-
-    await service.applyBatch({
-      prices: [
-        { id: 1, prices: [price(1), price(1, 2)] },
-        { id: 2, prices: [price(2)] },
-      ],
-      deleted: [],
-    });
-
-    expect(unitLogger().error).not.toHaveBeenCalled();
-    expect(unitLogger().warn).toHaveBeenCalledWith(
-      "AmazonAdService",
-      "Batch insert of 3 prices failed, 0 of them were not stored one by one",
-      { error, prices: 3, failed: 0, failedAdIds: [], failedError: undefined }
-    );
-  });
-
-  it("logs one error per batch with the prices that were not stored", async () => {
-    const { service, priceService } = setupBatch([1, 2]);
-    const error = new Error("FK");
-    const first = new Error("row 1");
-    priceService.createMany.mockRejectedValue(error);
-    priceService.creatable.create
-      .mockRejectedValueOnce(first)
-      .mockResolvedValueOnce({})
-      .mockRejectedValueOnce(new Error("row 2"));
-
-    await service.applyBatch({
-      prices: [
-        { id: 1, prices: [price(1), price(1, 2)] },
-        { id: 2, prices: [price(2)] },
-      ],
-      deleted: [],
-    });
-
-    expect(unitLogger().error).toHaveBeenCalledTimes(1);
-    expect(unitLogger().error).toHaveBeenCalledWith(
-      "AmazonAdService",
-      "Batch insert of 3 prices failed, 2 of them were not stored one by one",
-      { error, prices: 3, failed: 2, failedAdIds: [1, 2], failedError: first }
-    );
-  });
-
   it("warns about a batch that took over 10 s", async () => {
     const { service } = setupBatch([1]);
     const now = vi.spyOn(Date, "now").mockReturnValueOnce(0).mockReturnValue(10_001);
@@ -411,59 +359,6 @@ describe("AmazonAdService.applyBatch", () => {
 
     expect(unitLogger().warn).not.toHaveBeenCalled();
   });
-
-  it("warns at most once a minute when anomaly checks wait a minute or longer", async () => {
-    const waits = [59_999, 60_000, 120_000];
-    const queue = {
-      size: 4,
-      add: vi.fn((run: (waitedMs: number) => Promise<unknown>) => run(waits.shift()!)),
-    };
-    const { service, repository } = setup(queue as unknown as ConcurrencyQueue);
-    repository.getById.mockResolvedValue(buildAd());
-    const now = vi.spyOn(Date, "now").mockReturnValue(100_000);
-
-    await service.updatePrices(1, [price(1)]);
-    await service.updatePrices(1, [price(1)]);
-    now.mockReturnValue(159_999);
-    await service.updatePrices(1, [price(1)]);
-    now.mockRestore();
-
-    expect(unitLogger().warn.mock.calls).toEqual([
-      [
-        "AmazonAdService",
-        "Anomaly checks run 60 s after the prices were stored",
-        { waitedMs: 60_000, queuedAnomalyChecks: 4 },
-      ],
-    ]);
-  });
-
-  it("stores the prices of one ad after another when the batch insert fails", async () => {
-    const { service, repository, priceService } = setup();
-    Object.assign(repository, {
-      getByIds: vi.fn().mockResolvedValue([buildAd({ id: 1 }), buildAd({ id: 2 })]),
-    });
-    priceService.createMany.mockRejectedValue(new Error("FK"));
-    const first = deferred<object>();
-    priceService.creatable.create
-      .mockReturnValueOnce(first.promise)
-      .mockResolvedValue({});
-    const price = (adId: number) => ({ value: 1, adId, countryId: 1, dispatchFrom: "Amazon" });
-
-    const result = service.applyBatch({
-      prices: [
-        { id: 1, prices: [price(1)] },
-        { id: 2, prices: [price(2)] },
-      ],
-      deleted: [],
-    });
-    await vi.waitFor(() => expect(priceService.creatable.create).toHaveBeenCalledTimes(1));
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    expect(priceService.creatable.create).toHaveBeenCalledTimes(1);
-
-    first.resolve({});
-    await result;
-    expect(priceService.creatable.create.mock.calls).toEqual([[price(1)], [price(2)]]);
-  });
 });
 
 describe("AmazonAdService.updatePrices", () => {
@@ -479,8 +374,7 @@ describe("AmazonAdService.updatePrices", () => {
     await service.updatePrices(9, dtos);
 
     expect(repository.getById).toHaveBeenCalledWith(9);
-    expect(priceService.createMany).toHaveBeenCalledWith(dtos);
-    expect(priceService.creatable.create).not.toHaveBeenCalled();
+    expect(priceService.store).toHaveBeenCalledWith(dtos);
     expect(counter.increment).toHaveBeenCalledWith("ad_scraped", "amazon", [1, 2]);
 
     await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalled());
@@ -510,30 +404,6 @@ describe("AmazonAdService.updatePrices", () => {
     expect(anomalyManager.check).toHaveBeenCalledWith(ad, listingPrices);
   });
 
-  it("stores the prices one by one when the batch fails, logging the failed ones", async () => {
-    const { service, repository, priceService, counter } = setup();
-    repository.getById.mockResolvedValue(buildAd());
-    const batchError = new Error("batch");
-    priceService.createMany.mockRejectedValue(batchError);
-    const error = new Error("dup");
-    priceService.creatable.create.mockRejectedValueOnce(error);
-    const prices = [
-      { value: 1, adId: 1, countryId: 1, dispatchFrom: "Amazon" },
-      { value: 2, adId: 1, countryId: 2, dispatchFrom: "Amazon" },
-    ];
-
-    await service.updatePrices(1, prices);
-
-    expect(priceService.creatable.create).toHaveBeenCalledTimes(2);
-    expect(unitLogger().error).toHaveBeenCalledTimes(1);
-    expect(unitLogger().error).toHaveBeenCalledWith(
-      "AmazonAdService",
-      "Batch insert of 2 prices failed, 1 of them were not stored one by one",
-      { error: batchError, prices: 2, failed: 1, failedAdIds: [1], failedError: error }
-    );
-    expect(counter.increment).toHaveBeenCalledWith("ad_scraped", "amazon", [1, 2]);
-  });
-
   it("logs a failed anomaly check", async () => {
     const { service, repository, priceService } = setup();
     const ad = buildAd({ id: 9, asin: "B0FAIL" });
@@ -547,8 +417,8 @@ describe("AmazonAdService.updatePrices", () => {
 
     await vi.waitFor(() =>
       expect(unitLogger().error).toHaveBeenCalledWith(
-        "AmazonAdService",
-        "Anomaly check of ad 9 failed",
+        "AnomalyCheckQueue",
+        "Anomaly check failed",
         { error, adId: 9, asin: "B0FAIL", scrapedCountryIds: [3] }
       )
     );
@@ -564,94 +434,9 @@ describe("AmazonAdService.updatePrices", () => {
       ])
     ).rejects.toThrow("No AmazonAd found");
 
-    expect(priceService.createMany).not.toHaveBeenCalled();
+    expect(priceService.store).not.toHaveBeenCalled();
     expect(counter.increment).not.toHaveBeenCalled();
     expect(anomalyManager.check).not.toHaveBeenCalled();
-  });
-});
-
-describe("AmazonAdService.getForScraping", () => {
-  beforeEach(() => vi.useFakeTimers());
-  afterEach(() => {
-    vi.useRealTimers();
-    // A failed assertion before the lock is released would otherwise cascade
-    // into every later test in this file.
-    (AmazonAdService as unknown as { isGetting: boolean }).isGetting = false;
-  });
-
-  it("fetches matching ads, bumps scrapedAt and adds the countries to skip", async () => {
-    const { service, repository, missingService } = setup();
-    const ads: ScrapAd[] = [
-      { id: 10, asin: "A", name: "Drill" },
-      { id: 11, asin: "B", name: "Saw" },
-    ];
-    repository.getForScraping.mockResolvedValue(ads);
-    missingService.getCountryIdsByAd.mockResolvedValue({ 10: [3, 4] });
-
-    const result = await service.getForScraping(2);
-
-    expect(repository.getForScraping).toHaveBeenCalledWith(2);
-    expect(repository.updateScrapedAt).toHaveBeenCalledWith([10, 11]);
-    expect(missingService.getCountryIdsByAd).toHaveBeenCalledWith([10, 11]);
-    expect(result).toEqual([
-      { id: 10, asin: "A", name: "Drill", skipCountryIds: [3, 4] },
-      { id: 11, asin: "B", name: "Saw", skipCountryIds: [] },
-    ]);
-  });
-
-  it("delays a concurrent call by one second while another is in flight", async () => {
-    const { service, repository } = setup();
-    const first = deferred<ScrapAd[]>();
-    repository.getForScraping
-      .mockReturnValueOnce(first.promise)
-      .mockResolvedValue([]);
-
-    const call1 = service.getForScraping(1);
-    const call2 = service.getForScraping(1);
-    await vi.advanceTimersByTimeAsync(0);
-    expect(repository.getForScraping).toHaveBeenCalledTimes(1);
-
-    first.resolve([]);
-    await call1;
-    await vi.advanceTimersByTimeAsync(999);
-    expect(repository.getForScraping).toHaveBeenCalledTimes(1);
-
-    await vi.advanceTimersByTimeAsync(1);
-    await call2;
-    expect(repository.getForScraping).toHaveBeenCalledTimes(2);
-  });
-
-  it("resets the lock when fetching throws so the next call can proceed", async () => {
-    const { service, repository } = setup();
-    repository.getForScraping
-      .mockRejectedValueOnce(new Error("db down"))
-      .mockResolvedValue([]);
-
-    await expect(service.getForScraping(1)).rejects.toThrow("db down");
-
-    const next = service.getForScraping(1);
-    await vi.advanceTimersByTimeAsync(0);
-    expect(repository.getForScraping).toHaveBeenCalledTimes(2);
-    await next;
-  });
-
-  it("keeps waiting while the first call is still in flight after one second", async () => {
-    const { service, repository } = setup();
-    const first = deferred<ScrapAd[]>();
-    repository.getForScraping
-      .mockReturnValueOnce(first.promise)
-      .mockResolvedValue([]);
-
-    const call1 = service.getForScraping(1);
-    const call2 = service.getForScraping(1);
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(repository.getForScraping).toHaveBeenCalledTimes(1);
-
-    first.resolve([]);
-    await call1;
-    await vi.advanceTimersByTimeAsync(1000);
-    await call2;
-    expect(repository.getForScraping).toHaveBeenCalledTimes(2);
   });
 });
 

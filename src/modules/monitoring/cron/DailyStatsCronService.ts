@@ -3,13 +3,13 @@ import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogServi
 import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { SettingService } from "@/modules/settings/services/SettingService";
-import { CronJob } from "cron";
+import { CronService } from "@/shared/system/CronService";
 
-export class DailyStatsCronService {
+export class DailyStatsCronService extends CronService {
+  protected readonly cronTime = "00 00 20 * * *";
   private sections;
   private discordService;
   private activityCountService;
-  private logger;
   private settingService;
 
   constructor(
@@ -19,19 +19,11 @@ export class DailyStatsCronService {
     logger = SystemLogService.getInstance(),
     settingService = new SettingService()
   ) {
+    super(logger);
     this.sections = sections;
     this.discordService = discordService;
     this.activityCountService = activityCountService;
-    this.logger = logger;
     this.settingService = settingService;
-  }
-
-  schedule() {
-    new CronJob("00 00 20 * * *", () =>
-      this.run().catch((error) =>
-        this.logger.error("DailyStatsCronService", "Cron run failed", { error })
-      )
-    ).start();
   }
 
   async run() {

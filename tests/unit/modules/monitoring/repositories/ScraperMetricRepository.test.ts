@@ -36,11 +36,9 @@ describe("ScraperMetricRepository", () => {
     expect(await repository.deleteOlderThan(date, 2)).toBe(5);
 
     expect(db.$executeRaw).toHaveBeenCalledTimes(3);
-    const [strings, ...values] = db.$executeRaw.mock.calls[0];
-    expect(strings.join("?")).toBe(
-      "DELETE FROM ScraperMetric WHERE periodStart < ? LIMIT ?"
-    );
-    expect(values).toEqual([date, 2]);
+    const [query] = db.$executeRaw.mock.calls[0];
+    expect(query.sql).toBe("DELETE FROM ScraperMetric WHERE periodStart < ? LIMIT ?");
+    expect(query.values).toEqual([date, 2]);
     expect(db.scraperMetricHourly.deleteMany).toHaveBeenCalledWith({
       where: { periodStart: { lt: date } },
     });
@@ -196,5 +194,20 @@ describe("ScraperMetricRepository", () => {
     expect(await repository.getSumByScraperAndHour(new Date(0), new Date(10))).toEqual([
       { scraper: "amazon-pdp", metric: "items", outcome: "data", hour: 3600, value: 2.5 },
     ]);
+  });
+
+  it("getSumByHourAnd groups by the given column and converts the raw numbers", async () => {
+    const db = fakePrisma();
+    db.$queryRaw.mockResolvedValue([{ group: "de", metric: "requests", outcome: "ok", hour: 3600n, value: 2 }]);
+    const repository = new ScraperMetricRepository(db.prisma);
+
+    expect(await repository.getSumByHourAnd("country", new Date(0), new Date(10), true)).toEqual([
+      { group: "de", metric: "requests", outcome: "ok", hour: 3600, value: 2 },
+    ]);
+    const [strings] = db.$queryRaw.mock.calls[0];
+    expect(strings.join("?")).toContain("IS NOT NULL");
+
+    await repository.getSumByHourAnd("scraper", new Date(0), new Date(10));
+    expect(db.$queryRaw).toHaveBeenCalledTimes(2);
   });
 });

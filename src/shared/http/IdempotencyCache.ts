@@ -1,3 +1,4 @@
+import { Request } from "express";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
 const TTL = 10 * 60 * 1000;
@@ -22,7 +23,15 @@ export class IdempotencyCache {
     return IdempotencyCache.instance;
   }
 
-  run<T>(key: string, callback: () => Promise<T>): Promise<T> {
+  static getKey(request: Request<any, any, any, any>) {
+    const key = request.headers["idempotency-key"];
+    return typeof key === "string" ? key : undefined;
+  }
+
+  // Without a key (or an empty one) the callback always runs
+  run<T>(key: string | undefined, callback: () => Promise<T>): Promise<T> {
+    if (!key) return callback();
+
     const now = Date.now();
     const entry = this.entries.get(key);
     if (entry && entry.createdAt + TTL > now) {

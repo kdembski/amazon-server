@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { AmazonAdController } from "@/modules/marketplaces/amazon/controllers/AmazonAdController";
 import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
+import { AmazonAdScrapingService } from "@/modules/marketplaces/amazon/services/AmazonAdScrapingService";
 import { CreatableController } from "@/shared/crud/controllers/CreatableController";
 import { SelectableController } from "@/shared/crud/controllers/SelectableController";
 import { DeletableController } from "@/shared/crud/controllers/DeletableController";
@@ -19,7 +20,13 @@ const setup = () => {
   };
   return {
     service,
-    controller: new AmazonAdController(service as unknown as AmazonAdService),
+    controller: new AmazonAdController(
+      service as unknown as AmazonAdService,
+      undefined,
+      undefined,
+      undefined,
+      service as unknown as AmazonAdScrapingService
+    ),
   };
 };
 

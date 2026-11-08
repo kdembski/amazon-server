@@ -1,3 +1,4 @@
+import _ from "lodash";
 import { SettingKey, Settings } from "@/modules/settings/interfaces/Settings";
 import { SettingSelectDto } from "@/modules/settings/dtos/SettingDtos";
 import { SettingRepository } from "@/modules/settings/repositories/SettingRepository";
@@ -9,7 +10,6 @@ import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
 // The worker rereads the settings the api process stores.
 const SETTING_TTL_MS = 60_000;
-const MISSING_ERROR_INTERVAL_MS = 60_000;
 
 export class SettingService {
   private repository;
@@ -51,6 +51,34 @@ export class SettingService {
   async getChannels() {
     await this.refresh();
     return this.cache.channels!;
+  }
+
+  // A channel missing in DiscordChannel is named #id
+  async getChannelName(id: number) {
+    const channels = await this.getChannels();
+    return channels.find((channel) => channel.id === id)?.name ?? `#${id}`;
+  }
+
+  // The channels of countryOutlier.ruleGroups in the order of their first rule
+  async getCountryOutlierChannels() {
+    const ruleGroups = await this.get("countryOutlier.ruleGroups");
+    const ids = _.uniq((ruleGroups ?? []).flat().map((rule) => rule.channelId));
+    return Promise.all(ids.map(async (id) => ({ id, name: await this.getChannelName(id) })));
+  }
+
+  async getKeysReferencingChannel(id: number) {
+    const settings = await this.getAll();
+    return settings
+      .filter(({ key, value }) => {
+        if (key.endsWith(".channelId")) return value === id;
+        if (key === "countryOutlier.ruleGroups" && value) {
+          return (value as { channelId: number }[][]).some((group) => {
+            return group.some((rule) => rule.channelId === id);
+          });
+        }
+        return false;
+      })
+      .map(({ key }) => key);
   }
 
   async set(key: string, value: unknown) {
@@ -112,13 +140,8 @@ export class SettingService {
     this.cache.refreshedAt = Date.now();
   }
 
-  // At most once a minute per key
   private logMissing(key: SettingKey) {
-    const now = Date.now();
-    const loggedAt = this.cache.missingLoggedAt.get(key);
-    if (loggedAt !== undefined && now - loggedAt < MISSING_ERROR_INTERVAL_MS) return;
-
-    this.cache.missingLoggedAt.set(key, now);
+    if (!this.cache.missingLogThrottle.shouldLog(key)) return;
     this.logger.error("SettingService", `Setting ${key} is missing, its work is skipped`, { key });
   }
 

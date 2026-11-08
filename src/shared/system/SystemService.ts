@@ -1,4 +1,4 @@
-import { calculateAvg } from "@/shared/utils/number";
+import _ from "lodash";
 import osu from "node-os-utils";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
@@ -23,7 +23,7 @@ export class SystemService {
   }
 
   getCpuUsage() {
-    return calculateAvg(this.cpuUsageHistory);
+    return this.cpuUsageHistory.length ? _.mean(this.cpuUsageHistory) : 0;
   }
 
   // Runs every second: logs only the first failure of a series.

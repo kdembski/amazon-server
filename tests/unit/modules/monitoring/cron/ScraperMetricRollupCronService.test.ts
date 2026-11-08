@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CronJob } from "cron";
 import { ScraperMetricRollupCronService } from "@/modules/monitoring/cron/ScraperMetricRollupCronService";
-import { fakeScraperMetricService, unitLogger } from "../../../../support/fakes";
+import { ScraperMetricRollupService } from "@/modules/monitoring/services/ScraperMetricRollupService";
+import { unitLogger } from "../../../../support/fakes";
 
 vi.mock("cron", () => ({
   CronJob: vi.fn(function () {
@@ -10,8 +11,8 @@ vi.mock("cron", () => ({
 }));
 
 const setup = () => {
-  const metrics = fakeScraperMetricService();
-  const service = new ScraperMetricRollupCronService(metrics.service);
+  const metrics = { rollUp: vi.fn().mockResolvedValue(0) };
+  const service = new ScraperMetricRollupCronService(metrics as unknown as ScraperMetricRollupService);
   return { service, metrics };
 };
 

@@ -27,11 +27,9 @@ describe("SystemLogRepository", () => {
     expect(await repository.deleteOlderThan(date, 2)).toBe(3);
 
     expect(db.$executeRaw).toHaveBeenCalledTimes(2);
-    const [strings, ...values] = db.$executeRaw.mock.calls[0];
-    expect(strings.join("?")).toBe(
-      "DELETE FROM SystemLog WHERE createdAt < ? LIMIT ?"
-    );
-    expect(values).toEqual([date, 2]);
+    const [query] = db.$executeRaw.mock.calls[0];
+    expect(query.sql).toBe("DELETE FROM SystemLog WHERE createdAt < ? LIMIT ?");
+    expect(query.values).toEqual([date, 2]);
   });
 
   it("getCountByLevelAndHour converts the raw numbers", async () => {

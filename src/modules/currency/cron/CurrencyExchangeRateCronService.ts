@@ -1,16 +1,16 @@
-import CurencyApi from "@everapi/freecurrencyapi-js";
+import CurrencyApi from "@everapi/freecurrencyapi-js";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
 import { CurrencyService } from "@/modules/currency/services/CurrencyService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
-import { CronJob } from "cron";
+import { CronService } from "@/shared/system/CronService";
 
-export class CurrencyExchangeRateCronService {
+export class CurrencyExchangeRateCronService extends CronService {
+  protected readonly cronTime = "00 00 20 * * *";
   private exchangeRateService;
   private currencyService;
   private discordService;
   private currencyApi;
-  private logger;
   private targetCode = "PLN";
   private sourceCodes = ["EUR", "SEK"];
 
@@ -18,22 +18,14 @@ export class CurrencyExchangeRateCronService {
     exchangeRateService = new CurrencyExchangeRateService(),
     currencyService = new CurrencyService(),
     discordService = new DiscordLogService(),
-    currencyApi = new CurencyApi(process.env.CURRENCY_API_KEY),
+    currencyApi = new CurrencyApi(process.env.CURRENCY_API_KEY),
     logger = SystemLogService.getInstance()
   ) {
-    this.logger = logger;
+    super(logger);
     this.exchangeRateService = exchangeRateService;
     this.currencyService = currencyService;
     this.discordService = discordService;
     this.currencyApi = currencyApi;
-  }
-
-  schedule() {
-    new CronJob("00 00 20 * * *", () =>
-      this.run().catch((error) =>
-        this.logger.error("CurrencyExchangeRateCronService", "Cron run failed", { error })
-      )
-    ).start();
   }
 
   async run(): Promise<void> {

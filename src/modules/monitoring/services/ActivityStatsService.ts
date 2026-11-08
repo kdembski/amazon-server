@@ -1,11 +1,8 @@
 import _ from "lodash";
 import { BusinessLogType } from "@prisma/client";
 import { ActivityStatsDto } from "@/modules/monitoring/dtos/StatsDtos";
-import {
-  previousRange,
-  TimeRange,
-  toHourIso,
-} from "@/modules/monitoring/helpers/parseTimeRange";
+import { previousRange, toHourIso } from "@/modules/monitoring/helpers/hours";
+import { TimeRange } from "@/modules/monitoring/interfaces/TimeRange";
 import { BusinessLogRepository } from "@/modules/monitoring/repositories/BusinessLogRepository";
 import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import { SettingService } from "@/modules/settings/services/SettingService";
@@ -29,9 +26,12 @@ export class ActivityStatsService {
 
   async get(range: TimeRange): Promise<ActivityStatsDto> {
     const previous = previousRange(range);
-    const current = await this.repository.getSumByTypeChannelAndHour(range.from, range.to);
-    const before = await this.repository.getSumByTypeChannelAndHour(previous.from, previous.to);
-    const comparable = await this.getComparable(range, previous);
+    const [current, before, comparable, countryOutlierChannels] = await Promise.all([
+      this.repository.getSumByTypeChannelAndHour(range.from, range.to),
+      this.repository.getSumByTypeChannelAndHour(previous.from, previous.to),
+      this.getComparable(range, previous),
+      this.settingService.getCountryOutlierChannels(),
+    ]);
 
     const groups = _.groupBy(current, (row) => `${row.type}\u0000${row.channel ?? ""}`);
     const series = _.sortBy(Object.values(groups), [
@@ -48,19 +48,8 @@ export class ActivityStatsService {
       totals: this.totals(current),
       previousTotals: this.totals(before),
       comparable,
-      countryOutlierChannels: await this.getCountryOutlierChannels(),
+      countryOutlierChannels: countryOutlierChannels.map(({ id, name }) => ({ id: String(id), name })),
     };
-  }
-
-  private async getCountryOutlierChannels() {
-    const channels = await this.settingService.getChannels();
-    const ruleGroups = await this.settingService.get("countryOutlier.ruleGroups");
-    const ids = _.uniq((ruleGroups ?? []).flat().map((rule) => rule.channelId));
-
-    return ids.map((id) => {
-      const name = channels.find((channel) => channel.id === id)?.name ?? `#${id}`;
-      return { id: String(id), name };
-    });
   }
 
   private async getComparable(range: TimeRange, previous: TimeRange) {
@@ -70,7 +59,8 @@ export class ActivityStatsService {
     const count = (period: TimeRange) => {
       return this.activityCountService.getCountWithMinPrices("ad_scraped", minPrices, period.from, period.to);
     };
-    return { minPrices, total: await count(range), previousTotal: await count(previous) };
+    const [total, previousTotal] = await Promise.all([count(range), count(previous)]);
+    return { minPrices, total, previousTotal };
   }
 
   private totals(rows: Row[]) {

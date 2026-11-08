@@ -4,10 +4,11 @@ import { AmazonAdRouter } from "@/modules/marketplaces/amazon/routes/AmazonAdRou
 import { AmazonAdPriceRouter } from "@/modules/marketplaces/amazon/routes/AmazonAdPriceRouter";
 import { AmazonCountryRouter } from "@/modules/marketplaces/amazon/routes/AmazonCountryRouter";
 import { AmazonExclusionRuleRouter } from "@/modules/marketplaces/amazon/routes/AmazonExclusionRuleRouter";
-import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
+import { AmazonExclusionRuleTarget } from "@/modules/marketplaces/amazon/services/AmazonExclusionRuleTarget";
 import { AmazonAdDailyReportSection } from "@/modules/marketplaces/amazon/services/AmazonAdDailyReportSection";
-import { AmazonAdPriceCleanupCronService } from "@/modules/marketplaces/amazon/cron/AmazonAdPriceCleanupCronService";
-import { AmazonAdMissingCleanupCronService } from "@/modules/marketplaces/amazon/cron/AmazonAdMissingCleanupCronService";
+import { AmazonAdPriceService } from "@/modules/marketplaces/amazon/services/AmazonAdPriceService";
+import { AmazonAdMissingService } from "@/modules/marketplaces/amazon/services/AmazonAdMissingService";
+import { RetentionCleanupCronService } from "@/shared/system/RetentionCleanupCronService";
 
 export function createAmazonModule(): MarketplaceModule {
   return {
@@ -18,8 +19,16 @@ export function createAmazonModule(): MarketplaceModule {
       new AmazonExclusionRuleRouter(),
       new AmazonCountryRouter(),
     ],
-    workerCrons: [new AmazonAdPriceCleanupCronService(), new AmazonAdMissingCleanupCronService()],
-    exclusionRuleTarget: new AmazonAdRepository(),
+    workerCrons: [
+      new RetentionCleanupCronService("00 00 04 * * *", "Amazon ad prices", 90, new AmazonAdPriceService()),
+      new RetentionCleanupCronService(
+        "00 30 04 * * *",
+        "Amazon ad missing countries",
+        30,
+        new AmazonAdMissingService()
+      ),
+    ],
+    exclusionRuleTarget: new AmazonExclusionRuleTarget(),
     dailyReportSection: new AmazonAdDailyReportSection(),
   };
 }

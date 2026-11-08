@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { SettingUpdateDto } from "@/modules/settings/dtos/SettingDtos";
 import { SettingService } from "@/modules/settings/services/SettingService";
-import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
+import { respond } from "@/shared/http/respond";
 
 export class SettingController {
   private service;
@@ -10,22 +10,11 @@ export class SettingController {
     this.service = service;
   }
 
-  async getAll(response: Response) {
-    try {
-      response.json(await this.service.getAll());
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  getAll(response: Response) {
+    return respond(response, () => this.service.getAll());
   }
 
-  async set(
-    request: Request<{ key: string }, {}, SettingUpdateDto>,
-    response: Response
-  ) {
-    try {
-      response.json(await this.service.set(request.params.key, request.body?.value));
-    } catch (error: any) {
-      new ResponseErrorService(response).send(error);
-    }
+  set(request: Request<{ key: string }, {}, SettingUpdateDto>, response: Response) {
+    return respond(response, () => this.service.set(request.params.key, request.body?.value));
   }
 }
