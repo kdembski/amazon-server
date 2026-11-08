@@ -64,7 +64,8 @@ Issues hold the tasks to do: features, bugs, chores.
 2. Analyse the topic in the code: every place the change reaches.
 3. Propose the title, label and body in the chat.
 4. Ask about open design decisions.
-5. Create the issue only after the user accepts the proposal.
+5. After every change (design answers, corrections), show the full proposal again: title, label and body.
+6. Create the issue only after the user explicitly accepts the latest proposal. Answers to design questions are not acceptance.
 
 ```bash
 gh issue list --state open
