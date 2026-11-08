@@ -58,7 +58,7 @@ Production rule groups (the values in parentheses are the production values too)
 2. Takes the newest price of each country and converts it to PLN (`CurrencyExchangeRateService.getPlnRates`); the
    copies keep the original `country` object.
 3. Sorts the PLN prices ascending; the first one is the cheapest.
-4. `CountryOutlierStrategy.getMatchingRules` returns nothing unless the cheapest price is reportable (country
+4. `CountryOutlierRuleMatcher.getMatches` returns nothing unless the cheapest price is reportable (country
    `active` and `reportable`).
 5. It builds a `CountryOutlierRule` per rule setting and takes the first matching rule of each group, in list order.
    A rule matches when the cheapest PLN price is at most `median × (1 − belowMedianPercent / 100)`

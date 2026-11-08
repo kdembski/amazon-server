@@ -3,7 +3,7 @@ import { CountryOutlierEvaluator } from "@/modules/anomalies/country-outlier/Cou
 import { CountryOutlierRule } from "@/modules/anomalies/country-outlier/CountryOutlierRule";
 import { SettingService } from "@/modules/settings/services/SettingService";
 
-export class CountryOutlierStrategy {
+export class CountryOutlierRuleMatcher {
   private settingService;
   private evaluator;
 
@@ -16,7 +16,7 @@ export class CountryOutlierStrategy {
   }
 
   // Each group reports at most one rule: the first one that matches.
-  async getMatchingRules(prices: ListingPrice[]) {
+  async getMatches(prices: ListingPrice[]) {
     if (!this.evaluator.isReportable(prices)) return [];
 
     const [groups, dropSinceSentPercent] = await Promise.all([

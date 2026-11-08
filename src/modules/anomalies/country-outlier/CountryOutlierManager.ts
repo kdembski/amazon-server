@@ -2,7 +2,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { AnomalyManagerI } from "@/modules/anomalies/interfaces/AnomalyManagerI";
 import { CountryOutlierReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
-import { CountryOutlierStrategy } from "@/modules/anomalies/country-outlier/CountryOutlierStrategy";
+import { CountryOutlierRuleMatcher } from "@/modules/anomalies/country-outlier/CountryOutlierRuleMatcher";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
 import { CountryOutlierRuleI } from "@/modules/anomalies/interfaces/CountryOutlierRuleI";
 import { SettingService } from "@/modules/settings/services/SettingService";
@@ -14,7 +14,7 @@ const MISSING_RATE_WARNING_INTERVAL_MS = 60 * 60 * 1000;
 export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
   private reporter;
   private exchangeRateService;
-  private strategy;
+  private ruleMatcher;
   private logger;
   private settingService;
   // one warning an hour per currency
@@ -23,42 +23,61 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
   constructor(
     reporter: CountryOutlierReporter<T>,
     exchangeRateService = new CurrencyExchangeRateService(),
-    strategy = new CountryOutlierStrategy(),
+    ruleMatcher = new CountryOutlierRuleMatcher(),
     logger = SystemLogService.getInstance(),
     settingService = new SettingService()
   ) {
     this.reporter = reporter;
     this.exchangeRateService = exchangeRateService;
-    this.strategy = strategy;
+    this.ruleMatcher = ruleMatcher;
     this.logger = logger;
     this.settingService = settingService;
   }
 
   async check(listing: T, allCountryPrices: ListingPrice[][]) {
-    const countryPrices = allCountryPrices.filter(([price]) => price.scraped);
-    const minPrices = await this.settingService.get("countryOutlier.minPrices");
-    if (minPrices === undefined || countryPrices.length < minPrices) return;
+    const countryPrices = await this.getScrapedCountryPrices(allCountryPrices);
+    if (!countryPrices) return;
 
-    const newestPrices = countryPrices.map((prices) => prices[0]);
-    const prices = await this.toPln(newestPrices);
-    this.sortPrices(prices);
-    const rules = await this.strategy.getMatchingRules(prices);
+    const prices = await this.getSortedPlnPrices(countryPrices);
+    const rules = await this.ruleMatcher.getMatches(prices);
     if (!rules.length) return;
 
-    const [cheapest, previous] = countryPrices.find(
-      ([price]) => price.country === prices[0].country
-    )!;
-    const reported = await this.reporter.getReportedPrice(listing, cheapest);
-    const channelIds = [...this.getChannels(rules)]
-      .filter(([, drop]) => !reported || this.isBelowReported(cheapest.value, reported, drop))
-      .map(([channelId]) => channelId);
+    const [cheapest, previous] = countryPrices.find(([price]) => price.country === prices[0].country)!;
+    const channelIds = await this.getChannelsToReport(listing, cheapest, rules);
     if (!channelIds.length) return;
 
     const difference = previous && this.getDifference(cheapest.value, previous.value);
+    await this.report(listing, prices, channelIds, difference);
+    await this.reporter.setReportedPrice(listing, cheapest);
+  }
+
+  // The prices of the countries in this scrape; undefined with fewer than minPrices countries
+  private async getScrapedCountryPrices(allCountryPrices: ListingPrice[][]) {
+    const countryPrices = allCountryPrices.filter(([price]) => price.scraped);
+    const minPrices = await this.settingService.get("countryOutlier.minPrices");
+    if (minPrices === undefined || countryPrices.length < minPrices) return undefined;
+    return countryPrices;
+  }
+
+  // The newest price of every country in PLN, cheapest first
+  private async getSortedPlnPrices(countryPrices: ListingPrice[][]) {
+    const prices = await this.toPln(countryPrices.map((prices) => prices[0]));
+    this.sortPrices(prices);
+    return prices;
+  }
+
+  // The matched channels whose dropSinceSentPercent the cheapest price passed since the reported one
+  private async getChannelsToReport(listing: T, cheapest: ListingPrice, rules: CountryOutlierRuleI[]) {
+    const reported = await this.reporter.getReportedPrice(listing, cheapest);
+    return [...this.getChannels(rules)]
+      .filter(([, drop]) => !reported || this.isBelowReported(cheapest.value, reported, drop))
+      .map(([channelId]) => channelId);
+  }
+
+  private async report(listing: T, prices: ListingPrice[], channelIds: number[], difference?: number) {
     for (const channelId of channelIds) {
       await this.reporter.report(listing, prices, channelId, difference);
     }
-    await this.reporter.setReportedPrice(listing, cheapest);
   }
 
   // A channel matched by rules of several groups uses the lowest dropSinceSentPercent.

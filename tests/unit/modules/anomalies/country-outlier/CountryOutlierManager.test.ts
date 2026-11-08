@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { Decimal } from "@prisma/client/runtime/library";
 import { CountryOutlierManager } from "@/modules/anomalies/country-outlier/CountryOutlierManager";
-import { CountryOutlierStrategy } from "@/modules/anomalies/country-outlier/CountryOutlierStrategy";
+import { CountryOutlierRuleMatcher } from "@/modules/anomalies/country-outlier/CountryOutlierRuleMatcher";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
 import {
@@ -33,11 +33,11 @@ const setup = (
 ) => {
   const reporter = fakeReporter(reported);
   const getPlnRates = vi.fn().mockResolvedValue([]);
-  const getMatchingRules = vi.fn().mockResolvedValue(rules);
+  const getMatches = vi.fn().mockResolvedValue(rules);
   const manager = new CountryOutlierManager(
     reporter,
     { getPlnRates } as unknown as CurrencyExchangeRateService,
-    { getMatchingRules } as unknown as CountryOutlierStrategy,
+    { getMatches } as unknown as CountryOutlierRuleMatcher,
     fakeSystemLogService().service,
     fakeSettingService({ "countryOutlier.minPrices": minPrices ?? undefined }).service
   );
@@ -45,7 +45,7 @@ const setup = (
     manager,
     reporter,
     getPlnRates,
-    getMatchingRules,
+    getMatches,
     listing: { id: 1 },
   };
 };
@@ -62,7 +62,7 @@ const history = (...values: number[]) =>
 
 describe("CountryOutlierManager", () => {
   it("ignores listings with fewer than 3 countries", async () => {
-    const { manager, getPlnRates, getMatchingRules, listing } = setup();
+    const { manager, getPlnRates, getMatches, listing } = setup();
 
     await manager.check(listing, [
       [buildListingPrice(), buildListingPrice()],
@@ -70,15 +70,15 @@ describe("CountryOutlierManager", () => {
     ]);
 
     expect(getPlnRates).not.toHaveBeenCalled();
-    expect(getMatchingRules).not.toHaveBeenCalled();
+    expect(getMatches).not.toHaveBeenCalled();
   });
 
   it("reads the minimum number of countries from the settings", async () => {
-    const { manager, getMatchingRules, listing } = setup(undefined, undefined, 5);
+    const { manager, getMatches, listing } = setup(undefined, undefined, 5);
 
     await manager.check(listing, fourCountries());
 
-    expect(getMatchingRules).not.toHaveBeenCalled();
+    expect(getMatches).not.toHaveBeenCalled();
   });
 
   it("does nothing without the minPrices setting", async () => {
@@ -90,18 +90,18 @@ describe("CountryOutlierManager", () => {
   });
 
   it("ignores countries missing from the scrape", async () => {
-    const { manager, getMatchingRules, listing } = setup();
+    const { manager, getMatches, listing } = setup();
 
     await manager.check(listing, [
       ...fourCountries().slice(2),
       [buildListingPrice({ scraped: false })],
     ]);
 
-    expect(getMatchingRules).not.toHaveBeenCalled();
+    expect(getMatches).not.toHaveBeenCalled();
   });
 
   it("matches rules on the newest prices converted to PLN and sorted ascending", async () => {
-    const { manager, getPlnRates, getMatchingRules, listing } = setup();
+    const { manager, getPlnRates, getMatches, listing } = setup();
     const eur = buildCurrency({ code: "EUR" });
     const pln = buildCurrency({ code: "PLN" });
     getPlnRates.mockResolvedValue([
@@ -129,7 +129,7 @@ describe("CountryOutlierManager", () => {
     ]);
 
     expect(getPlnRates).toHaveBeenCalled();
-    const [matched] = getMatchingRules.mock.calls[0] as [ListingPrice[]];
+    const [matched] = getMatches.mock.calls[0] as [ListingPrice[]];
     expect(matched.map((p) => p.value.toNumber())).toEqual([30, 45, 100, 200]);
     expect(matched[0]).toBe(plnPrice);
     expect(matched[1]).toMatchObject({
@@ -145,7 +145,7 @@ describe("CountryOutlierManager", () => {
     const withLogger = new CountryOutlierManager(
       fakeReporter(),
       { getPlnRates: vi.fn().mockResolvedValue([]) } as unknown as CurrencyExchangeRateService,
-      { getMatchingRules: vi.fn().mockResolvedValue([]) } as unknown as CountryOutlierStrategy,
+      { getMatches: vi.fn().mockResolvedValue([]) } as unknown as CountryOutlierRuleMatcher,
       logger.service,
       fakeSettingService().service
     );
@@ -199,12 +199,12 @@ describe("CountryOutlierManager", () => {
     expect(countryPrices.map(([price]) => price)).toEqual(order);
   });
 
-  it("reports every channel matched by the strategy and stores the price once", async () => {
-    const { manager, reporter, getMatchingRules, listing } = setup([rule(2), rule(5)]);
+  it("reports every channel matched by the rule matcher and stores the price once", async () => {
+    const { manager, reporter, getMatches, listing } = setup([rule(2), rule(5)]);
 
     await manager.check(listing, fourCountries());
 
-    const [matched] = getMatchingRules.mock.calls[0];
+    const [matched] = getMatches.mock.calls[0];
     expect(reporter.report.mock.calls).toEqual([
       [listing, matched, 2, undefined],
       [listing, matched, 5, undefined],

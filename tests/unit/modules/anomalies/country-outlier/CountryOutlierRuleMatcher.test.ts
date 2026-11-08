@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CountryOutlierStrategy } from "@/modules/anomalies/country-outlier/CountryOutlierStrategy";
+import { CountryOutlierRuleMatcher } from "@/modules/anomalies/country-outlier/CountryOutlierRuleMatcher";
 import { Settings } from "@/modules/settings/interfaces/Settings";
 import { buildListingPrice } from "../../../../support/factories";
 import { fakeSettingService } from "../../../../support/fakes";
@@ -7,15 +7,15 @@ import { fakeSettingService } from "../../../../support/fakes";
 const prices = (...values: number[]) =>
   values.map((value) => buildListingPrice({ value }));
 
-const strategy = (values: { [K in keyof Settings]?: Settings[K] | undefined } = {}) =>
-  new CountryOutlierStrategy(fakeSettingService(values).service);
+const matcher = (values: { [K in keyof Settings]?: Settings[K] | undefined } = {}) =>
+  new CountryOutlierRuleMatcher(fakeSettingService(values).service);
 
 const matchedChannels = async (values: number[], settings: Partial<Settings> = {}) => {
-  const rules = await strategy(settings).getMatchingRules(prices(...values));
+  const rules = await matcher(settings).getMatches(prices(...values));
   return rules.map((rule) => rule.channelId);
 };
 
-describe("CountryOutlierStrategy", () => {
+describe("CountryOutlierRuleMatcher", () => {
   it.each([
     { values: [9, 100, 120], channels: [3, 4] },
     { values: [25, 100, 120], channels: [2, 4] },
@@ -56,7 +56,7 @@ describe("CountryOutlierStrategy", () => {
       ],
     };
 
-    const rules = await strategy(settings).getMatchingRules(prices(10, 100, 120));
+    const rules = await matcher(settings).getMatches(prices(10, 100, 120));
 
     expect(rules.map((rule) => rule.dropSinceSentPercent)).toEqual([5, 15]);
   });
@@ -64,7 +64,7 @@ describe("CountryOutlierStrategy", () => {
   it.each(["countryOutlier.ruleGroups", "countryOutlier.dropSinceSentPercent"] as const)(
     "matches nothing without the %s setting",
     async (key) => {
-      const rules = await strategy({ [key]: undefined }).getMatchingRules(prices(9, 100, 120));
+      const rules = await matcher({ [key]: undefined }).getMatches(prices(9, 100, 120));
       expect(rules).toEqual([]);
     }
   );
@@ -79,7 +79,7 @@ describe("CountryOutlierStrategy", () => {
       ...prices(100, 120),
     ];
 
-    expect(await strategy().getMatchingRules(list)).toEqual([]);
+    expect(await matcher().getMatches(list)).toEqual([]);
   });
 
   it("matches nothing when the cheapest country is inactive", async () => {
@@ -88,6 +88,6 @@ describe("CountryOutlierStrategy", () => {
       ...prices(100, 120),
     ];
 
-    expect(await strategy().getMatchingRules(list)).toEqual([]);
+    expect(await matcher().getMatches(list)).toEqual([]);
   });
 });
