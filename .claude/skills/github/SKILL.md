@@ -14,15 +14,15 @@ Run `gh auth status` first; when it fails, stop and pass its message to the user
 
 ## Pull requests
 
-Open PRs only from `dev` to `master`. Push `dev` first.
+Open PRs only from `dev` to the default branch, `<base>` below: `git fetch`, then `git symbolic-ref --short refs/remotes/origin/HEAD` (prints `origin/<base>`). Push `dev` first.
 
-- Title: plain. With one commit in `git log master..dev`, its commit message; with more, a short summary of them.
-- Body: the list of commit messages from `git log master..dev --reverse --format="- %s"`.
-- After merging run `git fetch`.
+- Title: plain. With one commit in `git log origin/<base>..dev`, its commit message; with more, a short summary of them.
+- Body: the list of commit messages from `git log origin/<base>..dev --reverse --format="- %s"`.
+- After merging, bring the merge commit back to `dev` without a PR: `git fetch`, then on `dev` `git merge --ff-only origin/<base>` and `git push origin dev`. When the fast-forward fails (`dev` got new commits meanwhile), stop and ask the user.
 
 ```bash
 gh pr list --state open
-gh pr create --base master --head dev --title "<title>" --body-file <file>
+gh pr create --base <base> --head dev --title "<title>" --body-file <file>
 gh pr view <number> --json title,body,state,mergeable,statusCheckRollup
 gh pr diff <number>
 gh pr merge <number> --merge|--squash|--rebase
