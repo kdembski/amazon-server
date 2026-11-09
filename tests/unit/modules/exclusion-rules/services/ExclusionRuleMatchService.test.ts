@@ -187,6 +187,37 @@ describe("ExclusionRuleMatchService.sync", () => {
     info.mockRestore();
   });
 
+  it("reuses the matcher while the rules are unchanged and rebuilds it after a change", async () => {
+    const { service, targetA, info } = setup();
+    targetA.getExclusionRules
+      .mockResolvedValueOnce(global("sony"))
+      .mockResolvedValueOnce(global("sony"))
+      .mockResolvedValueOnce(global("bose"));
+
+    await service.sync();
+    await service.sync();
+    await service.sync();
+
+    const [first, second, third] = targetA.matchExclusionRules.mock.calls.map((call) => call[0]);
+    expect(second).toBe(first);
+    expect(third).not.toBe(first);
+    expect(third("Bose QC45", 1)).toBe(true);
+    info.mockRestore();
+  });
+
+  it("builds a new matcher after a failed run", async () => {
+    const { service, targetA, error, info } = setup(global("sony"));
+    targetA.matchExclusionRules.mockRejectedValueOnce(new Error("db down"));
+
+    await service.sync();
+    await service.sync();
+
+    const [first, second] = targetA.matchExclusionRules.mock.calls.map((call) => call[0]);
+    expect(second).not.toBe(first);
+    error.mockRestore();
+    info.mockRestore();
+  });
+
   it("rematches only the target whose rules changed", async () => {
     const { service, targetA, targetB, info } = setup(
       global("sony"),

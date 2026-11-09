@@ -6,6 +6,7 @@ import { ScopedExclusionRuleMatcher } from "@/modules/exclusion-rules/services/S
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
 type ExclusionRuleRow = Awaited<ReturnType<ExclusionRuleTarget["getExclusionRules"]>>[number];
+type IsExcluded = (name: string, scope: number | null) => boolean;
 
 export class ExclusionRuleMatchService {
   private targets;
@@ -13,6 +14,8 @@ export class ExclusionRuleMatchService {
   private logger;
   private fingerprintRepository;
   private fingerprints = new Map<ExclusionRuleTarget, Map<string, string>>();
+  // V8 drops the compiled regexes of discarded matchers, recompiling them blocks the event loop for seconds
+  private matchers = new Map<ExclusionRuleTarget, IsExcluded>();
   private isRunning = false;
 
   constructor(
@@ -56,8 +59,12 @@ export class ExclusionRuleMatchService {
     const only = this.getChangedScopes(await this.getPreviousFingerprint(target), fingerprint);
     const startedAt = Date.now();
 
-    const result = await target.matchExclusionRules(this.getIsExcluded(exclusionRules, activeScopes), only);
+    const cached = only === "new" ? this.matchers.get(target) : undefined;
+    const isExcluded = cached ?? this.getIsExcluded(exclusionRules, activeScopes);
+
+    const result = await target.matchExclusionRules(isExcluded, only);
     this.fingerprints.set(target, fingerprint);
+    this.matchers.set(target, isExcluded);
 
     if (only !== "new") {
       await this.storeFingerprint(target, fingerprint);
@@ -71,10 +78,10 @@ export class ExclusionRuleMatchService {
   }
 
   // An ad of an inactive scope is excluded without matching its name
-  private getIsExcluded(rules: ExclusionRuleRow[], activeScopes: number[]) {
+  private getIsExcluded(rules: ExclusionRuleRow[], activeScopes: number[]): IsExcluded {
     const active = new Set(activeScopes);
     const matcher = new ScopedExclusionRuleMatcher(this.parseExclusionRules(rules));
-    return (name: string, scope: number | null) => {
+    return (name, scope) => {
       return (scope !== null && !active.has(scope)) || matcher.excludes(name, scope);
     };
   }
