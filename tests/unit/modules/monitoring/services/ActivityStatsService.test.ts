@@ -6,6 +6,11 @@ import { fakeActivityCountService, fakeSettingService } from "../../../../suppor
 const HOUR = 3600;
 const range = { from: new Date(10 * HOUR * 1000), to: new Date(12 * HOUR * 1000) };
 
+const points = [
+  { t: "1970-01-01T10:00:00.000Z", value: 4 },
+  { t: "1970-01-01T11:00:00.000Z", value: 5 },
+];
+
 const setup = (current: unknown[], previous: unknown[], withSettings = true) => {
   const repository = {
     getSumByTypeChannelAndHour: vi
@@ -14,7 +19,8 @@ const setup = (current: unknown[], previous: unknown[], withSettings = true) => 
       .mockResolvedValueOnce(previous),
   };
   const counter = fakeActivityCountService();
-  counter.getCountWithMinPrices.mockResolvedValueOnce(9).mockResolvedValueOnce(30);
+  counter.getHourlyCountWithMinPrices.mockResolvedValue(points);
+  counter.getCountWithMinPrices.mockResolvedValue(30);
   const values = withSettings
     ? { "countryOutlier.minPrices": 4 }
     : { "countryOutlier.minPrices": undefined, "countryOutlier.ruleGroups": undefined };
@@ -76,7 +82,7 @@ describe("ActivityStatsService", () => {
       ],
       totals: { ad_scraped: 12, country_outlier_sent: 3, price_drop_sent: 1, ad_created: 0, ad_deleted: 0 },
       previousTotals: { ad_scraped: 40, country_outlier_sent: 0, price_drop_sent: 0, ad_created: 0, ad_deleted: 0 },
-      comparable: { minPrices: 4, total: 9, previousTotal: 30 },
+      comparable: { minPrices: 4, total: 9, previousTotal: 30, points },
       countryOutlierChannels: [
         { id: "3", name: "#3" },
         { id: "2", name: "#2" },
@@ -93,10 +99,8 @@ describe("ActivityStatsService", () => {
 
     await service.get(range);
 
-    expect(counter.getCountWithMinPrices.mock.calls).toEqual([
-      ["ad_scraped", 4, range.from, range.to],
-      ["ad_scraped", 4, new Date(8 * HOUR * 1000), range.from],
-    ]);
+    expect(counter.getHourlyCountWithMinPrices).toHaveBeenCalledWith("ad_scraped", 4, range.from, range.to);
+    expect(counter.getCountWithMinPrices).toHaveBeenCalledWith("ad_scraped", 4, new Date(8 * HOUR * 1000), range.from);
   });
 
   it("returns no series, zero totals, no comparable count and no channels without events and settings", async () => {
@@ -110,5 +114,6 @@ describe("ActivityStatsService", () => {
       countryOutlierChannels: [],
     });
     expect(counter.getCountWithMinPrices).not.toHaveBeenCalled();
+    expect(counter.getHourlyCountWithMinPrices).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,5 @@
 import _ from "lodash";
+import { floorHour } from "@/modules/monitoring/helpers/hours";
 import { BusinessLogCreateMapper } from "@/modules/monitoring/mappers/BusinessLogCreateMapper";
 import { BusinessLogRepository } from "@/modules/monitoring/repositories/BusinessLogRepository";
 import { ActivityCount, ActivityCounter } from "@/modules/monitoring/services/ActivityCounter";
@@ -63,11 +64,21 @@ export class ActivityCountService {
   }
 
   async getCountWithMinPrices(type: BusinessLogType, minPrices: number, from: Date, to: Date) {
+    const points = await this.getHourlyCountWithMinPrices(type, minPrices, from, to);
+    return _.sumBy(points, "value");
+  }
+
+  async getHourlyCountWithMinPrices(type: BusinessLogType, minPrices: number, from: Date, to: Date) {
     const rows = await this.repository.getData(type, from, to);
-    return _.sumBy(rows, (data) => {
-      const { prices = {} } = data as { prices?: Record<string, number> };
-      return _.sumBy(Object.entries(prices), ([n, count]) => (Number(n) >= minPrices ? count : 0));
+    const hours = _.groupBy(rows, (row) => floorHour(row.createdAt).toISOString());
+    return _.sortBy(Object.entries(hours), ([t]) => t).map(([t, hourRows]) => {
+      return { t, value: _.sumBy(hourRows, (row) => this.countWithMinPrices(row.data, minPrices)) };
     });
+  }
+
+  private countWithMinPrices(data: unknown, minPrices: number) {
+    const { prices = {} } = data as { prices?: Record<string, number> };
+    return _.sumBy(Object.entries(prices), ([n, count]) => (Number(n) >= minPrices ? count : 0));
   }
 
   private add(entry: ActivityCount) {

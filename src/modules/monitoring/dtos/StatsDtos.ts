@@ -26,7 +26,7 @@ export interface ActivityStatsDto {
   totals: Record<BusinessLogType, number>;
   previousTotals: Record<BusinessLogType, number>;
   // ad_scraped events with prices from at least minPrices countries; without the countryOutlier.minPrices setting
-  comparable?: { minPrices: number; total: number; previousTotal: number };
+  comparable?: { minPrices: number; total: number; previousTotal: number; points: TimePoint[] };
   // channels of the countryOutlier.ruleGroups setting; id matches the channel of a series
   countryOutlierChannels: { id: string; name: string }[];
 }
