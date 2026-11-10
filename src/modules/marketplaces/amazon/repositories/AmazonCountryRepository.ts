@@ -19,7 +19,15 @@ export class AmazonCountryRepository {
   getForScraping() {
     return this.delegate.findMany({
       where: { scraped: true },
-      select: { countryId: true, tld: true, active: true, proxyType: true, pdpSource: true, priority: true },
+      select: {
+        countryId: true,
+        tld: true,
+        active: true,
+        routes: {
+          select: { id: true, priority: true, proxyType: true, pdpSource: true, maxAttempts: true },
+          orderBy: { priority: "desc" },
+        },
+      },
     });
   }
 

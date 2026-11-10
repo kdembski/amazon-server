@@ -5,18 +5,12 @@ export interface AmazonCountryCreateDto {
   tld: string;
   scraped: boolean;
   active: boolean;
-  proxyType: string;
-  pdpSource: string;
-  priority: number;
 }
 
 export interface AmazonCountryUpdateDto {
   tld: string;
   scraped: boolean;
   active: boolean;
-  proxyType: string;
-  pdpSource: string;
-  priority: number;
 }
 
 export type AmazonCountrySelectDto = NonNullable<

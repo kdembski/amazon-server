@@ -39,12 +39,11 @@ export class BusinessLogRepository {
     return Number(total);
   }
 
-  async getData(type: BusinessLogType, from: Date, to: Date) {
-    const rows = await this.delegate.findMany({
+  getData(type: BusinessLogType, from: Date, to: Date) {
+    return this.delegate.findMany({
       where: { type, createdAt: { gte: from, lte: to } },
-      select: { data: true },
+      select: { data: true, createdAt: true },
     });
-    return rows.map((row) => row.data);
   }
 
   // hour = epoch seconds of the UTC hour start, independent of the session time zone

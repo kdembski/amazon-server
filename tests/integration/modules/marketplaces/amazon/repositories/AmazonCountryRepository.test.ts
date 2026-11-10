@@ -3,6 +3,7 @@ import { AmazonCountryRepository } from "@/modules/marketplaces/amazon/repositor
 import { prisma } from "../../../../../support/integration/db";
 import {
   seedAmazonCountry,
+  seedAmazonCountryRoute,
   seedCountry,
   seedPrice,
 } from "../../../../../support/integration/seed";
@@ -23,12 +24,23 @@ describe("AmazonCountryRepository (MySQL)", () => {
     expect(await repository.getAll()).toHaveLength(1);
   });
 
-  it("getForScraping returns the countryId, tld, active, proxyType, pdpSource and priority of scraped countries only", async () => {
+  it("getForScraping returns scraped countries only, with their routes highest priority first", async () => {
     const scraped = await seedAmazonCountry({ tld: "de", scraped: true, active: true });
-    await seedAmazonCountry({ tld: "ie", scraped: false });
+    const low = await seedAmazonCountryRoute({ countryId: scraped.countryId, priority: 1, pdpSource: "twister" });
+    const high = await seedAmazonCountryRoute({ countryId: scraped.countryId, priority: 3, proxyType: "direct", maxAttempts: 3 });
+    const ignored = await seedAmazonCountry({ tld: "ie", scraped: false });
+    await seedAmazonCountryRoute({ countryId: ignored.countryId });
 
     expect(await repository.getForScraping()).toEqual([
-      { countryId: scraped.countryId, tld: "de", active: true, proxyType: "datacenter", pdpSource: "aod", priority: 0 },
+      {
+        countryId: scraped.countryId,
+        tld: "de",
+        active: true,
+        routes: [
+          { id: high.id, priority: 3, proxyType: "direct", pdpSource: "aod", maxAttempts: 3 },
+          { id: low.id, priority: 1, proxyType: "datacenter", pdpSource: "twister", maxAttempts: 6 },
+        ],
+      },
     ]);
   });
 

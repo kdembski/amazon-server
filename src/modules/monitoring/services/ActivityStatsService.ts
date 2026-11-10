@@ -56,11 +56,11 @@ export class ActivityStatsService {
     const minPrices = await this.settingService.get("countryOutlier.minPrices");
     if (minPrices === undefined) return undefined;
 
-    const count = (period: TimeRange) => {
-      return this.activityCountService.getCountWithMinPrices("ad_scraped", minPrices, period.from, period.to);
-    };
-    const [total, previousTotal] = await Promise.all([count(range), count(previous)]);
-    return { minPrices, total, previousTotal };
+    const [points, previousTotal] = await Promise.all([
+      this.activityCountService.getHourlyCountWithMinPrices("ad_scraped", minPrices, range.from, range.to),
+      this.activityCountService.getCountWithMinPrices("ad_scraped", minPrices, previous.from, previous.to),
+    ]);
+    return { minPrices, total: _.sumBy(points, "value"), previousTotal, points };
   }
 
   private totals(rows: Row[]) {

@@ -49,15 +49,27 @@ model AmazonCountry {
   tld           String          @db.VarChar(15)
   scraped       Boolean
   active        Boolean
-  proxyType     String          @db.VarChar(15)
-  pdpSource     String          @db.VarChar(15)
-  priority      Int
   createdAt     DateTime        @db.Timestamp(2)
   updatedAt     DateTime        @db.Timestamp(2)
   country       Country         @relation(fields: [countryId], references: [id], onDelete: Cascade, map: "amazon_country_country_id_fk")
   AmazonAdPrice AmazonAdPrice[]
   outlierReports AmazonCountryOutlierReport[]
-  missing        AmazonAdMissing[]
+  routes         AmazonCountryRoute[]
+}
+
+model AmazonCountryRoute {
+  id          Int               @id @default(autoincrement())
+  countryId   Int
+  priority    Int
+  proxyType   String            @db.VarChar(15)
+  pdpSource   String            @db.VarChar(15)
+  maxAttempts Int
+  createdAt   DateTime          @db.Timestamp(2)
+  updatedAt   DateTime          @db.Timestamp(2)
+  country     AmazonCountry     @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "amazon_country_route_country_id_fk")
+  missing     AmazonAdMissing[]
+
+  @@unique([countryId, priority], map: "amazon_country_route_country_id_priority_UNIQUE")
 }
 
 model AmazonCountryOutlierReport {
@@ -74,13 +86,13 @@ model AmazonCountryOutlierReport {
 
 model AmazonAdMissing {
   adId      Int
-  countryId Int
-  createdAt DateTime      @db.Timestamp(2)
-  ad        AmazonAd      @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_ad_missing_ad_id_fk")
-  country   AmazonCountry @relation(fields: [countryId], references: [countryId], onDelete: Cascade, map: "amazon_ad_missing_country_id_fk")
+  routeId   Int
+  createdAt DateTime           @db.Timestamp(2)
+  ad        AmazonAd           @relation(fields: [adId], references: [id], onDelete: Cascade, map: "amazon_ad_missing_ad_id_fk")
+  route     AmazonCountryRoute @relation(fields: [routeId], references: [id], onDelete: Cascade, map: "amazon_ad_missing_route_id_fk")
 
-  @@id([adId, countryId])
-  @@index([countryId], map: "amazon_ad_missing_country_id_fk")
+  @@id([adId, routeId])
+  @@index([routeId], map: "amazon_ad_missing_route_id_fk")
   @@index([createdAt], map: "amazon_ad_missing_created_at_idx")
 }
 

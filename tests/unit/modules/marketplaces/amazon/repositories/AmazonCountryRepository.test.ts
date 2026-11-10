@@ -22,7 +22,15 @@ describe("AmazonCountryRepository", () => {
     expect(delegate.findMany).toHaveBeenCalledWith();
     expect(delegate.findMany).toHaveBeenCalledWith({
       where: { scraped: true },
-      select: { countryId: true, tld: true, active: true, proxyType: true, pdpSource: true, priority: true },
+      select: {
+        countryId: true,
+        tld: true,
+        active: true,
+        routes: {
+          select: { id: true, priority: true, proxyType: true, pdpSource: true, maxAttempts: true },
+          orderBy: { priority: "desc" },
+        },
+      },
     });
   });
 
@@ -33,9 +41,6 @@ describe("AmazonCountryRepository", () => {
       tld: "de",
       scraped: true,
       active: true,
-      proxyType: "datacenter",
-      pdpSource: "aod",
-      priority: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

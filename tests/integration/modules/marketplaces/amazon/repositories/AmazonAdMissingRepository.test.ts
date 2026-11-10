@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import { AmazonAdMissingRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdMissingRepository";
 import { FIXED_DATE } from "../../../../../support/factories";
 import { prisma } from "../../../../../support/integration/db";
-import { seedAd, seedAdMissing, seedAmazonCountry } from "../../../../../support/integration/seed";
+import { seedAd, seedAdMissing, seedAmazonCountryRoute } from "../../../../../support/integration/seed";
 
 const repository = new AmazonAdMissingRepository(prisma);
 const minute = (n: number) => new Date(FIXED_DATE.getTime() + n * 60_000);
 
 describe("AmazonAdMissingRepository (MySQL)", () => {
-  it("getByAdIds returns the missing countries of the given ads only", async () => {
+  it("getByAdIds returns the missing routes of the given ads only", async () => {
     const ad = await seedAd();
     const other = await seedAd();
     const first = await seedAdMissing({ adId: ad.id });
@@ -18,25 +18,25 @@ describe("AmazonAdMissingRepository (MySQL)", () => {
     const rows = await repository.getByAdIds([ad.id]);
 
     expect(rows).toEqual([
-      { adId: ad.id, countryId: first.countryId },
-      { adId: ad.id, countryId: second.countryId },
+      { adId: ad.id, routeId: first.routeId },
+      { adId: ad.id, routeId: second.routeId },
     ]);
   });
 
-  it("createMany skips an existing ad and country and keeps its createdAt", async () => {
+  it("createMany skips an existing ad and route and keeps its createdAt", async () => {
     const existing = await seedAdMissing({ createdAt: minute(0) });
-    const { countryId } = await seedAmazonCountry();
+    const { id: routeId } = await seedAmazonCountryRoute();
 
     const count = await repository.createMany([
-      { adId: existing.adId, countryId: existing.countryId, createdAt: minute(5) },
-      { adId: existing.adId, countryId, createdAt: minute(5) },
+      { adId: existing.adId, routeId: existing.routeId, createdAt: minute(5) },
+      { adId: existing.adId, routeId, createdAt: minute(5) },
     ]);
 
     expect(count).toBe(1);
     const rows = await prisma.amazonAdMissing.findMany({ orderBy: { createdAt: "asc" } });
-    expect(rows.map((row) => [row.countryId, row.createdAt])).toEqual([
-      [existing.countryId, minute(0)],
-      [countryId, minute(5)],
+    expect(rows.map((row) => [row.routeId, row.createdAt])).toEqual([
+      [existing.routeId, minute(0)],
+      [routeId, minute(5)],
     ]);
   });
 

@@ -157,11 +157,11 @@ export class AmazonAdService {
   }
 
   private async storeMissing(batch: AmazonAdBatchDto["prices"]) {
-    const ads = batch.map((item) => ({ id: item.id, countryIds: item.missingCountryIds ?? [] }));
+    const ads = batch.map((item) => ({ id: item.id, routeIds: item.missingRouteIds ?? [] }));
     await this.missingService.store(ads).catch((error) => {
-      this.logger.error("AmazonAdService", "Storing the missing countries of ads failed", {
+      this.logger.error("AmazonAdService", "Storing the missing routes of ads failed", {
         error,
-        adIds: ads.filter((ad) => ad.countryIds.length).map((ad) => ad.id),
+        adIds: ads.filter((ad) => ad.routeIds.length).map((ad) => ad.id),
       });
     });
   }

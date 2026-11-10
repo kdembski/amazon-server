@@ -12,7 +12,7 @@ const setup = () => {
     getForScraping: vi.fn().mockResolvedValue([]),
     updateScrapedAt: vi.fn().mockResolvedValue(0),
   };
-  const missingService = { getCountryIdsByAd: vi.fn().mockResolvedValue({}) };
+  const missingService = { getRouteIdsByAd: vi.fn().mockResolvedValue({}) };
   const service = new AmazonAdScrapingService(
     repository as unknown as AmazonAdRepository,
     missingService as unknown as AmazonAdMissingService,
@@ -22,23 +22,23 @@ const setup = () => {
 };
 
 describe("AmazonAdScrapingService", () => {
-  it("fetches matching ads, bumps scrapedAt and adds the countries to skip", async () => {
+  it("fetches matching ads, bumps scrapedAt and adds the routes to skip", async () => {
     const { service, repository, missingService } = setup();
     const ads: ScrapAd[] = [
       { id: 10, asin: "A", name: "Drill" },
       { id: 11, asin: "B", name: "Saw" },
     ];
     repository.getForScraping.mockResolvedValue(ads);
-    missingService.getCountryIdsByAd.mockResolvedValue({ 10: [3, 4] });
+    missingService.getRouteIdsByAd.mockResolvedValue({ 10: [3, 4] });
 
     const result = await service.getForScraping(2);
 
     expect(repository.getForScraping).toHaveBeenCalledWith(2);
     expect(repository.updateScrapedAt).toHaveBeenCalledWith([10, 11]);
-    expect(missingService.getCountryIdsByAd).toHaveBeenCalledWith([10, 11]);
+    expect(missingService.getRouteIdsByAd).toHaveBeenCalledWith([10, 11]);
     expect(result).toEqual([
-      { id: 10, asin: "A", name: "Drill", skipCountryIds: [3, 4] },
-      { id: 11, asin: "B", name: "Saw", skipCountryIds: [] },
+      { id: 10, asin: "A", name: "Drill", skipRouteIds: [3, 4] },
+      { id: 11, asin: "B", name: "Saw", skipRouteIds: [] },
     ]);
   });
 

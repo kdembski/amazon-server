@@ -14,16 +14,16 @@ export class AmazonAdMissingService {
     this.mapper = mapper;
   }
 
-  async getCountryIdsByAd(adIds: number[]) {
+  async getRouteIdsByAd(adIds: number[]) {
     if (!adIds.length) return {};
 
     const rows = await this.repository.getByAdIds(adIds);
-    return _.mapValues(_.groupBy(rows, "adId"), (adRows) => adRows.map((row) => row.countryId));
+    return _.mapValues(_.groupBy(rows, "adId"), (adRows) => adRows.map((row) => row.routeId));
   }
 
-  async store(ads: { id: number; countryIds: number[] }[]) {
-    const data = ads.flatMap(({ id, countryIds }) =>
-      countryIds.map((countryId) => this.mapper.toCreateManyInput(id, countryId))
+  async store(ads: { id: number; routeIds: number[] }[]) {
+    const data = ads.flatMap(({ id, routeIds }) =>
+      routeIds.map((routeId) => this.mapper.toCreateManyInput(id, routeId))
     );
     if (!data.length) return 0;
 

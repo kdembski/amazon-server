@@ -1,155 +1,70 @@
 # CLAUDE.md
 
-Express + Prisma (MySQL) backend for Amazon price monitoring: scrapers (Docker containers) pull ASINs,
-post prices and report minute metrics to `POST /scrapers/:name/metrics`; the server detects price anomalies
-and reports them to Discord webhooks.
+Express + Prisma (MySQL) backend for Amazon price monitoring: Docker scrapers pull ASINs, post prices and metrics; the
+server detects price anomalies and reports them to Discord.
 
 ## Commands
 
 ```bash
-npm start                 # run src/index.ts (vite-node); `npm run watch` with file watching
-npm run worker            # run src/worker.ts (crons without HTTP)
+npm start                 # src/index.ts (vite-node); `npm run watch` with watching
+npm run worker            # src/worker.ts (crons, no HTTP)
 npm run build             # bundle to dist/ (pkgroll)
 npx prisma generate       # after editing prisma/schema/*.prisma and before tests
-npx tsc --noEmit          # type-check; there is no linter
+npx tsc --noEmit          # type-check; no linter
 npm run test:unit         # tests/unit, no database
 npm run test:coverage     # unit tests with coverage
-npm run test:integration  # tests/integration, needs a running Docker
+npm run test:integration  # tests/integration, needs Docker running
 ```
 
 ## Tests
 
-- Integration: start Docker first; `globalSetup.ts` runs a throwaway `mysql:8` container via
-  Testcontainers, pushes the schema and stops the container afterwards.
-- Coverage: 100% lines/functions/statements, at most 4 uncovered branches, for `src/` except `index.ts`,
-  `dtos`, `interfaces` and `declarations.d.ts`.
-- One test file per source file under the same relative path; mappers share `tests/unit/mappers/mappers.test.ts`.
-- Inject dependencies through constructor default parameters. Use `vi.mock` only for external modules,
-  private-constructor singletons (`resetSingleton()`) and composition roots that build dependencies inline.
-- Unit fakes and factories: `tests/support`. A cron extends `CronService` (`src/shared/system`): set `cronTime`, put the job body in `run()`; a retention cleanup is a `RetentionCleanupCronService(cronTime, label, retentionDays, target)` built in the module's `index.ts`.
-- Integration: `repositories/`, `services/` and `cron/` mirror `src/` (`tests/integration/modules/currency/...`);
-  `http/` has one file per router, using supertest on `createApp()`. Seed with `tests/support/integration/seed.ts` and use the returned ids. Wait
-  for anomaly managers with `vi.waitFor`. Set env in `tests/integration/env.ts` with plain `process.env`
-  assignments, not `vi.stubEnv`.
+- Coverage: 100% lines/functions/statements, max 4 uncovered branches, for `src/` except `index.ts`, `dtos`,
+  `interfaces`, `declarations.d.ts`.
+- One test file per source file, same relative path; mappers share `tests/unit/mappers/mappers.test.ts`.
+- Inject dependencies through defaulted constructor params. `vi.mock` only for external modules, private-constructor
+  singletons (`resetSingleton()`) and composition roots.
+- Fakes, factories and integration seed: `tests/support`.
+- Integration tests mirror `src/`; `http/` has one file per router (supertest on `createApp()`). Set env in
+  `tests/integration/env.ts` with plain `process.env`.
 
 ## Rules
 
-- Before every commit, stop and wait for the user to review the changes; commit only after their approval.
-- Commit messages: short English sentence starting with a capitalised past-tense verb (`Added ...`,
-  `Fixed ...`). No `Co-Authored-By` or other attribution in commits or PR descriptions.
-- An arrow function whose body does not fit on one line gets a block body (`=> { ... }`), not an expression
-  wrapped over several lines.
-- Comments only for logic the code does not show (non-obvious constraint, ordering, external behaviour).
-  No justifications, rejected alternatives or history.
+- Before every commit, wait for the user's review; commit only after approval.
+- Commit messages: short English sentence starting with a capitalised past-tense verb (`Added ...`). No attribution in
+  commits or PR descriptions.
+- An arrow function whose body does not fit on one line gets a block body.
+- Comments only for logic the code does not show.
 - In CLAUDE.md write only what to do, never why.
-- Write `.claude/rules/` short and concise: one fact per step, no repetition; split long steps into smaller ones.
-- Keep the path aliases `@/*` → `src/*` and `@@prisma/*` → `prisma/*` in sync in `tsconfig.json` and
-  `vite.config.ts`.
-- Write error messages in English.
-- Start the names of methods that read and return data with `get` (`getCount`, `getSumByTypeChannelAndHour`).
-- Put Prisma models in `prisma/schema/<module>.prisma` (marketplaces: `<name>.prisma`); `generator`,
-  `datasource` and shared enums go in `main.prisma`.
-- Set `createdAt`/`updatedAt` in mappers. Do not add Prisma migrations or column defaults.
-- The app reads env vars only from the runtime environment, never from `.env` files.
+- `.claude/rules/`: short, one fact per step, no repetition.
+- Keep path aliases `@/*` and `@@prisma/*` in sync in `tsconfig.json` and `vite.config.ts`.
+- Error messages in English.
+- Methods that read and return data start with `get`.
+- Prisma models in `prisma/schema/<module>.prisma`; `generator`, `datasource`, shared enums in `main.prisma`.
+- Set `createdAt`/`updatedAt` in mappers. No Prisma migrations or column defaults.
+- Env vars only from the runtime environment, never `.env` files.
 
 ## Architecture
 
-- Layout: `src/shared/` (`crud`, `http`, `discord`, `logging`, `system`, `utils`, `interfaces`) and `src/modules/`
-  (`settings`, `currency`, `monitoring`, `exclusion-rules`, `anomalies`, `marketplaces/<name>`). Put no code in other
-  top-level `src/` folders.
-- Inside a module keep the layers `routes/` → `controllers/` → `services/` → `repositories/` (Prisma);
-  `mappers/` turn DTOs into Prisma inputs; `dtos/`, `interfaces/` and `cron/` sit beside them. Generic CRUD
-  comes from composable `Selectable`/`Creatable`/`Updatable`/`Deletable` (`src/shared/crud`), exposed as
-  public fields and mounted in the entity router's `build()`. Declare specific routes before generic ones
-  (`GET /scrap` before `GET /:id`).
-- Write logic as classes (services, repositories, mappers, matchers, validators) with dependencies as
-  defaulted constructor params. `helpers/` hold only small stateless functions those classes use.
-- Export `create<Name>Module()` from `src/modules/<name>/index.ts` (returns `AppModule`: `routers`, `crons` for the api process, `workerCrons` for the worker);
-  marketplaces live at `src/modules/marketplaces/<name>/index.ts` and return `MarketplaceModule`.
-  Register it in `createModules()` in `src/modules.ts`.
-- Dependency direction: `marketplaces/*` → `anomalies`, `exclusion-rules`, `monitoring`, `currency` → `shared`;
-  `anomalies` → `currency`; `currency` → `monitoring`; every module may import `settings`, which imports only
-  `src/shared`. `src/shared` imports nothing from `src/modules`. `currency`, `monitoring`, `exclusion-rules` and `anomalies` import nothing from
-  `src/modules/marketplaces`; pass marketplace implementations in from `src/modules.ts`.
-- Add a marketplace: (1) Prisma models and a `src/modules/marketplaces/<name>/` folder with the layers;
-  (2) a mapper to `ListingPrice`, implementations of `CountryOutlierReporter`/`PriceDropReporter` that
-  store an event and post to Discord through `DiscordChannelService.send` (`CountryOutlierReporter` also stores the reported price per listing and country), and a call to `AnomalyManager([...])` with the managers of the chosen
-  detectors after storing prices; (3) implementations of `ExclusionRuleTarget` (a service over the repositories, Amazon: `AmazonExclusionRuleTarget`) and `DailyReportSection`;
-  (4) `create<Name>Module()` returning `MarketplaceModule`, added to `marketplaces` in `src/modules.ts`.
-- Anomaly detectors work on `ListingPrice` only; each marketplace passes its reporters to the managers. Rule matching goes through `ExclusionRuleTarget`; the daily Discord report gets its
-  sections through `DailyReportSection`.
-- Settings: read every anomaly parameter through `SettingService.get(key)` (`Setting` table, JSON `value`, the only source,
-  no defaults in code; cached 60 s per process). A missing row makes `get` return `undefined`: the caller skips its
-  work and `SettingService` logs one error per key a minute. Add a key to `Settings` and `SETTING_KEYS`/`validate` in
-  `SettingValidator`, and insert its row in production. Change them only through `GET /settings` and
-  `PUT /settings/:key` (`{ value }`, invalid → 400). Anomaly
-  Discord channels are `DiscordChannel` rows (`id`, `name`, `token` = webhook URL part `<id>/<token>`), changed through
-  `GET|POST /discord-channels` and `PUT|DELETE /discord-channels/:id` (tokens masked in responses and logs; deleting a
-  channel a setting uses → 422); settings refer to them by `channelId`. The hourly/daily reports and other log
-  messages go through `DiscordLogService` to `reports.channelId`. No Discord webhook lives in env.
-  Country outlier rules (`countryOutlier.ruleGroups`): each group sends to the channel of its first matching rule
-  (`belowMedianPercent` below the weighted median, `minPln ≤ cheapest < maxPln`); one reported price per listing and
-  country (the last one sent to any channel), a channel gets the listing only when the cheapest price is its
-  `dropSinceSentPercent` below that price. The hourly report labels every count with its `DiscordChannel.name`.
-- Cross-cutting services are `getInstance()` singletons. `*SelectDto` types derive from repository return
-  types. Controller methods answer through `respond(response, () => ...)` (`src/shared/http/respond.ts`), errors go through `ResponseErrorService` (`error.status` if set, P2002/P2003 → 422, P1001 → 503); throw `HttpError(status, message)` for 4xx.
-- Exclusion rules are per marketplace (`AmazonExclusionRule`, optional `categoryId`; `NULL` = every category;
-  `inverted` only with a `categoryId`: the category keeps only ads matching one of its inverted rules). Change
-  them only through `GET|POST /amazon/exclusion-rules`, `PUT|DELETE /amazon/exclusion-rules/:id` and
-  `POST /amazon/exclusion-rules/batch` (`{create, update: [{id, ...}], delete: [id]}` in one transaction: deletes,
-  updates, then creates; returns all rules) (skill `exclusion-rules`); writes are validated with
-  `ExclusionRuleValidator` (invalid → 400).
-- Scraping: `GET /amazon/ads/scrap` (`AmazonAdScrapingService`, one call at a time through a shared `Mutex`) hands out ads with `excluded = false`, oldest `scrapedAt` first, each with
-  `skipCountryIds` (its `AmazonAdMissing` countries), and stamps
-  them; never filter it by `name LIKE` or by category. An ad of an inactive category or matching a rule of its
-  category or a rule without one, or matching none of its category's inverted rules, gets `excluded = true`; otherwise
-  `excluded = false`. `ExclusionRuleMatchCronService`
-  runs every minute: it rematches the ads of each category whose rules (value or inverted) or active flag
-  (`getActiveScopes`) changed since the last run, every ad of an `ExclusionRuleTarget` when one of its rules without a
-  category changed (or its marketplace has no row in `ExclusionRuleFingerprint`), otherwise only ads with `excluded = null`. Store the fingerprint of rules and active scopes per marketplace in `ExclusionRuleFingerprint` after every rematch and compare against it after a restart. New ads start with `excluded: null`. Rule
-  syntax lives in `ExclusionRuleParser` (`src/modules/exclusion-rules/services/`; `+` and, `|` or, `!` marks an
-  exception inside a rule; a rule of only `!` members is invalid; phrases match whole words, `*` at a phrase edge
-  matches part of a word). Match rules in JS with `ScopedExclusionRuleMatcher`, not in SQL.
-  `GET /amazon/ads/categories/scrap` hands out only active categories. `PUT /amazon/ads/:id` stores prices with one `createMany`,
-  counts `ad_scraped` through `ActivityCountService.increment` and asynchronously runs the anomaly managers (`src/modules/anomalies`); their marketplace reporters
-  store `*_sent` events and post to Discord. `POST /amazon/ads/batch` (`{ prices: [{ id, prices, missingCountryIds? }], deleted: [id] }`, what the
-  scraper sends) does the same for many ads with one `createMany` of all prices (prices of ads missing in the database skipped; one by one per ad when it fails on a row, logged once per batch; rethrown on P1001/P1002/P1008/P1017/P2024 so the scraper retries), running the anomaly checks in the background through one `AnomalyCheckQueue` of the service (`src/modules/anomalies`), 40 at a time, and deletes
-  `deleted` with one `deleteMany`; `missingCountryIds` of ads found in the database go to `AmazonAdMissing` with one `createMany` that skips existing rows (a failure is logged, the batch still succeeds), a `RetentionCleanupCronService` deletes them 30 days after `createdAt` (daily 04:30); with an `Idempotency-Key` header the prices of a key are stored once (`IdempotencyCache`, in memory, 10 min, a failed store is forgotten), the delete always runs. `POST /amazon/ads` with an array upserts the category names and inserts the ads with one
-  `createMany` that skips existing ASINs, answering `{ count }`. JSON bodies up to 5 MB. Idle keep-alive connections stay open 15 s (`keepAliveTimeout`) so scrapers reuse one socket between batches (every ~5 s).
-- Amazon countries: keep Amazon's countries in `AmazonCountry` (`countryId` = `Country.id`, `tld`, `scraped`, `active`, `proxyType` = `datacenter` | `isp`, `pdpSource` = comma-separated list of `aod` | `twister` | `awd` (PDP from the AOD fragment, the twister fragment or the mobile product page; a 404 moves to the next one, e.g. `twister,awd`; fits `VarChar(15)`), `priority`),
-  changed through `GET|POST /amazon/countries` and `PUT /amazon/countries/:id`; never delete rows, set `scraped = false`
-  instead. `GET /amazon/countries/scrap` hands out `countryId`, `tld`, `active`, `proxyType`, `pdpSource` and `priority` of `scraped` countries.
-  `AmazonAdPrice.countryId` references `AmazonCountry`; a `RetentionCleanupCronService` deletes prices 90 days after
-  `createdAt` (daily 04:00). Build
-  listing URLs as `https://www.amazon.<tld>/dp/<asin>` (`ListingPrice.url`). Report anomalies only for countries with
-  `AmazonCountry.active = true` (`ListingPrice.country.active`).
-- Scraper metrics: scrapers send `POST /scrapers/:name/metrics` every minute; rows go to the `ScraperMetric`
-  table (retention 30 days); with an `Idempotency-Key` header the metrics of a key are stored once (`IdempotencyCache`). Build the "Scrapers" field of the hourly Discord report from these metrics via
-  `ScraperMetricService.getSummaries`. `ScraperMetricRollupCronService` (worker, minute 5 of every hour) sums every
-  finished hour of the summary metrics into `ScraperMetricHourly` (`periodStart` = UTC hour start, same retention);
-  summaries, breakdown and series read whole rolled-up hours from it and the rest of the range from `ScraperMetric`
-  (`ScraperMetricRollupService.getParts`).
-- API token: every route requires `Authorization: Bearer <API_TOKEN>` (`ApiTokenMiddleware`); scrapers and
-  amazon-admin send it; integration tests get it from `createTestApp()`.
-- Stats: `GET /stats/activity|logs` and `GET /scrapers/summaries|series|count-series` take `from`/`to` (ISO, at most 30 days,
-  `TimeRangeValidator`) and return hourly series with `t` = UTC hour start.
-- Scraper config: `ScraperConfig` (`scraper` = container `name`, `concurrency`, `rps`, `batchSize`) is the only source
-  of these parameters, edited by hand in SQL. Scrapers poll `GET /scrapers/:name/config` every minute; an unknown
-  name gets a row with the defaults (10 / 0 / 50).
-- System log: log every error and significant action through `SystemLogService.getInstance()`
-  (`error|warn|info(source, message, context?)`, `source` = class name) into the `SystemLog` table; never use
-  `console.*` directly. Pass errors as `{ error }` in `context` plus the ids needed to debug. Keep
-  `BusinessLog` for `ad_scraped`/`*_sent` only.
-- Activity counts: count `ad_scraped` in memory with `ActivityCountService.increment(type, marketplace, countryIds)`;
-  its rows hold `data.prices` (number of distinct countries → ads) and `data.countries` (countryId → ads). Show
-  ads with at least `countryOutlier.minPrices` (setting) prices next to Scraped in the
-  hourly and daily report via `ActivityCountService.getCountWithMinPrices`;
-  `ActivityCountFlushCronService` writes one `BusinessLog` per type and marketplace with `data.count` every minute
-  (second 30). Read `ad_scraped` only through `ActivityCountService.getCount` (sums `data.count`, a row without it
-  counts as 1); store `*_sent` as single events.
-- `src/app.ts` builds the express app and mounts the routers of all modules; `src/index.ts` adds `listen`
-  and calls `schedule()` on `crons` of all modules; `src/worker.ts` (docker-compose service `worker`, same image)
-  calls `schedule()` on `workerCrons`. Put a cron in `crons` only when it reads memory filled by HTTP requests
-  (`ActivityCountFlushCronService`); every other cron goes to `workerCrons`.
-- Process metrics: `ProcessMetricsCronService` (one per process, role `api` | `worker`) logs CPU, event loop delay
-  and heap of its process to `SystemLog` every minute (second 45) via `ProcessMetricsService` (`src/shared/system`).
+- `src/shared/` holds cross-cutting code, `src/modules/` the modules (`settings`, `currency`, `monitoring`,
+  `exclusion-rules`, `anomalies`, `marketplaces/<name>`). No other top-level `src/` folders.
+- Module layers: `routes/` → `controllers/` → `services/` → `repositories/`, plus `mappers/`, `dtos/`, `interfaces/`,
+  `cron/`. Generic CRUD from `src/shared/crud`. Specific routes before generic ones.
+- Logic as classes with dependencies as defaulted constructor params; `helpers/` only small stateless functions.
+- Each module exports `create<Name>Module()` from its `index.ts`, registered in `src/modules.ts`.
+- Dependencies: `marketplaces/*` → other modules → `shared`; `src/shared` imports nothing from modules; other modules
+  import nothing from `marketplaces`, which get passed in from `src/modules.ts`. Any module may import `settings`.
+- A marketplace maps its prices to `ListingPrice` and implements the anomaly reporters, `ExclusionRuleTarget` and
+  `DailyReportSection`.
+- Settings: anomaly parameters only from the `Setting` table via `SettingService.get(key)`, no defaults in code; a
+  missing row means the caller skips its work. New key: add it to `SettingValidator` and insert the row in production.
+- Discord webhooks live only in `DiscordChannel` rows, never in env.
+- Controllers answer via `respond()`; throw `HttpError(status, message)` for 4xx.
+- Exclusion rules: syntax in `ExclusionRuleParser`, matching in JS (`ScopedExclusionRuleMatcher`), not SQL (skill
+  `exclusion-rules`).
+- Never delete `AmazonCountry` rows; set `scraped = false`.
+- Every route requires `Authorization: Bearer <API_TOKEN>`.
+- Log errors and significant actions via `SystemLogService.getInstance()`, never `console.*`. `BusinessLog` only for
+  `ad_scraped`/`*_sent`.
+- `src/index.ts` runs HTTP and `crons`, `src/worker.ts` runs `workerCrons`. A cron goes to `crons` only when it reads
+  memory filled by HTTP requests.
+- A cron extends `CronService`; retention cleanup uses `RetentionCleanupCronService`.

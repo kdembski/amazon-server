@@ -145,12 +145,30 @@ describe("ActivityCountService", () => {
     const from = new Date(1);
     const to = new Date(2);
     repository.getData.mockResolvedValue([
-      { count: 9, prices: { 3: 2, 4: 3, 10: 4 } },
-      { count: 1 },
-      { count: 2, prices: { 5: 2 } },
+      { data: { count: 9, prices: { 3: 2, 4: 3, 10: 4 } }, createdAt: new Date(0) },
+      { data: { count: 1 }, createdAt: new Date(0) },
+      { data: { count: 2, prices: { 5: 2 } }, createdAt: new Date(0) },
     ]);
 
     expect(await service.getCountWithMinPrices("ad_scraped", 4, from, to)).toBe(9);
+    expect(repository.getData).toHaveBeenCalledWith("ad_scraped", from, to);
+  });
+
+  it("getHourlyCountWithMinPrices sums the items with at least the given number of prices per UTC hour", async () => {
+    const { service, repository } = setup();
+    const from = new Date(1);
+    const to = new Date(2);
+    const at = (iso: string) => new Date(iso);
+    repository.getData.mockResolvedValue([
+      { data: { count: 5, prices: { 4: 5 } }, createdAt: at("2026-10-26T11:10:00Z") },
+      { data: { count: 3, prices: { 2: 1, 4: 2 } }, createdAt: at("2026-10-26T10:59:00Z") },
+      { data: { count: 1, prices: { 6: 1 } }, createdAt: at("2026-10-26T10:00:00Z") },
+    ]);
+
+    expect(await service.getHourlyCountWithMinPrices("ad_scraped", 4, from, to)).toEqual([
+      { t: "2026-10-26T10:00:00.000Z", value: 3 },
+      { t: "2026-10-26T11:00:00.000Z", value: 5 },
+    ]);
     expect(repository.getData).toHaveBeenCalledWith("ad_scraped", from, to);
   });
 });

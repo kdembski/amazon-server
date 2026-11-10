@@ -16,7 +16,7 @@ export class AmazonAdMissingRepository {
   getByAdIds(adIds: number[]) {
     return this.delegate.findMany({
       where: { adId: { in: adIds } },
-      select: { adId: true, countryId: true },
+      select: { adId: true, routeId: true },
     });
   }
 

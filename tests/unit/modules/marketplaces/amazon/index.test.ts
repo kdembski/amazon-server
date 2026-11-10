@@ -26,6 +26,11 @@ vi.mock("@/modules/marketplaces/amazon/routes/AmazonExclusionRuleRouter", () => 
     return { path: "/amazon/exclusion-rules" };
   }),
 }));
+vi.mock("@/modules/marketplaces/amazon/routes/AmazonCountryRouteRouter", () => ({
+  AmazonCountryRouteRouter: vi.fn(function () {
+    return { path: "/amazon/countries/routes" };
+  }),
+}));
 vi.mock("@/modules/marketplaces/amazon/routes/AmazonCountryRouter", () => ({
   AmazonCountryRouter: vi.fn(function () {
     return { path: "/amazon/countries" };
@@ -53,7 +58,7 @@ vi.mock("@/modules/marketplaces/amazon/services/AmazonAdMissingService", () => (
 }));
 
 describe("createAmazonModule", () => {
-  it("mounts the category, ad, price, exclusion rule and country routers in order", () => {
+  it("mounts the category, ad, price, exclusion rule, country route and country routers in order", () => {
     const module = createAmazonModule();
 
     expect(module.routers!.map((r) => r.path)).toEqual([
@@ -61,11 +66,12 @@ describe("createAmazonModule", () => {
       "/amazon/ads",
       "/amazon/ads/prices",
       "/amazon/exclusion-rules",
+      "/amazon/countries/routes",
       "/amazon/countries",
     ]);
   });
 
-  it("schedules the price and missing country cleanups", () => {
+  it("schedules the price and missing route cleanups", () => {
     const module = createAmazonModule();
 
     const crons = module.workerCrons as RetentionCleanupCronService[];
@@ -74,7 +80,7 @@ describe("createAmazonModule", () => {
       ["00 00 04 * * *", "Amazon ad prices", 90, vi.mocked(AmazonAdPriceService).mock.results.at(-1)!.value],
       [
         "00 30 04 * * *",
-        "Amazon ad missing countries",
+        "Amazon ad missing routes",
         30,
         vi.mocked(AmazonAdMissingService).mock.results.at(-1)!.value,
       ],

@@ -15,7 +15,7 @@ describe("AmazonAdScrapingService (MySQL)", () => {
     const ads = await service.getForScraping(10);
 
     expect(ads).toEqual([
-      { id: wanted.id, asin: wanted.asin, name: wanted.name, skipCountryIds: [] },
+      { id: wanted.id, asin: wanted.asin, name: wanted.name, skipRouteIds: [] },
     ]);
     const rows = await prisma.amazonAd.findMany({
       where: { id: { in: [wanted.id, other.id, unchecked.id] } },

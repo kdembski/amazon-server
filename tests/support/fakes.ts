@@ -34,14 +34,16 @@ export function fakeActivityCountService() {
   const flush = vi.fn().mockResolvedValue(undefined);
   const getCount = vi.fn().mockResolvedValue(0);
   const getCountWithMinPrices = vi.fn().mockResolvedValue(0);
+  const getHourlyCountWithMinPrices = vi.fn().mockResolvedValue([]);
   const service = {
     increment,
     incrementBy,
     flush,
     getCount,
     getCountWithMinPrices,
+    getHourlyCountWithMinPrices,
   } as unknown as ActivityCountService;
-  return { service, increment, incrementBy, flush, getCount, getCountWithMinPrices };
+  return { service, increment, incrementBy, flush, getCount, getCountWithMinPrices, getHourlyCountWithMinPrices };
 }
 
 export function fakeSystemLogService() {
@@ -261,6 +263,7 @@ export function fakePrisma() {
     amazonAdMissing: fakeDelegate(),
     amazonAdCategory: fakeDelegate(),
     amazonCountry: fakeDelegate(),
+    amazonCountryRoute: fakeDelegate(),
     country: fakeDelegate(),
     currency: fakeDelegate(),
     currencyExchangeRate: fakeDelegate(),
