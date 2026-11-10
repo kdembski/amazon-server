@@ -3,7 +3,7 @@ import request from "supertest";
 import type { Express } from "express";
 import { createTestApp } from "../../support/integration/app";
 import { prisma } from "../../support/integration/db";
-import { seedAmazonCountry, seedCountry } from "../../support/integration/seed";
+import { seedAmazonCountry, seedAmazonCountryRoute, seedCountry } from "../../support/integration/seed";
 
 let app: Express;
 beforeAll(() => {
@@ -16,16 +16,13 @@ describe("/amazon/countries", () => {
 
     const created = await request(app)
       .post("/amazon/countries")
-      .send({ countryId: country.id, tld: "com.be", scraped: false, active: false, proxyType: "datacenter", pdpSource: "aod", priority: 1 })
+      .send({ countryId: country.id, tld: "com.be", scraped: false, active: false })
       .expect(200);
     expect(created.body).toMatchObject({
       countryId: country.id,
       tld: "com.be",
       scraped: false,
       active: false,
-      proxyType: "datacenter",
-      pdpSource: "aod",
-      priority: 1,
     });
 
     const list = await request(app).get("/amazon/countries").expect(200);
@@ -33,19 +30,27 @@ describe("/amazon/countries", () => {
 
     await request(app)
       .put(`/amazon/countries/${country.id}`)
-      .send({ tld: "com.be", scraped: true, active: true, proxyType: "isp", pdpSource: "dp", priority: 2 })
+      .send({ tld: "com.be", scraped: true, active: true })
       .expect(200);
     const updated = await prisma.amazonCountry.findUniqueOrThrow({ where: { countryId: country.id } });
-    expect([updated.scraped, updated.active, updated.proxyType, updated.pdpSource, updated.priority]).toEqual([true, true, "isp", "dp", 2]);
+    expect([updated.scraped, updated.active]).toEqual([true, true]);
   });
 
-  it("GET /scrap hands out only scraped countries with their tld, active flag, proxy type, PDP source and priority", async () => {
-    const scraped = await seedAmazonCountry({ tld: "de", scraped: true, active: false, proxyType: "isp", pdpSource: "dp", priority: 2 });
+  it("GET /scrap hands out only scraped countries with their tld, active flag and routes", async () => {
+    const scraped = await seedAmazonCountry({ tld: "de", scraped: true, active: false });
+    const route = await seedAmazonCountryRoute({ countryId: scraped.countryId, proxyType: "isp", pdpSource: "awd", priority: 2, maxAttempts: 4 });
     await seedAmazonCountry({ tld: "ie", scraped: false });
 
     const res = await request(app).get("/amazon/countries/scrap").expect(200);
 
-    expect(res.body).toEqual([{ countryId: scraped.countryId, tld: "de", active: false, proxyType: "isp", pdpSource: "dp", priority: 2 }]);
+    expect(res.body).toEqual([
+      {
+        countryId: scraped.countryId,
+        tld: "de",
+        active: false,
+        routes: [{ id: route.id, priority: 2, proxyType: "isp", pdpSource: "awd", maxAttempts: 4 }],
+      },
+    ]);
   });
 
   it("does not expose DELETE /:id", async () => {
@@ -60,7 +65,7 @@ describe("/amazon/countries", () => {
 
     await request(app)
       .post("/amazon/countries")
-      .send({ countryId, tld: "pl", scraped: true, active: true, proxyType: "datacenter", pdpSource: "aod", priority: 0 })
+      .send({ countryId, tld: "pl", scraped: true, active: true })
       .expect(422);
   });
 });

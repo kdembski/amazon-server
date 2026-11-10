@@ -263,6 +263,7 @@ export function fakePrisma() {
     amazonAdMissing: fakeDelegate(),
     amazonAdCategory: fakeDelegate(),
     amazonCountry: fakeDelegate(),
+    amazonCountryRoute: fakeDelegate(),
     country: fakeDelegate(),
     currency: fakeDelegate(),
     currencyExchangeRate: fakeDelegate(),

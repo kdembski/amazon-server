@@ -16,6 +16,8 @@ import { AmazonAdRecentPriceMapper } from "@/modules/marketplaces/amazon/mappers
 import { AmazonAdPriceSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
 import { AmazonCountryCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonCountryCreateMapper";
 import { AmazonCountryUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonCountryUpdateMapper";
+import { AmazonCountryRouteCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonCountryRouteCreateMapper";
+import { AmazonCountryRouteUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonCountryRouteUpdateMapper";
 import { CountryCreateMapper } from "@/modules/currency/mappers/CountryCreateMapper";
 import { CountryUpdateMapper } from "@/modules/currency/mappers/CountryUpdateMapper";
 import { CurrencyCreateMapper } from "@/modules/currency/mappers/CurrencyCreateMapper";
@@ -147,22 +149,33 @@ describe("create mappers", () => {
     },
     {
       name: "AmazonAdMissingCreateMapper",
-      map: (dto: any) => new AmazonAdMissingCreateMapper().toCreateManyInput(dto.adId, dto.countryId),
-      dto: { adId: 3, countryId: 4 },
-      expected: { adId: 3, countryId: 4, createdAt: NOW },
+      map: (dto: any) => new AmazonAdMissingCreateMapper().toCreateManyInput(dto.adId, dto.routeId),
+      dto: { adId: 3, routeId: 4 },
+      expected: { adId: 3, routeId: 4, createdAt: NOW },
     },
     {
       name: "AmazonCountryCreateMapper",
       map: (dto: any) => new AmazonCountryCreateMapper().toCreateInput(dto),
-      dto: { countryId: 2, tld: "com.be", scraped: true, active: true, proxyType: "isp", pdpSource: "dp", priority: 2 },
+      dto: { countryId: 2, tld: "com.be", scraped: true, active: true },
       expected: {
         countryId: 2,
         tld: "com.be",
         scraped: true,
         active: true,
-        proxyType: "isp",
-        pdpSource: "dp",
-        priority: 2,
+        createdAt: NOW,
+        updatedAt: NOW,
+      },
+    },
+    {
+      name: "AmazonCountryRouteCreateMapper",
+      map: (dto: any) => new AmazonCountryRouteCreateMapper().toCreateInput(dto),
+      dto: { countryId: 2, priority: 3, proxyType: "direct", pdpSource: "aod", maxAttempts: 6 },
+      expected: {
+        countryId: 2,
+        priority: 3,
+        proxyType: "direct",
+        pdpSource: "aod",
+        maxAttempts: 6,
         createdAt: NOW,
         updatedAt: NOW,
       },
@@ -291,8 +304,14 @@ describe("update mappers", () => {
     {
       name: "AmazonCountryUpdateMapper",
       map: (dto: any) => new AmazonCountryUpdateMapper().toUpdateInput(dto),
-      dto: { tld: "com.be", scraped: false, active: false, proxyType: "isp", pdpSource: "dp", priority: 2 },
-      expected: { tld: "com.be", scraped: false, active: false, proxyType: "isp", pdpSource: "dp", priority: 2, updatedAt: NOW },
+      dto: { tld: "com.be", scraped: false, active: false },
+      expected: { tld: "com.be", scraped: false, active: false, updatedAt: NOW },
+    },
+    {
+      name: "AmazonCountryRouteUpdateMapper",
+      map: (dto: any) => new AmazonCountryRouteUpdateMapper().toUpdateInput(dto),
+      dto: { priority: 1, proxyType: "datacenter", pdpSource: "twister", maxAttempts: 8 },
+      expected: { priority: 1, proxyType: "datacenter", pdpSource: "twister", maxAttempts: 8, updatedAt: NOW },
     },
     {
       name: "CountryUpdateMapper",

@@ -54,7 +54,7 @@ const setup = () => {
   const priceMapper = { map: vi.fn().mockReturnValue(listingPrices) };
   const missingService = {
     store: vi.fn().mockResolvedValue(0),
-    getCountryIdsByAd: vi.fn().mockResolvedValue({}),
+    getRouteIdsByAd: vi.fn().mockResolvedValue({}),
   };
 
   const service = new AmazonAdService(
@@ -296,32 +296,32 @@ describe("AmazonAdService.applyBatch", () => {
     await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalledTimes(1));
   });
 
-  it("stores the missing countries of the ads found in the database", async () => {
+  it("stores the missing routes of the ads found in the database", async () => {
     const { service, missingService } = setupBatch([1, 2]);
 
     await service.applyBatch({
       prices: [
-        { id: 1, prices: [price(1)], missingCountryIds: [3, 4] },
+        { id: 1, prices: [price(1)], missingRouteIds: [3, 4] },
         { id: 2, prices: [] },
-        { id: 5, prices: [], missingCountryIds: [3] },
+        { id: 5, prices: [], missingRouteIds: [3] },
       ],
       deleted: [],
     });
 
     expect(missingService.store).toHaveBeenCalledWith([
-      { id: 1, countryIds: [3, 4] },
-      { id: 2, countryIds: [] },
+      { id: 1, routeIds: [3, 4] },
+      { id: 2, routeIds: [] },
     ]);
   });
 
-  it("logs a failed store of missing countries and still applies the batch", async () => {
+  it("logs a failed store of missing routes and still applies the batch", async () => {
     const { service, missingService, counter } = setupBatch([1, 2]);
     const error = new Error("FK");
     missingService.store.mockRejectedValue(error);
 
     const result = await service.applyBatch({
       prices: [
-        { id: 1, prices: [price(1)], missingCountryIds: [3] },
+        { id: 1, prices: [price(1)], missingRouteIds: [3] },
         { id: 2, prices: [price(2)] },
       ],
       deleted: [],
@@ -331,7 +331,7 @@ describe("AmazonAdService.applyBatch", () => {
     expect(counter.increment).toHaveBeenCalledTimes(2);
     expect(unitLogger().error).toHaveBeenCalledWith(
       "AmazonAdService",
-      "Storing the missing countries of ads failed",
+      "Storing the missing routes of ads failed",
       { error, adIds: [1] }
     );
   });

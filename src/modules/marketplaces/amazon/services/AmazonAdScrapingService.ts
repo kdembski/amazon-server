@@ -20,14 +20,14 @@ export class AmazonAdScrapingService {
     this.mutex = mutex;
   }
 
-  getForScraping(batchSize: number): Promise<{ id: number; asin: string; skipCountryIds: number[] }[]> {
+  getForScraping(batchSize: number): Promise<{ id: number; asin: string; skipRouteIds: number[] }[]> {
     return this.mutex.run(async () => {
       const ads = await this.repository.getForScraping(batchSize);
       const ids = ads.map((ad) => ad.id);
       await this.repository.updateScrapedAt(ids);
-      const missing = await this.missingService.getCountryIdsByAd(ids);
+      const missing = await this.missingService.getRouteIdsByAd(ids);
 
-      return ads.map((ad) => ({ ...ad, skipCountryIds: missing[ad.id] ?? [] }));
+      return ads.map((ad) => ({ ...ad, skipRouteIds: missing[ad.id] ?? [] }));
     });
   }
 }

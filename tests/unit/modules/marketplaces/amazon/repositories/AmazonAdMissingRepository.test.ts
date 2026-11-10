@@ -12,21 +12,21 @@ const setup = () => {
 };
 
 describe("AmazonAdMissingRepository", () => {
-  it("getByAdIds selects the countries of the ads", async () => {
+  it("getByAdIds selects the routes of the ads", async () => {
     const { repository, delegate } = setup();
-    delegate.findMany.mockResolvedValue([{ adId: 1, countryId: 2 }]);
+    delegate.findMany.mockResolvedValue([{ adId: 1, routeId: 2 }]);
 
-    expect(await repository.getByAdIds([1, 3])).toEqual([{ adId: 1, countryId: 2 }]);
+    expect(await repository.getByAdIds([1, 3])).toEqual([{ adId: 1, routeId: 2 }]);
     expect(delegate.findMany).toHaveBeenCalledWith({
       where: { adId: { in: [1, 3] } },
-      select: { adId: true, countryId: true },
+      select: { adId: true, routeId: true },
     });
   });
 
   it("createMany skips existing rows and returns the count", async () => {
     const { repository, delegate } = setup();
     delegate.createMany.mockResolvedValue({ count: 1 });
-    const data = [{ adId: 1, countryId: 2, createdAt: new Date(1) }];
+    const data = [{ adId: 1, routeId: 2, createdAt: new Date(1) }];
 
     expect(await repository.createMany(data)).toBe(1);
     expect(delegate.createMany).toHaveBeenCalledWith({ data, skipDuplicates: true });

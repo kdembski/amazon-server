@@ -46,9 +46,24 @@ export async function seedAmazonCountry(
       tld: "pl",
       scraped: true,
       active: true,
+      ...stamps(),
+      ...overrides,
+      countryId,
+    },
+  });
+}
+
+export async function seedAmazonCountryRoute(
+  overrides: Partial<Prisma.AmazonCountryRouteUncheckedCreateInput> = {}
+) {
+  const countryId =
+    overrides.countryId ?? (await seedAmazonCountry()).countryId;
+  return prisma.amazonCountryRoute.create({
+    data: {
+      priority: 0,
       proxyType: "datacenter",
       pdpSource: "aod",
-      priority: 0,
+      maxAttempts: 6,
       ...stamps(),
       ...overrides,
       countryId,
@@ -221,9 +236,8 @@ export async function seedAdMissing(
   overrides: Partial<Prisma.AmazonAdMissingUncheckedCreateInput> = {}
 ) {
   const adId = overrides.adId ?? (await seedAd()).id;
-  const countryId =
-    overrides.countryId ?? (await seedAmazonCountry()).countryId;
+  const routeId = overrides.routeId ?? (await seedAmazonCountryRoute()).id;
   return prisma.amazonAdMissing.create({
-    data: { createdAt: new Date(), ...overrides, adId, countryId },
+    data: { createdAt: new Date(), ...overrides, adId, routeId },
   });
 }

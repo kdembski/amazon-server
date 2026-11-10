@@ -7,6 +7,7 @@ export const TABLES = [
   "AmazonAdPrice",
   "AmazonCountryOutlierReport",
   "AmazonAdMissing",
+  "AmazonCountryRoute",
   "AmazonAd",
   "AmazonExclusionRule",
   "AmazonAdCategory",
