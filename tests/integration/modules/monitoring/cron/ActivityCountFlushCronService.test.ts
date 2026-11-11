@@ -15,7 +15,9 @@ describe("ActivityCountFlushCronService (MySQL)", () => {
     expect(await prisma.businessLog.findMany()).toMatchObject([
       { type: "ad_scraped", marketplace: "amazon", data: { count: 2, prices: { 2: 1, 4: 1 }, countries: { 1: 2, 2: 2, 3: 1, 4: 1 } } },
     ]);
-    expect(await counts.getCount("ad_scraped", new Date(0), new Date())).toBe(2);
-    expect(await counts.getCountWithMinPrices("ad_scraped", 4, new Date(0), new Date())).toBe(1);
+    // createdAt is rounded up to 10 ms, so "now" can be earlier than the stored row
+    const to = new Date(Date.now() + 1000);
+    expect(await counts.getCount("ad_scraped", new Date(0), to)).toBe(2);
+    expect(await counts.getCountWithMinPrices("ad_scraped", 4, new Date(0), to)).toBe(1);
   });
 });
