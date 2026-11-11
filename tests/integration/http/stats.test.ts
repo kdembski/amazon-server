@@ -38,7 +38,7 @@ describe("/stats", () => {
       ],
       totals: { ad_scraped: 3, country_outlier_sent: 0, price_drop_sent: 0, ad_created: 0, ad_deleted: 0 },
       previousTotals: { ad_scraped: 5, country_outlier_sent: 0, price_drop_sent: 0, ad_created: 0, ad_deleted: 0 },
-      comparable: { minPrices: 3, total: 2, previousTotal: 0 },
+      comparable: { minPrices: 3, total: 2, previousTotal: 0, points: [{ t: "2026-10-26T10:00:00.000Z", value: 2 }] },
       countryOutlierChannels: [3, 2, 1, 4, 5, 6].map((id) => ({ id: String(id), name: `channel-${id}` })),
     });
   });
