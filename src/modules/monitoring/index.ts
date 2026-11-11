@@ -11,6 +11,7 @@ import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogSer
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { RetentionCleanupCronService } from "@/shared/system/RetentionCleanupCronService";
+import { DatabaseBackupCronService } from "@/shared/system/DatabaseBackupCronService";
 
 export function createMonitoringModule(
   sections: DailyReportSection[]
@@ -27,6 +28,7 @@ export function createMonitoringModule(
       new ScraperMetricRollupCronService(),
       new RetentionCleanupCronService("00 15 04 * * *", "system logs", 30, SystemLogService.getInstance()),
       new ProcessMetricsCronService("worker"),
+      new DatabaseBackupCronService("00 00 01 * * *", "/backups", 7),
     ],
   };
 }

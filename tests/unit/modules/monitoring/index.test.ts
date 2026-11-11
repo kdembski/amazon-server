@@ -11,6 +11,7 @@ import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogSer
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { ProcessMetricsCronService } from "@/modules/monitoring/cron/ProcessMetricsCronService";
+import { DatabaseBackupCronService } from "@/shared/system/DatabaseBackupCronService";
 import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { SettingService } from "@/modules/settings/services/SettingService";
@@ -49,7 +50,10 @@ describe("createMonitoringModule", () => {
       ScraperMetricRollupCronService,
       RetentionCleanupCronService,
       ProcessMetricsCronService,
+      DatabaseBackupCronService,
     ]);
+    const backup = module.workerCrons!.find((c) => c instanceof DatabaseBackupCronService)!;
+    expect([backup["cronTime"], backup["directory"], backup["keepCount"]]).toEqual(["00 00 01 * * *", "/backups", 7]);
   });
 
   it("passes the sections to the daily stats cron", async () => {
