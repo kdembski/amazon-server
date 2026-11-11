@@ -6,7 +6,7 @@ Backend for Amazon price monitoring. Scrapers pull ASINs and countries from it, 
 Processes:
 
 - `api` (`npm start`): HTTP API on `PORT`.
-- `worker` (`npm run worker`): crons without HTTP (rule matching, reports, rollups, retention, exchange rates).
+- `worker` (`npm run worker`): crons without HTTP (rule matching, reports, rollups, retention, exchange rates, backups).
 
 ## Stack
 
@@ -44,6 +44,16 @@ Docker:
 
 ```bash
 docker compose up -d --build
+```
+
+## Backups
+
+The worker dumps the database every day at 01:00 to `backups/amazon-<timestamp>.sql.gz` on the host and keeps the
+newest 7 dumps. A dump is skipped when the disk has less free space than twice the newest dump and killed after
+6 hours. Restore:
+
+```bash
+gunzip < backups/amazon-<timestamp>.sql.gz | docker compose exec -T db sh -c 'mysql -u root -p"$MYSQL_ROOT_PASSWORD" amazon'
 ```
 
 Type check and tests:

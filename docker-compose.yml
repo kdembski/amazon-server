@@ -33,6 +33,8 @@ services:
   worker:
     build: .
     command: ["npm", "run", "worker"]
+    volumes:
+      - ./backups:/backups
     restart: unless-stopped
     env_file: .env
     depends_on:
