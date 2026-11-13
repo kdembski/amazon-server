@@ -17,24 +17,20 @@ const setup = () => {
   const pln = buildCurrency({ code: "PLN" });
   const eur = buildCurrency({ code: "EUR" });
   const sek = buildCurrency({ code: "SEK" });
-  const currencies: Record<string, typeof pln | null> = {
-    PLN: pln,
-    EUR: eur,
-    SEK: sek,
-  };
+  const currencies = [pln, eur, sek];
 
-  const updateBySourceAndTarget = vi.fn().mockResolvedValue({});
+  const upsertBySourceAndTarget = vi.fn().mockResolvedValue({});
   const refreshPlnRates = vi.fn().mockResolvedValue(undefined);
-  const getByCode = vi.fn((code: string) => Promise.resolve(currencies[code]));
+  const getAll = vi.fn(() => Promise.resolve(currencies));
   const send = vi.fn();
   const latest = vi.fn().mockResolvedValue({ data: { EUR: 0.25, SEK: 2.5 } });
 
   const service = new CurrencyExchangeRateCronService(
     {
-      updateBySourceAndTarget,
+      upsertBySourceAndTarget,
       refreshPlnRates,
     } as unknown as CurrencyExchangeRateService,
-    { getByCode } as unknown as CurrencyService,
+    { getAll } as unknown as CurrencyService,
     { send } as unknown as DiscordLogService,
     { latest }
   );
@@ -45,9 +41,9 @@ const setup = () => {
     pln,
     eur,
     sek,
-    updateBySourceAndTarget,
+    upsertBySourceAndTarget,
     refreshPlnRates,
-    getByCode,
+    getAll,
     send,
     latest,
   };
@@ -85,7 +81,7 @@ describe("CurrencyExchangeRateCronService", () => {
     expect(vi.mocked(CronJob).mock.results[0].value.start).toHaveBeenCalled();
   });
 
-  it("asks the API for EUR and SEK against PLN", async () => {
+  it("asks the API for every non-PLN currency against PLN", async () => {
     const { service, latest } = setup();
     await service.run();
     expect(latest).toHaveBeenCalledWith({
@@ -97,7 +93,7 @@ describe("CurrencyExchangeRateCronService", () => {
   it("stores inverted rates and refreshes the PLN cache", async () => {
     const {
       service,
-      updateBySourceAndTarget,
+      upsertBySourceAndTarget,
       refreshPlnRates,
       pln,
       eur,
@@ -105,11 +101,11 @@ describe("CurrencyExchangeRateCronService", () => {
     } = setup();
     await service.run();
 
-    expect(updateBySourceAndTarget).toHaveBeenCalledWith(
+    expect(upsertBySourceAndTarget).toHaveBeenCalledWith(
       { sourceId: eur.id, targetId: pln.id },
       { value: 4 }
     );
-    expect(updateBySourceAndTarget).toHaveBeenCalledWith(
+    expect(upsertBySourceAndTarget).toHaveBeenCalledWith(
       { sourceId: sek.id, targetId: pln.id },
       { value: 0.4 }
     );
@@ -122,40 +118,41 @@ describe("CurrencyExchangeRateCronService", () => {
   });
 
   it("skips everything when the PLN currency is missing", async () => {
-    const { service, currencies, updateBySourceAndTarget } = setup();
-    currencies.PLN = null;
+    const { service, currencies, upsertBySourceAndTarget, latest } = setup();
+    currencies.shift();
 
     await service.run();
 
-    expect(updateBySourceAndTarget).not.toHaveBeenCalled();
+    expect(latest).not.toHaveBeenCalled();
+    expect(upsertBySourceAndTarget).not.toHaveBeenCalled();
     expect(unitLogger().warn).toHaveBeenCalledWith(
       "CurrencyExchangeRateCronService",
-      "Currency PLN is missing, its exchange rate was not updated",
+      "Currency PLN is missing, exchange rates were not updated",
       { code: "PLN" }
     );
   });
 
-  it("skips source currencies that are missing", async () => {
-    const { service, currencies, updateBySourceAndTarget, eur, pln } = setup();
-    currencies.SEK = null;
+  it("skips currencies the API returned no rate for", async () => {
+    const { service, latest, upsertBySourceAndTarget, eur, pln } = setup();
+    latest.mockResolvedValue({ data: { EUR: 0.25 } });
 
     await service.run();
 
     expect(unitLogger().warn).toHaveBeenCalledTimes(1);
     expect(unitLogger().warn).toHaveBeenCalledWith(
       "CurrencyExchangeRateCronService",
-      "Currency SEK is missing, its exchange rate was not updated",
+      "Currency API returned no rate for SEK, its exchange rate was not updated",
       { code: "SEK" }
     );
-    expect(updateBySourceAndTarget).toHaveBeenCalledTimes(1);
-    expect(updateBySourceAndTarget).toHaveBeenCalledWith(
+    expect(upsertBySourceAndTarget).toHaveBeenCalledTimes(1);
+    expect(upsertBySourceAndTarget).toHaveBeenCalledWith(
       { sourceId: eur.id, targetId: pln.id },
       { value: 4 }
     );
   });
 
   it("reports API failures to the Discord log channel", async () => {
-    const { service, latest, send, updateBySourceAndTarget } = setup();
+    const { service, latest, send, upsertBySourceAndTarget } = setup();
     const error = new Error("quota");
     latest.mockRejectedValue(error);
 
@@ -167,17 +164,17 @@ describe("CurrencyExchangeRateCronService", () => {
       { error, target: "PLN", sources: ["EUR", "SEK"] }
     );
     expect(send).toHaveBeenCalledWith("Currency exchange rates error: quota");
-    expect(updateBySourceAndTarget).not.toHaveBeenCalled();
+    expect(upsertBySourceAndTarget).not.toHaveBeenCalled();
   });
 
   it("refreshes the cache only after all rate updates have completed", async () => {
-    const { service, updateBySourceAndTarget, refreshPlnRates } = setup();
+    const { service, upsertBySourceAndTarget, refreshPlnRates } = setup();
     const pending = deferred<unknown>();
-    updateBySourceAndTarget.mockReturnValue(pending.promise);
+    upsertBySourceAndTarget.mockReturnValue(pending.promise);
 
     const run = service.run();
     await vi.waitFor(() =>
-      expect(updateBySourceAndTarget).toHaveBeenCalledTimes(2)
+      expect(upsertBySourceAndTarget).toHaveBeenCalledTimes(2)
     );
     expect(refreshPlnRates).not.toHaveBeenCalled();
 
@@ -187,8 +184,8 @@ describe("CurrencyExchangeRateCronService", () => {
   });
 
   it("reports rate update failures and skips the cache refresh", async () => {
-    const { service, updateBySourceAndTarget, refreshPlnRates, send } = setup();
-    updateBySourceAndTarget.mockRejectedValue(new Error("db down"));
+    const { service, upsertBySourceAndTarget, refreshPlnRates, send } = setup();
+    upsertBySourceAndTarget.mockRejectedValue(new Error("db down"));
 
     await service.run();
 

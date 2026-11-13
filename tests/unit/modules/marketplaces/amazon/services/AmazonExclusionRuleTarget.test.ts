@@ -57,6 +57,7 @@ describe("AmazonExclusionRuleTarget", () => {
 
     it("passes the category of each ad as the scope", async () => {
       const { repository, delegate } = setup();
+      delegate.aggregate.mockResolvedValue({ _min: { id: 1 }, _max: { id: 1 } });
       delegate.findMany.mockResolvedValue([ad(1, "Bosch drill", null)]);
       delegate.updateMany.mockResolvedValue({ count: 1 });
       const scoped = vi.fn().mockReturnValue(true);
@@ -72,7 +73,7 @@ describe("AmazonExclusionRuleTarget", () => {
 
     it("rematches in id batches, including ads before excluding the rest, and sums the counts", async () => {
       const { repository, delegate } = setup(10);
-      delegate.aggregate.mockResolvedValue({ _max: { id: 25 } });
+      delegate.aggregate.mockResolvedValue({ _min: { id: 1 }, _max: { id: 25 } });
       delegate.findMany
         .mockResolvedValueOnce([
           ad(1, "Bosch drill", false),
@@ -92,7 +93,7 @@ describe("AmazonExclusionRuleTarget", () => {
         scanned: 6,
       });
 
-      expect(delegate.aggregate).toHaveBeenCalledWith({ where: {}, _max: { id: true } });
+      expect(delegate.aggregate).toHaveBeenCalledWith({ where: {}, _min: { id: true }, _max: { id: true } });
       expect(delegate.findMany.mock.calls).toEqual([
         [{ where: { id: { gt: 0, lte: 10 } }, select }],
         [{ where: { id: { gt: 10, lte: 20 } }, select }],
@@ -107,13 +108,13 @@ describe("AmazonExclusionRuleTarget", () => {
 
     it("with scope ids walks only the ads of these scopes", async () => {
       const { repository, delegate } = setup(10);
-      delegate.aggregate.mockResolvedValue({ _max: { id: 15 } });
+      delegate.aggregate.mockResolvedValue({ _min: { id: 1 }, _max: { id: 15 } });
       delegate.findMany.mockResolvedValue([]);
       const where = { categoryId: { in: [7, 8] } };
 
       await repository.matchExclusionRules(excludes, [7, 8]);
 
-      expect(delegate.aggregate).toHaveBeenCalledWith({ where, _max: { id: true } });
+      expect(delegate.aggregate).toHaveBeenCalledWith({ where, _min: { id: true }, _max: { id: true } });
       expect(delegate.findMany.mock.calls).toEqual([
         [{ where: { ...where, id: { gt: 0, lte: 10 } }, select }],
         [{ where: { ...where, id: { gt: 10, lte: 20 } }, select }],
@@ -122,7 +123,7 @@ describe("AmazonExclusionRuleTarget", () => {
 
     it("updates nothing on an empty table", async () => {
       const { repository, delegate } = setup();
-      delegate.aggregate.mockResolvedValue({ _max: { id: null } });
+      delegate.aggregate.mockResolvedValue({ _min: { id: null }, _max: { id: null } });
 
       await expect(repository.matchExclusionRules(excludes)).resolves.toEqual({
         excluded: 0,
@@ -134,28 +135,32 @@ describe("AmazonExclusionRuleTarget", () => {
       expect(delegate.updateMany).not.toHaveBeenCalled();
     });
 
-    it("with only = \"new\" checks the never checked ads in one go", async () => {
-      const { repository, delegate } = setup();
-      delegate.findMany.mockResolvedValue([
-        ad(1, "Bosch drill", null),
-        ad(2, "Hammer", null),
-      ]);
-      delegate.updateMany.mockResolvedValue({ count: 1 });
+    it("with only = \"new\" walks the never checked ads in id batches from the lowest one", async () => {
+      const { repository, delegate } = setup(10);
+      delegate.aggregate.mockResolvedValue({ _min: { id: 95 }, _max: { id: 110 } });
+      delegate.findMany
+        .mockResolvedValueOnce([ad(95, "Bosch drill", null), ad(96, "Hammer", null)])
+        .mockResolvedValueOnce([ad(110, "Makita drill", null)]);
+      delegate.updateMany.mockImplementation(async ({ where }) => ({
+        count: where.id.in.length,
+      }));
 
       await expect(repository.matchExclusionRules(excludes, "new")).resolves.toEqual({
-        excluded: 1,
+        excluded: 2,
         included: 1,
-        scanned: 2,
+        scanned: 3,
       });
 
-      expect(delegate.aggregate).not.toHaveBeenCalled();
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        where: { excluded: null },
-        select,
-      });
+      const where = { excluded: null };
+      expect(delegate.aggregate).toHaveBeenCalledWith({ where, _min: { id: true }, _max: { id: true } });
+      expect(delegate.findMany.mock.calls).toEqual([
+        [{ where: { ...where, id: { gt: 94, lte: 104 } }, select }],
+        [{ where: { ...where, id: { gt: 104, lte: 114 } }, select }],
+      ]);
       expect(delegate.updateMany.mock.calls).toEqual([
-        [{ where: { id: { in: [2] } }, data: { excluded: false } }],
-        [{ where: { id: { in: [1] } }, data: { excluded: true } }],
+        [{ where: { id: { in: [96] } }, data: { excluded: false } }],
+        [{ where: { id: { in: [95] } }, data: { excluded: true } }],
+        [{ where: { id: { in: [110] } }, data: { excluded: true } }],
       ]);
     });
   });

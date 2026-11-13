@@ -1,115 +1,88 @@
 ---
 name: exclusion-rules
-description: Use when asked to create, extend, review or fix exclusion rules of any marketplace (AmazonExclusionRule and others, excluded), to keep junk of a category or product group out of scraping, or to explain why an ad was or was not scraped or reported to Discord.
+description: Use when asked to create, extend, review or fix exclusion rules of any marketplace (e.g. AmazonExclusionRule), when the user sends ads that should not be scraped, or to explain why an ad was or was not scraped.
 ---
 
 # Exclusion rules
 
-Marketplace specifics (tables, endpoints, demand sources, scripts) live in sub files; read the one of the
-marketplace first:
+Marketplace specifics (tables, API, queries) live in sub files; read the one of the marketplace first:
 
 - Amazon: [amazon/amazon.md](amazon/amazon.md)
 
-## Overview
+## How matching works
 
-- Exclusion rules are per marketplace; each marketplace implements `ExclusionRuleTarget`.
-- Every ad of an active category is scraped unless a rule matches its name.
-- `ExclusionRuleMatchCronService` sets the ad's `excluded` via `ScopedExclusionRuleMatcher`
-  (`src/modules/exclusion-rules/services/`): `true` when a rule matches, the category is inactive, or the category
-  has inverted rules and none matches, else `false`.
-- `categoryId = NULL` rule applies to every category; with `categoryId` only to that category.
-- `inverted = true` (needs `categoryId`): the rule says what the category looks for; normal and global rules still
-  exclude inside it.
-- Rules live in the production database; change them yourself through the marketplace's exclusion-rules API, only
-  after verifying the set with the production matcher.
-- Only known brands pass: exclude junk product types, accessories, parts and no-name products (see Brands).
+- `ExclusionRuleMatchCronService` sets each ad's `excluded` with `ScopedExclusionRuleMatcher`
+  (`src/modules/exclusion-rules/services/`): `true` when a rule matches its name or its category is inactive,
+  else `false`.
+- Rule with `categoryId = NULL` applies to every category, with `categoryId` only to that category.
+- `inverted = true` (needs `categoryId`): the category keeps only names matching one of its inverted rules; normal
+  rules still exclude inside it.
+- Each rule change rematches its category, a global rule all ads; a full rematch takes over an hour.
+
+## Junk
+
+Exclude only junk:
+
+- Accessories and parts for the category's products: cases, covers, cables, chargers, holders, mounts, straps,
+  spare and replacement parts, fit wording ("do …", "na …", "kompatybilny", "zamiennik", "pasuje").
+- Small low-value items: stickers, keychains, decorations, party items, themed merch (posters, mugs, clothes).
+- Neighbouring classes sharing model names (laptops and PCs in a GPU category).
+
+Everything else passes.
 
 ## Syntax
 
-Parsed by `ExclusionRuleParser`, same for every marketplace.
+Parsed by `ExclusionRuleParser`:
 
-- `a + b`: name contains `a` and `b`.
-- `a|b`: contains `a` or `b`.
-- `!a` inside a rule: exception, names containing `a` are not excluded; a rule of only `!` members is invalid (400).
-- `!` once per `+` member, before its first phrase: `x + !a|b|c` excepts `a`, `b` and `c`. `!a|!b` is invalid (400).
-- `word`: whole word (letters and digits form words); multi-word or punctuated phrase matches as a whole.
-- `word*` / `*word` / `*word*`: starts with / ends with / contains; `*` only at a phrase edge, so a multi-word
-  phrase takes `*` only before its first or after its last word (`łańcuszek na smocz*`, `łańcusz* + smocz*`;
-  not `łańcusz* na smocz*`).
-- Case and diacritics folded on both sides.
-- Max 512 characters (`VarChar(512)`); values unique per category.
-- Rules cannot see prices; exclude cheap items by product-type words.
+- `a + b`: name contains `a` and `b`; `a|b`: `a` or `b`.
+- `!a`: exception, once per `+` member before its first phrase (`x + !a|b` excepts `a` and `b`); a rule of only `!`
+  members and `!a|!b` are invalid.
+- `word`: whole word; a multi-word phrase matches as a whole.
+- `word*` / `*word` / `*word*`: starts with / ends with / contains; `*` only at a phrase edge
+  (`łańcuszek na smocz*`, not `łańcusz* na smocz*`).
+- Case and diacritics are folded; max 512 characters; values unique per category.
 
-## Tools
+## Check
 
-- Run from the repo root; keep all lists and downloads in the scratchpad; new helpers as plain `.js` (ESM) or `.sh`.
-- `check-rules.js` imports the production parser and matcher through `@/`: run with `npx vite-node`, not `node`.
+Run from the repo root with `npx vite-node` (imports the production matcher); keep files in the scratchpad.
 
 ```bash
 K=.claude/skills/exclusion-rules/scripts
-npx vite-node $K/check-rules.js check <rules.txt> [--category id] [--junk f] [--keep f] [--kept n]
-    [--min-rating stars] [--min-reviews n] [--min-bought n] [products.tsv...]
+npx vite-node $K/check-rules.js check <rules.txt> [--category id] [--junk file] [--keep file]
 npx vite-node $K/check-rules.js which <rules.txt> [--category id] "<ad name>"
 ```
 
-- `rules.txt`: one rule per line, `<value>`, `<categoryId>\t<value>` or `<categoryId>\tinverted\t<value>`;
-  `check`/`which` use global rules plus the
-  `--category` rules; tsv products have no category.
-- `products.tsv`: `source, price, reviews, bought/month, rating, title` per line, from the marketplace's parser.
-- `--junk` / `--keep`: ad names that must be excluded / must pass.
-- `check` prints `COVERAGE` (in-demand passing, kept under 40 zł), in-demand products each rule excludes, and with
-  `--kept n` the n cheapest passing products outside demand (candidates for new rules).
-
-## Demand
-
-- Never exclude products with demand above the category average, except no-name products.
-- Signals: review count, bought per month, presence in bestsellers; quality floor: star rating.
-- Default floors: rating at least 3.5 and 50 reviews or 50 bought per month; agree other floors with the user.
-- Sample each category and its child categories from the marketplace's demand sources.
-
-## Brands
-
-- Known brand: manufacturer with a recognisable name in the category (Sony, Bosch, LEGO); not a random letter string
-  or seller label (`Generic`). Read it from the first word(s) of the name and the listing's brand field.
-- Whitelist per product type: `<type phrases> + !<brand>|<brand>|...`. All brands of a type must fit in that one
-  rule (any matching rule excludes); use narrow types and short `stem*` brands.
-- Brand list does not fit: exclude the seen no-name brands by name (`generic|...`) with the `categoryId`.
-- Names without any brand are no-name.
-- Keep list: a product of every known brand; junk list: no-name products.
+- `rules.txt`: one rule per line, `<value>`, `<categoryId>\t<value>` or `<categoryId>\tinverted\t<value>`.
+- `--junk` / `--keep`: ad names, one per line, that must be excluded / must pass.
+- Done when it prints no `PARSE ERROR`, `TOO LONG`, `DUPLICATE`, `JUNK KEPT` or `KEEP EXCLUDED`.
 
 ## Workflow
 
-1. Fetch live rules, never assume the last set you produced; keep the JSON for ids.
-2. Junk list: every unwanted ad the user reported; keep list: products that must stay.
-3. Fetch and parse the demand sources, read the cheapest passing products outside demand; group junk into product
-   types, accessories, parts and no-name brands; list known brands that must pass.
-4. Edit rules, rerun the check until no `TOO LONG`, `DUPLICATE`, `PARSE ERROR`, `JUNK KEPT`, `KEEP EXCLUDED`, and
-   the user accepted every in-demand product excluded.
-5. Apply the difference in one `POST <exclusion-rules>/batch` call, never one call per rule (each change rematches
-   the ads of its category, a rule without a category all ads):
-   - `{"create": [{"value", "categoryId", "inverted"?}], "update": [{"id", "value"?, "categoryId"?, "inverted"?}],
-     "delete": [id]}`; omitted lists are empty; `inverted: true` also needs `categoryId` in the same item.
-   - One transaction (deletes, updates, creates); any error rolls back: 400 invalid rule, id or inverted, 422 duplicate or
-     unknown `categoryId`, 500 unknown id.
-   - Report each change (type, id, value, category), HTTP status, coverage before/after, in-demand items each new
-     rule excludes. Cron rematches within a minute.
+Both workflows start from the live rules (never reuse a set from earlier), keep the rule count minimal (extend an
+existing rule of the same kind with `|phrase` or a wider `stem*`, or merge rules, before adding one), end with the
+check and apply the whole diff in one batch call, never one call per rule; report each change and the HTTP status.
 
-## Diagnosing a reported ad
+### Full review of a category
 
-1. Fetch live rules; get the ad via the `database` skill (`name`, `excluded`, `scrapedAt`, `categoryId`) and its
-   category's `active`; run `which` with the exact name and `--category`.
-2. Unwanted, not excluded: add a narrow rule, name to junk list, rerun the check.
-3. Wanted, excluded: narrow the printed rule or add a `!` exception, name to keep list, rerun the check.
-4. `which` disagrees with `excluded`: stale flag (compare `scrapedAt` with `MAX(createdAt)` of the rule table), other
-   rules in the database, wrong `categoryId`, or inactive category (always `excluded = true`, `which` does not see
-   it). Say which; leave rules unchanged.
+1. Sample the category's passing ads.
+2. Decide what is junk by the Junk section; group it into product types.
+3. Change the rules so each type is excluded; add sampled wanted ads the rules hit to the keep list.
+
+### Ads sent by the user
+
+1. Find the general product type of the sent ads and the words they share.
+2. Exclude the whole type, not only the sent names: sample passing ads of the category with those words and check
+   that the rule hits the type and no wanted products.
+3. Add the sent ads to the junk list, wanted ads the rule hits to the keep list.
 
 ## Rule design
 
-- Narrow: name the product type; add brand or model only when the type alone hits wanted products.
-- Accessories and parts: exclude fit/part wording ("do …", "na …", "kompatybilny", "zamiennik", "pasuje", etui,
-  kabel, holder, repair words) with the polluted category's `categoryId`; global rules only for words no wanted
-  product in any category contains.
-- Rule hits a wanted line: add a `!` exception, don't drop the rule.
-- Exclude neighbouring classes sharing model names (laptops and PCs in a GPU category).
+- Name the product type; add a model or context word only when the type alone hits wanted products.
+- A rule hits a wanted product: add a `!` exception, don't drop the rule.
+- Use the category's `categoryId`; global only for words no wanted product in any category contains.
 - Prefer `stem*` over listing Polish word forms.
+
+## Diagnosing an ad
+
+Get the ad and its category's `active` from the database, run `which` with the exact name and `--category`.
+If `which` disagrees with `excluded`: rematch still running, wrong `categoryId`, or inactive category. Say which.

@@ -16,10 +16,6 @@ export class CurrencyRepository {
     return this.delegate.findMany();
   }
 
-  getByCode(code: string) {
-    return this.delegate.findUnique({ where: { code } });
-  }
-
   create(data: Prisma.CurrencyCreateInput) {
     return this.delegate.create({ data });
   }

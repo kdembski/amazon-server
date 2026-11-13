@@ -36,8 +36,8 @@ Issues hold the tasks to do: features, bugs, chores.
   (`amazon-server#12`). Refer to tasks only by it.
 - Type: label `bug` or `feature` (`gh label list` for others).
 - Title: a short description of what to do, starting with a verb (`Add ...`, `Fix ...`).
-- Body: the sections below, nothing else (no "Why").
 - A PR that finishes a task gets `Closes #<number>` under the commit list in its body.
+- Body: the sections below.
 
 ### Body
 

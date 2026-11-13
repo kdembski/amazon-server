@@ -56,9 +56,10 @@ export class AmazonAdRepository {
     });
   }
 
-  async getMaxId(where: Prisma.AmazonAdWhereInput) {
-    const { _max } = await this.delegate.aggregate({ where, _max: { id: true } });
-    return _max.id ?? 0;
+  // Without matching ads min > max, so a walk from min to max reads nothing
+  async getIdRange(where: Prisma.AmazonAdWhereInput) {
+    const { _min, _max } = await this.delegate.aggregate({ where, _min: { id: true }, _max: { id: true } });
+    return { min: _min.id ?? 1, max: _max.id ?? 0 };
   }
 
   getForMatch(where: Prisma.AmazonAdWhereInput) {

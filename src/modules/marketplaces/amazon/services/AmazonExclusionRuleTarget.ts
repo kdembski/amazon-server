@@ -36,19 +36,14 @@ export class AmazonExclusionRuleTarget implements ExclusionRuleTarget {
     return this.categoryRepository.getActiveIds();
   }
 
-  // Ads with excluded = null have not been checked yet; only = "new" limits
-  // the check to them. A full rematch walks the table in id ranges so each UPDATE
-  // commits quickly and only briefly locks the rows /scrap stamps.
+  // only = "new": ads never checked (excluded = null). Walks id ranges so each UPDATE
+  // stays under the MySQL placeholder limit and locks rows only briefly.
   async matchExclusionRules(isExcluded: (name: string, scope: number | null) => boolean, only?: "new" | number[]) {
-    if (only === "new") {
-      return this.updateMatches(isExcluded, { excluded: null });
-    }
-
-    const where = only ? { categoryId: { in: only } } : {};
-    const maxId = await this.adRepository.getMaxId(where);
+    const where = only === "new" ? { excluded: null } : only ? { categoryId: { in: only } } : {};
+    const { min, max } = await this.adRepository.getIdRange(where);
     const total = { excluded: 0, included: 0, scanned: 0 };
 
-    for (let lastId = 0; lastId < maxId; lastId += this.matchBatchSize) {
+    for (let lastId = min - 1; lastId < max; lastId += this.matchBatchSize) {
       const result = await this.updateMatches(isExcluded, {
         ...where,
         id: { gt: lastId, lte: lastId + this.matchBatchSize },

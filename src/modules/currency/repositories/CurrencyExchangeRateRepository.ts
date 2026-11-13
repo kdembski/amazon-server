@@ -40,11 +40,16 @@ export class CurrencyExchangeRateRepository {
     return this.delegate.update({ where: { id }, data });
   }
 
-  updateBySourceAndTarget(
+  upsertBySourceAndTarget(
     ids: { sourceId: number; targetId: number },
-    data: Prisma.CurrencyExchangeRateUpdateInput
+    create: Prisma.CurrencyExchangeRateCreateInput,
+    update: Prisma.CurrencyExchangeRateUpdateInput
   ) {
-    return this.delegate.update({ where: { sourceId_targetId: ids }, data });
+    return this.delegate.upsert({
+      where: { sourceId_targetId: ids },
+      create,
+      update,
+    });
   }
 
   delete(id: number) {

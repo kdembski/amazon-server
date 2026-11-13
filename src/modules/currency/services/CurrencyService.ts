@@ -26,8 +26,4 @@ export class CurrencyService {
   getAll() {
     return this.repository.getAll();
   }
-
-  getByCode(code: string) {
-    return this.repository.getByCode(code);
-  }
 }

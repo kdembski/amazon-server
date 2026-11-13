@@ -12,7 +12,6 @@ export class CurrencyExchangeRateCronService extends CronService {
   private discordService;
   private currencyApi;
   private targetCode = "PLN";
-  private sourceCodes = ["EUR", "SEK"];
 
   constructor(
     exchangeRateService = new CurrencyExchangeRateService(),
@@ -29,12 +28,29 @@ export class CurrencyExchangeRateCronService extends CronService {
   }
 
   async run(): Promise<void> {
+    let sourceCodes: string[] = [];
     try {
+      const currencies = await this.currencyService.getAll();
+      const target = currencies.find((c) => c.code === this.targetCode);
+      if (!target) return this.warnMissingCurrency(this.targetCode);
+
+      const sources = currencies.filter((c) => c !== target);
+      sourceCodes = sources.map((c) => c.code);
       const response = await this.currencyApi.latest({
         base_currency: this.targetCode,
-        currencies: this.sourceCodes.join(","),
+        currencies: sourceCodes.join(","),
       });
-      await this.updateCurrencyExchangeRates(response.data);
+      await Promise.all(
+        sources.map((source) => {
+          const rate = response.data[source.code];
+          if (!rate) return this.warnMissingRate(source.code);
+
+          const ids = { sourceId: source.id, targetId: target.id };
+          return this.exchangeRateService.upsertBySourceAndTarget(ids, {
+            value: 1 / rate,
+          });
+        })
+      );
       await this.exchangeRateService.refreshPlnRates();
       this.logger.info(
         "CurrencyExchangeRateCronService",
@@ -45,41 +61,24 @@ export class CurrencyExchangeRateCronService extends CronService {
       this.logger.error(
         "CurrencyExchangeRateCronService",
         "Currency exchange rates update failed",
-        { error: e, target: this.targetCode, sources: this.sourceCodes }
+        { error: e, target: this.targetCode, sources: sourceCodes }
       );
       this.discordService.send("Currency exchange rates error: " + e.message);
     }
   }
 
-  private async updateCurrencyExchangeRates(rates: Record<string, number>) {
-    const targetCurrency = await this.currencyService.getByCode(
-      this.targetCode
-    );
-    const sourceCurrencies = this.sourceCodes.map((code) =>
-      this.currencyService.getByCode(code)
-    );
-
-    if (!targetCurrency) return this.warnMissing(this.targetCode);
-
-    const sources = await Promise.all(sourceCurrencies);
-    await Promise.all(
-      sources.map(async (source) => {
-        if (!source) return;
-
-        const value = 1 / rates[source.code];
-        const ids = { sourceId: source.id, targetId: targetCurrency.id };
-        await this.exchangeRateService.updateBySourceAndTarget(ids, { value });
-      })
-    );
-    sources.forEach((source, index) => {
-      if (!source) this.warnMissing(this.sourceCodes[index]);
-    });
-  }
-
-  private warnMissing(code: string) {
+  private warnMissingCurrency(code: string) {
     this.logger.warn(
       "CurrencyExchangeRateCronService",
-      `Currency ${code} is missing, its exchange rate was not updated`,
+      `Currency ${code} is missing, exchange rates were not updated`,
+      { code }
+    );
+  }
+
+  private warnMissingRate(code: string) {
+    this.logger.warn(
+      "CurrencyExchangeRateCronService",
+      `Currency API returned no rate for ${code}, its exchange rate was not updated`,
       { code }
     );
   }

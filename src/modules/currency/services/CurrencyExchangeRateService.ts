@@ -15,16 +15,15 @@ export class CurrencyExchangeRateService {
   deletable;
   creatable;
   updatable;
+  createMapper;
   updateMapper;
   private plnRateCache;
 
   constructor(
     repository = new CurrencyExchangeRateRepository(),
     deletable = new DeletableService(repository),
-    creatable = new CreatableService(
-      repository,
-      new CurrencyExchangeRateCreateMapper()
-    ),
+    createMapper = new CurrencyExchangeRateCreateMapper(),
+    creatable = new CreatableService(repository, createMapper),
     updateMapper = new CurrencyExchangeRateUpdateMapper(),
     updatable = new UpdatableService(repository, updateMapper),
     plnRateCache = PlnExchangeRateCache.getInstance()
@@ -33,6 +32,7 @@ export class CurrencyExchangeRateService {
     this.deletable = deletable;
     this.creatable = creatable;
     this.updatable = updatable;
+    this.createMapper = createMapper;
     this.updateMapper = updateMapper;
     this.plnRateCache = plnRateCache;
   }
@@ -53,11 +53,12 @@ export class CurrencyExchangeRateService {
     this.plnRateCache.refreshedAt = Date.now();
   }
 
-  updateBySourceAndTarget(
+  upsertBySourceAndTarget(
     ids: { sourceId: number; targetId: number },
     dto: CurrencyExchangeRateUpdateDto
   ) {
-    const input = this.updateMapper.toUpdateInput(dto);
-    return this.repository.updateBySourceAndTarget(ids, input);
+    const create = this.createMapper.toCreateInput({ ...ids, ...dto });
+    const update = this.updateMapper.toUpdateInput(dto);
+    return this.repository.upsertBySourceAndTarget(ids, create, update);
   }
 }

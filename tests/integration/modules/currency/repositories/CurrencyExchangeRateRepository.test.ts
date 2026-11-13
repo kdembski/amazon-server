@@ -26,15 +26,23 @@ describe("CurrencyExchangeRateRepository (MySQL)", () => {
     expect(await repository.getByTargetCode("USD")).toEqual([]);
   });
 
-  it("updateBySourceAndTarget uses the composite key", async () => {
+  it("upsertBySourceAndTarget creates a missing pair and updates it by the composite key", async () => {
     const pln = await seedPln();
     const eur = await seedCurrency({ code: "EUR" });
-    const rate = await seedRate({ sourceId: eur.id, targetId: pln.id, value: 4.3 });
     const ids = { sourceId: eur.id, targetId: pln.id };
+    const stamps = { createdAt: new Date(), updatedAt: new Date() };
+    const create = {
+      value: 4.3,
+      source: { connect: { id: eur.id } },
+      target: { connect: { id: pln.id } },
+      ...stamps,
+    };
 
-    await repository.updateBySourceAndTarget(ids, { value: 4.5 });
+    const created = await repository.upsertBySourceAndTarget(ids, create, { value: 4.5 });
+    expect(created.value.toString()).toBe("4.3");
 
-    expect((await repository.getById(rate.id))?.value.toString()).toBe("4.5");
+    await repository.upsertBySourceAndTarget(ids, create, { value: 4.5 });
+    expect((await repository.getById(created.id))?.value.toString()).toBe("4.5");
   });
 
   it("rejects a duplicate source/target pair with P2002", async () => {

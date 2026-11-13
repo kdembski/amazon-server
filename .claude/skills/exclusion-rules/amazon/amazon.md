@@ -1,32 +1,18 @@
 # Exclusion rules: Amazon
 
-## Data
-
-- Rules: `AmazonExclusionRule`; ads: `AmazonAd` (`name`, `excluded`, `scrapedAt`, `categoryId`, by `asin`; `name`
-  has no index); categories: `AmazonAdCategory` (`active`).
-- API: `/amazon/exclusion-rules` (`GET`, `POST`, `PUT|DELETE /:id`, `POST /batch`).
-
-## Demand sources (amazon.pl)
-
-- Signals: review count, "X+ kupionych w ciągu ostatniego miesiąca", bestsellers; rating "4,5 z 5 gwiazdek".
-- Brand field: "Marka" / "Odwiedź sklep" line.
-- Child categories: `child-nodes.js` on a bestsellers page.
-- URLs:
-  - `https://www.amazon.pl/s?i=<root>&rh=n%3A<node id>&s=exact-aware-popularity-rank&page=<n>`
-  - `https://www.amazon.pl/s?k=<words>&s=exact-aware-popularity-rank&page=<n>`
-  - `https://www.amazon.pl/gp/bestsellers/<root>/<node id>` (`?pg=2` for ranks 51–100)
-
-## Tools
+- Tables: `AmazonExclusionRule`; `AmazonAd` (`name`, `excluded`, `categoryId`; `name` has no index);
+  `AmazonAdCategory` (`active`).
+- API: `/amazon/exclusion-rules` (`GET`, `POST /batch`); `api.sh` reads `API_URL`, `API_TOKEN` from `.env`.
 
 ```bash
 A=.claude/skills/exclusion-rules/amazon
-bash $A/fetch.sh <dir> <url>...                      # WebFetch gets 503 on amazon.pl
-node $A/child-nodes.js <bestsellers.html>            # child category ids and names
-node $A/parse-listing.js <dir> <products.tsv>        # price, reviews, bought/month, rating, title
-bash $A/api.sh GET                                   # all rules as JSON
-bash $A/api.sh POST /batch @<batch.json>             # every change at once
+bash $A/api.sh GET > rules.json               # live rules with ids
+bash $A/api.sh POST /batch @batch.json        # body as a scratchpad file, never inline
 ```
 
-- Live rules to `rules.txt`: `bash $A/api.sh GET > rules.json`, then
-  `node -e 'for (const r of JSON.parse(require("fs").readFileSync(0, "utf8"))) console.log((r.categoryId ? r.categoryId + "\t" : "") + (r.inverted ? "inverted\t" : "") + r.value)' < rules.json > rules.txt`.
-- `api.sh` reads `API_URL` and `API_TOKEN` from `.env`; pass bodies as `@<file>` (UTF-8 JSON in the scratchpad), never inline.
+- `rules.json` to `rules.txt`:
+  `node -e 'for (const r of JSON.parse(require("fs").readFileSync(0, "utf8"))) console.log((r.categoryId ? r.categoryId + "\t" : "") + (r.inverted ? "inverted\t" : "") + r.value)' < rules.json > rules.txt`
+- Batch body: `{"create": [{"value", "categoryId", "inverted"?}], "update": [{"id", "value"?, "categoryId"?}],
+  "delete": [id]}`; one transaction, any error rolls back (400 invalid rule, 422 duplicate or unknown category).
+- Sample passing ads (database skill), several id offsets:
+  `SELECT name FROM AmazonAd WHERE categoryId = ? AND excluded = false AND id > ? ORDER BY id LIMIT 200`.

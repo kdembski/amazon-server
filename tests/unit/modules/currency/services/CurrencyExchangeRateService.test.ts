@@ -11,7 +11,7 @@ const setup = () => {
     getByTargetCode: vi.fn().mockResolvedValue([]),
     create: vi.fn().mockResolvedValue({}),
     update: vi.fn().mockResolvedValue({}),
-    updateBySourceAndTarget: vi.fn().mockResolvedValue({}),
+    upsertBySourceAndTarget: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue({}),
   };
   const service = new CurrencyExchangeRateService(
@@ -29,14 +29,20 @@ describe("CurrencyExchangeRateService", () => {
     expect(repository.getByTargetCode).toHaveBeenCalledWith("PLN");
   });
 
-  it("updateBySourceAndTarget maps the dto with the update mapper", async () => {
+  it("upsertBySourceAndTarget maps the dto with the create and update mappers", async () => {
     const { service, repository } = setup();
-    await service.updateBySourceAndTarget(
+    await service.upsertBySourceAndTarget(
       { sourceId: 1, targetId: 2 },
       { value: 4.1 }
     );
-    expect(repository.updateBySourceAndTarget).toHaveBeenCalledWith(
+    expect(repository.upsertBySourceAndTarget).toHaveBeenCalledWith(
       { sourceId: 1, targetId: 2 },
+      expect.objectContaining({
+        value: 4.1,
+        source: { connect: { id: 1 } },
+        target: { connect: { id: 2 } },
+        createdAt: expect.any(Date),
+      }),
       expect.objectContaining({ value: 4.1, updatedAt: expect.any(Date) })
     );
   });

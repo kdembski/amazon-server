@@ -46,8 +46,9 @@ describe("CurrencyExchangeRateRepository", () => {
 
     await repository.create(data);
     await repository.update(2, { value: 5 });
-    await repository.updateBySourceAndTarget(
+    await repository.upsertBySourceAndTarget(
       { sourceId: 1, targetId: 2 },
+      data,
       { value: 6 }
     );
     await repository.delete(3);
@@ -57,9 +58,10 @@ describe("CurrencyExchangeRateRepository", () => {
       where: { id: 2 },
       data: { value: 5 },
     });
-    expect(delegate.update).toHaveBeenNthCalledWith(2, {
+    expect(delegate.upsert).toHaveBeenCalledWith({
       where: { sourceId_targetId: { sourceId: 1, targetId: 2 } },
-      data: { value: 6 },
+      create: data,
+      update: { value: 6 },
     });
     expect(delegate.delete).toHaveBeenCalledWith({ where: { id: 3 } });
   });
