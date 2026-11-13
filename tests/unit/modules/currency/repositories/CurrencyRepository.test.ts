@@ -9,17 +9,13 @@ const setup = () => {
 };
 
 describe("CurrencyRepository", () => {
-  it("reads by id, code and all", async () => {
+  it("reads by id and all", async () => {
     const { repository, delegate } = setup();
 
     await repository.getById(1);
-    await repository.getByCode("EUR");
     await repository.getAll();
 
-    expect(delegate.findUnique).toHaveBeenNthCalledWith(1, { where: { id: 1 } });
-    expect(delegate.findUnique).toHaveBeenNthCalledWith(2, {
-      where: { code: "EUR" },
-    });
+    expect(delegate.findUnique).toHaveBeenCalledWith({ where: { id: 1 } });
     expect(delegate.findMany).toHaveBeenCalledWith();
   });
 

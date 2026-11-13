@@ -6,11 +6,9 @@ import { seedCurrency } from "../../../../support/integration/seed";
 const repository = new CurrencyRepository(prisma);
 
 describe("CurrencyRepository (MySQL)", () => {
-  it("getByCode finds by the unique code and the code cannot repeat", async () => {
-    const eur = await seedCurrency({ code: "EUR" });
+  it("rejects a duplicate code with P2002", async () => {
+    await seedCurrency({ code: "EUR" });
 
-    expect((await repository.getByCode("EUR"))?.id).toBe(eur.id);
-    expect(await repository.getByCode("USD")).toBeNull();
     await expect(seedCurrency({ code: "EUR" })).rejects.toMatchObject({ code: "P2002" });
   });
 

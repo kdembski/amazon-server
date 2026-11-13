@@ -6,7 +6,6 @@ const setup = () => {
   const repository = {
     getById: vi.fn(),
     getAll: vi.fn().mockResolvedValue([]),
-    getByCode: vi.fn().mockResolvedValue(null),
     create: vi.fn().mockResolvedValue({}),
     update: vi.fn().mockResolvedValue({}),
     delete: vi.fn().mockResolvedValue({}),
@@ -18,12 +17,10 @@ const setup = () => {
 };
 
 describe("CurrencyService", () => {
-  it("delegates getAll and getByCode", async () => {
+  it("delegates getAll", async () => {
     const { service, repository } = setup();
     await service.getAll();
-    await service.getByCode("EUR");
     expect(repository.getAll).toHaveBeenCalled();
-    expect(repository.getByCode).toHaveBeenCalledWith("EUR");
   });
 
   it("wires creatable, updatable and deletable to the repository", async () => {

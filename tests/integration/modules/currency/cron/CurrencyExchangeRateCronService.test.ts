@@ -20,14 +20,13 @@ const setup = () => {
 };
 
 describe("CurrencyExchangeRateCronService (MySQL)", () => {
-  it("writes 1/rate into the existing PLN rates and refreshes the cache", async () => {
+  it("writes 1/rate for every currency, creating missing rates, and refreshes the cache", async () => {
     const { service, send, latest } = setup();
     latest.mockResolvedValue({ data: { EUR: 0.25, SEK: 2.5 } });
     const pln = await seedPln();
     const eur = await seedCurrency({ code: "EUR" });
-    const sek = await seedCurrency({ code: "SEK" });
+    await seedCurrency({ code: "SEK" });
     await seedRate({ sourceId: eur.id, targetId: pln.id, value: 1 });
-    await seedRate({ sourceId: sek.id, targetId: pln.id, value: 1 });
 
     await service.run();
 
