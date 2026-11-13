@@ -109,14 +109,16 @@ describe("AmazonAdRepository", () => {
     expect(delegate.delete).toHaveBeenCalledWith({ where: { id: 4 } });
   });
 
-  it("getMaxId returns the highest id of the matching ads, 0 without any", async () => {
+  it("getIdRange returns the lowest and highest id of the matching ads, min > max without any", async () => {
     const { repository, delegate } = setup();
-    delegate.aggregate.mockResolvedValueOnce({ _max: { id: 25 } }).mockResolvedValueOnce({ _max: { id: null } });
+    delegate.aggregate
+      .mockResolvedValueOnce({ _min: { id: 3 }, _max: { id: 25 } })
+      .mockResolvedValueOnce({ _min: { id: null }, _max: { id: null } });
     const where = { categoryId: { in: [7] } };
 
-    expect(await repository.getMaxId(where)).toBe(25);
-    expect(await repository.getMaxId({})).toBe(0);
-    expect(delegate.aggregate).toHaveBeenCalledWith({ where, _max: { id: true } });
+    expect(await repository.getIdRange(where)).toEqual({ min: 3, max: 25 });
+    expect(await repository.getIdRange({})).toEqual({ min: 1, max: 0 });
+    expect(delegate.aggregate).toHaveBeenCalledWith({ where, _min: { id: true }, _max: { id: true } });
   });
 
   it("getForMatch reads the fields matching needs", async () => {
@@ -139,7 +141,6 @@ describe("AmazonAdRepository", () => {
     expect(delegate.updateMany).toHaveBeenCalledTimes(1);
     expect(delegate.updateMany).toHaveBeenCalledWith({ where: { id: { in: [1, 2] } }, data: { excluded: true } });
   });
-
   it("createMany skips existing ASINs and deleteMany removes the ids, both returning the count", async () => {
     const { repository, delegate } = setup();
     delegate.createMany.mockResolvedValue({ count: 3 });
