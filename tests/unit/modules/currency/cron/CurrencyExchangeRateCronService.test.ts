@@ -3,7 +3,6 @@ import { CronJob } from "cron";
 import { CurrencyExchangeRateCronService } from "@/modules/currency/cron/CurrencyExchangeRateCronService";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
 import { CurrencyService } from "@/modules/currency/services/CurrencyService";
-import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { buildCurrency } from "../../../../support/factories";
 import { deferred, unitLogger } from "../../../../support/fakes";
 
@@ -22,7 +21,6 @@ const setup = () => {
   const upsertBySourceAndTarget = vi.fn().mockResolvedValue({});
   const refreshPlnRates = vi.fn().mockResolvedValue(undefined);
   const getAll = vi.fn(() => Promise.resolve(currencies));
-  const send = vi.fn();
   const latest = vi.fn().mockResolvedValue({ data: { EUR: 0.25, SEK: 2.5 } });
 
   const service = new CurrencyExchangeRateCronService(
@@ -31,7 +29,6 @@ const setup = () => {
       refreshPlnRates,
     } as unknown as CurrencyExchangeRateService,
     { getAll } as unknown as CurrencyService,
-    { send } as unknown as DiscordLogService,
     { latest }
   );
 
@@ -44,7 +41,6 @@ const setup = () => {
     upsertBySourceAndTarget,
     refreshPlnRates,
     getAll,
-    send,
     latest,
   };
 };
@@ -151,8 +147,8 @@ describe("CurrencyExchangeRateCronService", () => {
     );
   });
 
-  it("reports API failures to the Discord log channel", async () => {
-    const { service, latest, send, upsertBySourceAndTarget } = setup();
+  it("logs API failures", async () => {
+    const { service, latest, upsertBySourceAndTarget } = setup();
     const error = new Error("quota");
     latest.mockRejectedValue(error);
 
@@ -163,7 +159,6 @@ describe("CurrencyExchangeRateCronService", () => {
       "Currency exchange rates update failed",
       { error, target: "PLN", sources: ["EUR", "SEK"] }
     );
-    expect(send).toHaveBeenCalledWith("Currency exchange rates error: quota");
     expect(upsertBySourceAndTarget).not.toHaveBeenCalled();
   });
 
@@ -183,13 +178,18 @@ describe("CurrencyExchangeRateCronService", () => {
     expect(refreshPlnRates).toHaveBeenCalled();
   });
 
-  it("reports rate update failures and skips the cache refresh", async () => {
-    const { service, upsertBySourceAndTarget, refreshPlnRates, send } = setup();
-    upsertBySourceAndTarget.mockRejectedValue(new Error("db down"));
+  it("logs rate update failures and skips the cache refresh", async () => {
+    const { service, upsertBySourceAndTarget, refreshPlnRates } = setup();
+    const error = new Error("db down");
+    upsertBySourceAndTarget.mockRejectedValue(error);
 
     await service.run();
 
-    expect(send).toHaveBeenCalledWith("Currency exchange rates error: db down");
+    expect(unitLogger().error).toHaveBeenCalledWith(
+      "CurrencyExchangeRateCronService",
+      "Currency exchange rates update failed",
+      { error, target: "PLN", sources: ["EUR", "SEK"] }
+    );
     expect(refreshPlnRates).not.toHaveBeenCalled();
   });
 });

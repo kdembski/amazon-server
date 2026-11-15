@@ -1,7 +1,6 @@
 import CurrencyApi from "@everapi/freecurrencyapi-js";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
 import { CurrencyService } from "@/modules/currency/services/CurrencyService";
-import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { CronService } from "@/shared/system/CronService";
 
@@ -9,21 +8,18 @@ export class CurrencyExchangeRateCronService extends CronService {
   protected readonly cronTime = "00 00 20 * * *";
   private exchangeRateService;
   private currencyService;
-  private discordService;
   private currencyApi;
   private targetCode = "PLN";
 
   constructor(
     exchangeRateService = new CurrencyExchangeRateService(),
     currencyService = new CurrencyService(),
-    discordService = new DiscordLogService(),
     currencyApi = new CurrencyApi(process.env.CURRENCY_API_KEY),
     logger = SystemLogService.getInstance()
   ) {
     super(logger);
     this.exchangeRateService = exchangeRateService;
     this.currencyService = currencyService;
-    this.discordService = discordService;
     this.currencyApi = currencyApi;
   }
 
@@ -63,7 +59,6 @@ export class CurrencyExchangeRateCronService extends CronService {
         "Currency exchange rates update failed",
         { error: e, target: this.targetCode, sources: sourceCodes }
       );
-      this.discordService.send("Currency exchange rates error: " + e.message);
     }
   }
 
