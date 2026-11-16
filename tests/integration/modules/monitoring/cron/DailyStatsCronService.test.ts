@@ -43,7 +43,7 @@ describe("DailyStatsCronService (MySQL)", () => {
           name: "Collected asins",
           value: ["Total: **2**", "Last 24h: **1**"].join(DiscordFormatter.spacing(4)),
         },
-        { name: "Exchange rates", value: "EUR -> PLN: **4.3**" },
+        { name: "Exchange rates", value: "EUR -> PLN: **4.30**" },
       ],
       4,
       3,
