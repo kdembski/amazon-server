@@ -5,10 +5,6 @@ export class AnomalyEvaluator {
     return prices[0].country.active && prices[0].reportable;
   }
 
-  protected getMedian(prices: ListingPrice[]) {
-    return this.getWeightedMedian(prices, () => 1);
-  }
-
   // `weight` gets the rank in ascending order; a cumulative weight of exactly half averages the price with the next one.
   protected getWeightedMedian(
     prices: ListingPrice[],

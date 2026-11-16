@@ -15,5 +15,5 @@ export interface CountryOutlierReporter<T> {
 }
 
 export interface PriceDropReporter<T> {
-  report(listing: T, countryPrices: ListingPrice[][]): Promise<void>;
+  report(listing: T, countryPrices: ListingPrice[][], channelId: number): Promise<void>;
 }

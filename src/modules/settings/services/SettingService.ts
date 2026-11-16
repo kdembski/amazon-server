@@ -59,11 +59,12 @@ export class SettingService {
     return channels.find((channel) => channel.id === id)?.name ?? `#${id}`;
   }
 
-  // The channels of countryOutlier.ruleGroups in the order of their first rule
-  async getCountryOutlierChannels() {
-    const ruleGroups = await this.get("countryOutlier.ruleGroups");
-    const ids = _.uniq((ruleGroups ?? []).flat().map((rule) => rule.channelId));
-    return Promise.all(ids.map(async (id) => ({ id, name: await this.getChannelName(id) })));
+  getCountryOutlierChannels() {
+    return this.getRuleGroupChannels("countryOutlier.ruleGroups");
+  }
+
+  getPriceDropChannels() {
+    return this.getRuleGroupChannels("priceDrop.ruleGroups");
   }
 
   async getKeysReferencingChannel(id: number) {
@@ -71,7 +72,7 @@ export class SettingService {
     return settings
       .filter(({ key, value }) => {
         if (key.endsWith(".channelId")) return value === id;
-        if (key === "countryOutlier.ruleGroups" && value) {
+        if (key.endsWith(".ruleGroups") && value) {
           return (value as { channelId: number }[][]).some((group) => {
             return group.some((rule) => rule.channelId === id);
           });
@@ -107,6 +108,13 @@ export class SettingService {
 
   invalidate() {
     this.cache.refreshedAt = undefined;
+  }
+
+  // The channels of the rules in the order of their first rule
+  private async getRuleGroupChannels(key: "countryOutlier.ruleGroups" | "priceDrop.ruleGroups") {
+    const ruleGroups = await this.get(key);
+    const ids = _.uniq((ruleGroups ?? []).flat().map((rule) => rule.channelId));
+    return Promise.all(ids.map(async (id) => ({ id, name: await this.getChannelName(id) })));
   }
 
   private async getValues() {

@@ -71,6 +71,20 @@ describe("AmazonAdPriceRepository", () => {
     expect(mapper.toCountryGroups).toHaveBeenCalledWith(rows);
   });
 
+  it("getRecentByAd reads 10 prices per country by default", async () => {
+    const db = fakePrisma();
+    const mapper = { toCountryGroups: vi.fn().mockReturnValue([]) };
+    const repository = new AmazonAdPriceRepository(
+      db.prisma,
+      mapper as unknown as AmazonAdRecentPriceMapper
+    );
+    db.$queryRaw.mockResolvedValue([]);
+
+    await repository.getRecentByAd(9);
+
+    expect(db.$queryRaw.mock.calls[0][2]).toBe(10);
+  });
+
   it("create, update and delete delegate to prisma", async () => {
     const { repository, delegate } = setup();
     const data = { value: 1 } as Prisma.AmazonAdPriceCreateInput;

@@ -33,16 +33,16 @@ describe("SettingController", () => {
 
   it("set passes the key and the value of the body", async () => {
     const { controller, set } = setup();
-    set.mockResolvedValue({ key: "priceDrop.dropPercent", value: 40 });
+    set.mockResolvedValue({ key: "countryOutlier.dropSinceSentPercent", value: 40 });
     const { response, json } = fakeResponse();
 
     await controller.set(
-      fakeRequest({ params: { key: "priceDrop.dropPercent" }, body: { value: 40 } }),
+      fakeRequest({ params: { key: "countryOutlier.dropSinceSentPercent" }, body: { value: 40 } }),
       response
     );
 
-    expect(set).toHaveBeenCalledWith("priceDrop.dropPercent", 40);
-    expect(json).toHaveBeenCalledWith({ key: "priceDrop.dropPercent", value: 40 });
+    expect(set).toHaveBeenCalledWith("countryOutlier.dropSinceSentPercent", 40);
+    expect(json).toHaveBeenCalledWith({ key: "countryOutlier.dropSinceSentPercent", value: 40 });
   });
 
   it("set passes undefined without a body", async () => {
@@ -50,9 +50,9 @@ describe("SettingController", () => {
     set.mockRejectedValue(invalid());
     const { response, status } = fakeResponse();
 
-    await controller.set(fakeRequest({ params: { key: "priceDrop.dropPercent" } }), response);
+    await controller.set(fakeRequest({ params: { key: "countryOutlier.dropSinceSentPercent" } }), response);
 
-    expect(set).toHaveBeenCalledWith("priceDrop.dropPercent", undefined);
+    expect(set).toHaveBeenCalledWith("countryOutlier.dropSinceSentPercent", undefined);
     expect(status).toHaveBeenCalledWith(400);
   });
 });

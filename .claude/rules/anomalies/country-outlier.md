@@ -21,7 +21,7 @@ The same listing costs much less in one country than in the others once all pric
 
 1. The marketplace's price update stores the scraped prices and counts `ad_scraped` (flushed once a minute as a `BusinessLog` row with `data.count`), then runs the detectors
    asynchronously.
-2. It loads the 5 newest prices of each country of the listing, grouped per country, newest first.
+2. It loads the 10 newest prices of each country of the listing, grouped per country, newest first.
 3. Its `ListingPrice` mapper sets `scraped` for prices of countries in this scrape and `reportable` only for those the
    marketplace considers reportable (Amazon: `dispatchFrom === "Amazon"`).
 4. It calls `AnomalyManager` with its `CountryOutlierManager` and `PriceDropManager`; both get the same prices.
@@ -37,7 +37,8 @@ row a detector skips its work (no defaults in code). Channels are `DiscordChanne
 through `/discord-channels`. `SettingService` caches both for 60 s per process.
 
 - `countryOutlier.minPrices` (3): minimum number of countries in the scrape.
-- `countryOutlier.ruleGroups`: groups of rules `{ channelId, belowMedianPercent, minPln?, maxPln?, dropSinceSentPercent? }`.
+- `countryOutlier.ruleGroups`: groups of rules
+  `{ channelId, belowMedianPercent, minPln?, maxPln?, minPrices?, dropSinceSentPercent? }`.
 - `countryOutlier.dropSinceSentPercent` (10): `dropSinceSentPercent` of rules without one.
 
 Production rule groups (the values in parentheses are the production values too):
@@ -61,8 +62,9 @@ Production rule groups (the values in parentheses are the production values too)
 5. `CountryOutlierRuleMatcher.getMatches` returns nothing unless the cheapest country is `active` and `reportable`.
 6. Builds a `CountryOutlierRule` per rule setting and takes the first matching rule of each group, in list order.
 7. A rule matches when the cheapest is at most `median × (1 − belowMedianPercent / 100)`
-   (`CountryOutlierEvaluator.isOverPercentageDifference`) and `minPln ≤ cheapest < maxPln` (`isInRange`, a missing
-   bound is open).
+   (`CountryOutlierEvaluator.isOverPercentageDifference`), `minPln ≤ cheapest < maxPln` (`isInRange`, a missing
+   bound is open) and the scrape has at least `max(countryOutlier.minPrices, rule minPrices)` countries; otherwise
+   the next rule of the group is tried.
 8. Median: weighted median of the other PLN prices, ascending, weights `n`..`1` from the cheapest; the first price whose
    cumulative weight passes half, or the mean with the next one at exactly half.
 9. Merges matches by `channelId`; a channel in several groups keeps the lowest `dropSinceSentPercent`.
@@ -71,7 +73,7 @@ Production rule groups (the values in parentheses are the production values too)
 11. Otherwise a channel goes on only when the newest price is at least its `dropSinceSentPercent` below the reported one.
     No channel left: stops. Changes of other countries or since the previous scrape never pass.
 12. Per remaining channel, `CountryOutlierReporter.report` gets the listing, the sorted PLN prices, the `channelId` and
-    the cheapest price's change in percent against the previous price of its country (second newest of the 5 loaded;
+    the cheapest price's change in percent against the previous price of its country (second newest of the 10 loaded;
     none without one; shown next to the cheapest price on Discord).
 13. The reporter stores a `country_outlier_sent` event (`data.channel` = `String(channelId)`) and posts through
     `DiscordChannelService.send` (a missing channel logs an error).

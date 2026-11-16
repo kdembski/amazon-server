@@ -54,7 +54,7 @@ describe("/discord-channels", () => {
   });
 
   it.each([
-    [7, "priceDrop.channelId"],
+    [7, "priceDrop.ruleGroups"],
     [8, "reports.channelId"],
   ])("DELETE /:id answers 422 for channel %s used by %s", async (id, key) => {
     const res = await request(app).delete(`/discord-channels/${id}`).expect(422);

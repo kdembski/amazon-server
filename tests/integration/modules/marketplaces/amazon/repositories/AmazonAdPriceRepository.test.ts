@@ -63,6 +63,18 @@ describe("AmazonAdPriceRepository (MySQL)", () => {
     expect(groups.map((group) => group.map((p) => p.value.toNumber()))).toEqual([[1]]);
   });
 
+  it("getRecentByAd returns up to 10 prices per country by default", async () => {
+    const ad = await seedAd();
+    const { countryId } = await seedAmazonCountry();
+    for (let at = 1; at <= 11; at++) {
+      await seedPrice({ adId: ad.id, countryId, value: at, createdAt: minute(at) });
+    }
+
+    const groups = await repository.getRecentByAd(ad.id);
+
+    expect(groups[0].map((p) => p.value.toNumber())).toEqual([11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+  });
+
   it("stores Decimal(9,2) exactly and rounds extra fractional digits", async () => {
     const exact = await seedPrice({ value: "1234567.89" });
     const rounded = await seedPrice({ value: "10.005" });

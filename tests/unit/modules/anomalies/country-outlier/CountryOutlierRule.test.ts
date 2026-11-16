@@ -7,7 +7,7 @@ const prices = (...values: number[]) =>
 
 describe("CountryOutlierRule", () => {
   it("matches when the cheapest price is at least belowMedianPercent below the median", () => {
-    const rule = new CountryOutlierRule({ channelId: 1, belowMedianPercent: 50 }, 10);
+    const rule = new CountryOutlierRule({ channelId: 1, belowMedianPercent: 50 }, 10, 3);
 
     expect(rule.matches(prices(50, 100, 100))).toBe(true);
     expect(rule.matches(prices(51, 100, 100))).toBe(false);
@@ -16,7 +16,8 @@ describe("CountryOutlierRule", () => {
   it("also requires the cheapest price in the PLN range", () => {
     const rule = new CountryOutlierRule(
       { channelId: 5, belowMedianPercent: 70, minPln: 50, maxPln: 200 },
-      10
+      10,
+      3
     );
 
     expect(rule.matches(prices(50, 1000, 1000))).toBe(true);
@@ -25,12 +26,29 @@ describe("CountryOutlierRule", () => {
     expect(rule.matches(prices(150, 300, 300))).toBe(false);
   });
 
+  it("requires the rule's minPrices countries", () => {
+    const rule = new CountryOutlierRule({ channelId: 1, belowMedianPercent: 50, minPrices: 4 }, 10, 3);
+
+    expect(rule.matches(prices(50, 100, 100))).toBe(false);
+    expect(rule.matches(prices(50, 100, 100, 100))).toBe(true);
+  });
+
+  it("keeps the global minPrices as the floor", () => {
+    const lower = new CountryOutlierRule({ channelId: 1, belowMedianPercent: 50, minPrices: 2 }, 10, 3);
+    const without = new CountryOutlierRule({ channelId: 1, belowMedianPercent: 50 }, 10, 4);
+
+    expect(lower.matches(prices(50, 100))).toBe(false);
+    expect(lower.matches(prices(50, 100, 100))).toBe(true);
+    expect(without.matches(prices(50, 100, 100))).toBe(false);
+  });
+
   it("keeps the channel and its dropSinceSentPercent or the default one", () => {
     const own = new CountryOutlierRule(
       { channelId: 3, belowMedianPercent: 90, dropSinceSentPercent: 5 },
-      10
+      10,
+      3
     );
-    const fallback = new CountryOutlierRule({ channelId: 4, belowMedianPercent: 90 }, 10);
+    const fallback = new CountryOutlierRule({ channelId: 4, belowMedianPercent: 90 }, 10, 3);
 
     expect([own.channelId, own.dropSinceSentPercent]).toEqual([3, 5]);
     expect([fallback.channelId, fallback.dropSinceSentPercent]).toEqual([4, 10]);

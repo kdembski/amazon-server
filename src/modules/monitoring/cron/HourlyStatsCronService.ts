@@ -61,30 +61,27 @@ export class HourlyStatsCronService extends CronService {
   }
 
   private async getCounts({ from, to }: TimeRange): Promise<HourlyReportCounts> {
-    const [channels, minPrices, priceDropChannelId] = await Promise.all([
+    const [channels, priceDropChannels, minPrices] = await Promise.all([
       this.settingService.getCountryOutlierChannels(),
+      this.settingService.getPriceDropChannels(),
       this.settingService.get("countryOutlier.minPrices"),
-      this.settingService.get("priceDrop.channelId"),
     ]);
-    const getSent = (type: BusinessLogType, channel?: string) => {
-      return this.businessLogService.getCount(type, from, to, channel);
+    const getSentCounts = (type: BusinessLogType, list: { id: number; name: string }[]) => {
+      return Promise.all(
+        list.map(async ({ id, name }) => {
+          return { name, count: await this.businessLogService.getCount(type, from, to, String(id)) };
+        })
+      );
     };
-    const [scraped, comparable, priceDrops, channelCounts, priceDropName] = await Promise.all([
+    const [scraped, comparable, channelCounts, priceDropCounts] = await Promise.all([
       this.activityCountService.getCount("ad_scraped", from, to),
       minPrices === undefined
         ? undefined
         : this.activityCountService.getCountWithMinPrices("ad_scraped", minPrices, from, to),
-      getSent("price_drop_sent"),
-      Promise.all(channels.map(({ id }) => getSent("country_outlier_sent", String(id)))),
-      priceDropChannelId === undefined ? undefined : this.settingService.getChannelName(priceDropChannelId),
+      getSentCounts("country_outlier_sent", channels),
+      getSentCounts("price_drop_sent", priceDropChannels),
     ]);
 
-    return {
-      scraped,
-      comparable,
-      minPrices,
-      priceDrop: priceDropName === undefined ? undefined : { name: priceDropName, count: priceDrops },
-      channels: channels.map(({ name }, i) => ({ name, count: channelCounts[i] })),
-    };
+    return { scraped, comparable, minPrices, channels: channelCounts, priceDropChannels: priceDropCounts };
   }
 }
