@@ -119,11 +119,13 @@ export function fakeSettingService(
   const getChannelName = vi.fn(async (id: number) => {
     return channels.find((channel) => channel.id === id)?.name ?? `#${id}`;
   });
-  const getCountryOutlierChannels = vi.fn(async () => {
-    const groups = (await get("countryOutlier.ruleGroups")) as Settings["countryOutlier.ruleGroups"] | undefined;
+  const getRuleGroupChannels = async (key: "countryOutlier.ruleGroups" | "priceDrop.ruleGroups") => {
+    const groups = (await get(key)) as Settings[typeof key] | undefined;
     const ids = [...new Set((groups ?? []).flat().map((rule) => rule.channelId))];
     return Promise.all(ids.map(async (id) => ({ id, name: await getChannelName(id) })));
-  });
+  };
+  const getCountryOutlierChannels = vi.fn(() => getRuleGroupChannels("countryOutlier.ruleGroups"));
+  const getPriceDropChannels = vi.fn(() => getRuleGroupChannels("priceDrop.ruleGroups"));
   const getKeysReferencingChannel = vi.fn().mockResolvedValue([]);
   const service = {
     get,
@@ -133,6 +135,7 @@ export function fakeSettingService(
     invalidate,
     getChannelName,
     getCountryOutlierChannels,
+    getPriceDropChannels,
     getKeysReferencingChannel,
   } as unknown as SettingService;
   return {
@@ -144,6 +147,7 @@ export function fakeSettingService(
     invalidate,
     getChannelName,
     getCountryOutlierChannels,
+    getPriceDropChannels,
     getKeysReferencingChannel,
   };
 }

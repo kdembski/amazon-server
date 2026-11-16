@@ -30,7 +30,7 @@ describe("AmazonPriceDropReporter", () => {
       ],
     ];
 
-    await reporter.report(ad, countryPrices);
+    await reporter.report(ad, countryPrices, 7);
 
     expect(log.create).toHaveBeenCalledWith({
       type: "price_drop_sent",
@@ -38,13 +38,14 @@ describe("AmazonPriceDropReporter", () => {
       data: {
         asin: "B000TEST01",
         name: "Bosch drill",
+        channel: "7",
         prices: [
           { country: "de", value: "50", currency: "EUR" },
           { country: "uk", value: "40", currency: "GBP" },
         ],
       },
     });
-    expect(discord.send).toHaveBeenCalledWith(ad, countryPrices);
+    expect(discord.send).toHaveBeenCalledWith(ad, countryPrices, 7);
   });
 
   it("rejects when the embed cannot be sent", async () => {
@@ -52,7 +53,7 @@ describe("AmazonPriceDropReporter", () => {
     discord.send.mockRejectedValue(new Error("no prices"));
 
     await expect(
-      reporter.report(buildAd(), [[buildListingPrice()]])
+      reporter.report(buildAd(), [[buildListingPrice()]], 7)
     ).rejects.toThrow("no prices");
   });
 });

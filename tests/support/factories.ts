@@ -188,7 +188,6 @@ export const TEST_SETTINGS: Settings = {
       { channelId: 6, belowMedianPercent: 70, minPln: 200 },
     ],
   ],
-  "priceDrop.dropPercent": 50,
-  "priceDrop.channelId": 7,
+  "priceDrop.ruleGroups": [[{ channelId: 7, dropPercent: 50 }]],
   "reports.channelId": 8,
 };

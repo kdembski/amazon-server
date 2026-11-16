@@ -4,24 +4,17 @@ import { format } from "date-fns";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { DiscordChannelService } from "@/modules/settings/services/DiscordChannelService";
-import { SettingService } from "@/modules/settings/services/SettingService";
 
 export class AmazonPriceDropDiscordService {
   private service;
-  private settingService;
   private embedBuilder;
 
-  constructor(
-    service = new DiscordChannelService(),
-    settingService = new SettingService(),
-    embedBuilder = new AmazonAdEmbedBuilder()
-  ) {
+  constructor(service = new DiscordChannelService(), embedBuilder = new AmazonAdEmbedBuilder()) {
     this.service = service;
-    this.settingService = settingService;
     this.embedBuilder = embedBuilder;
   }
 
-  async send(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][]) {
+  async send(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][], channelId: number) {
     const fields = countryPrices.map((countryHistory) => {
       const prices = this.getPriceChanges(countryHistory);
       const { name, currencyCode } = prices[0].country;
@@ -46,8 +39,6 @@ export class AmazonPriceDropDiscordService {
     });
 
     const embed = this.embedBuilder.build(ad, fields);
-
-    const channelId = await this.settingService.get("priceDrop.channelId");
     await this.service.send(channelId, { embeds: [embed] }, { asin: ad.asin });
   }
 

@@ -6,8 +6,7 @@ export interface HourlyReportCounts {
   comparable?: number;
   minPrices?: number;
   channels: { name: string; count: number }[];
-  // without the priceDrop.channelId setting
-  priceDrop?: { name: string; count: number };
+  priceDropChannels: { name: string; count: number }[];
 }
 
 export interface TimePoint {
@@ -29,6 +28,8 @@ export interface ActivityStatsDto {
   comparable?: { minPrices: number; total: number; previousTotal: number; points: TimePoint[] };
   // channels of the countryOutlier.ruleGroups setting; id matches the channel of a series
   countryOutlierChannels: { id: string; name: string }[];
+  // channels of the priceDrop.ruleGroups setting; id matches the channel of a series
+  priceDropChannels: { id: string; name: string }[];
 }
 
 export type LogLevelCounts = { error: number; warn: number };

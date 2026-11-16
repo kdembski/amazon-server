@@ -1,6 +1,7 @@
 import { HttpError } from "@/shared/http/HttpError";
 import {
   CountryOutlierRuleSetting,
+  PriceDropRuleSetting,
   SettingKey,
   Settings,
 } from "@/modules/settings/interfaces/Settings";
@@ -9,18 +10,20 @@ export const SETTING_KEYS: SettingKey[] = [
   "countryOutlier.minPrices",
   "countryOutlier.dropSinceSentPercent",
   "countryOutlier.ruleGroups",
-  "priceDrop.dropPercent",
-  "priceDrop.channelId",
+  "priceDrop.ruleGroups",
   "reports.channelId",
 ];
 
-const RULE_FIELDS = [
+const COUNTRY_OUTLIER_RULE_FIELDS = [
   "channelId",
   "belowMedianPercent",
   "minPln",
   "maxPln",
   "dropSinceSentPercent",
+  "minPrices",
 ];
+
+const PRICE_DROP_RULE_FIELDS = ["channelId", "dropPercent"];
 
 export class SettingValidator {
   validateKey(key: string): SettingKey {
@@ -38,35 +41,55 @@ export class SettingValidator {
         return this.validateInteger(path, value, 2) as Settings[K];
       case "countryOutlier.dropSinceSentPercent":
         return this.validatePercent(path, value, true) as Settings[K];
-      case "priceDrop.dropPercent":
-        return this.validatePercent(path, value, false) as Settings[K];
-      case "priceDrop.channelId":
       case "reports.channelId":
         return this.validateChannel(path, value, channelIds) as Settings[K];
+      case "priceDrop.ruleGroups":
+        return this.validateRuleGroups(path, value, (rulePath, rule) => {
+          return this.validatePriceDropRule(rulePath, rule, channelIds);
+        }) as Settings[K];
       default:
-        return this.validateRuleGroups(path, value, channelIds) as Settings[K];
+        return this.validateRuleGroups(path, value, (rulePath, rule) => {
+          return this.validateCountryOutlierRule(rulePath, rule, channelIds);
+        }) as Settings[K];
     }
   }
 
-  private validateRuleGroups(path: string, value: unknown, channelIds: number[]) {
+  private validateRuleGroups<T>(
+    path: string,
+    value: unknown,
+    validateRule: (path: string, rule: unknown) => T
+  ) {
     if (!Array.isArray(value)) throw new HttpError(400, `${path} must be an array of rule groups`);
 
     return value.map((group, i) => {
       if (!Array.isArray(group) || !group.length) {
         throw new HttpError(400, `${path}[${i}] must be a non-empty array of rules`);
       }
-      return group.map((rule, j) => this.validateRule(`${path}[${i}][${j}]`, rule, channelIds));
+      return group.map((rule, j) => validateRule(`${path}[${i}][${j}]`, rule));
     });
   }
 
-  private validateRule(path: string, rule: unknown, channelIds: number[]) {
+  private getRuleFields(path: string, rule: unknown, allowed: string[]) {
     if (typeof rule !== "object" || rule === null || Array.isArray(rule)) {
       throw new HttpError(400, `${path} must be an object`);
     }
 
     const fields = rule as Record<string, unknown>;
-    const unknown = Object.keys(fields).find((field) => !RULE_FIELDS.includes(field));
+    const unknown = Object.keys(fields).find((field) => !allowed.includes(field));
     if (unknown) throw new HttpError(400, `${path} has an unknown field "${unknown}"`);
+    return fields;
+  }
+
+  private validatePriceDropRule(path: string, rule: unknown, channelIds: number[]): PriceDropRuleSetting {
+    const fields = this.getRuleFields(path, rule, PRICE_DROP_RULE_FIELDS);
+    return {
+      channelId: this.validateChannel(`${path}.channelId`, fields.channelId, channelIds),
+      dropPercent: this.validatePercent(`${path}.dropPercent`, fields.dropPercent, false),
+    };
+  }
+
+  private validateCountryOutlierRule(path: string, rule: unknown, channelIds: number[]) {
+    const fields = this.getRuleFields(path, rule, COUNTRY_OUTLIER_RULE_FIELDS);
 
     const result: CountryOutlierRuleSetting = {
       channelId: this.validateChannel(`${path}.channelId`, fields.channelId, channelIds),
@@ -92,6 +115,9 @@ export class SettingValidator {
         fields.dropSinceSentPercent,
         true
       );
+    }
+    if (fields.minPrices !== undefined) {
+      result.minPrices = this.validateInteger(`${path}.minPrices`, fields.minPrices, 2);
     }
     return result;
   }

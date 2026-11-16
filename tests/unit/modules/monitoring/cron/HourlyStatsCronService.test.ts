@@ -100,13 +100,13 @@ describe("HourlyStatsCronService", () => {
     const to = new Date("2026-06-01T10:00:00Z");
     expect(counter.getCount).toHaveBeenCalledWith("ad_scraped", from, to);
     expect(counter.getCountWithMinPrices).toHaveBeenCalledWith("ad_scraped", 4, from, to);
-    expect(log.getCount).toHaveBeenCalledWith("price_drop_sent", from, to, undefined);
+    expect(log.getCount).toHaveBeenCalledWith("price_drop_sent", from, to, "7");
     expect(sendHourly).toHaveBeenCalledWith(
       {
         scraped: 5,
         comparable: 80,
         minPrices: 4,
-        priceDrop: { name: "hist", count: 70 },
+        priceDropChannels: [{ name: "hist", count: 70 }],
         channels: [
           { name: "outlier-90", count: 20 },
           { name: "outlier-50", count: 10 },
@@ -145,7 +145,7 @@ describe("HourlyStatsCronService", () => {
       fakeSettingService({
         "countryOutlier.ruleGroups": undefined,
         "countryOutlier.minPrices": undefined,
-        "priceDrop.channelId": undefined,
+        "priceDrop.ruleGroups": undefined,
       }).service
     );
 
@@ -157,7 +157,7 @@ describe("HourlyStatsCronService", () => {
         scraped: 5,
         comparable: undefined,
         minPrices: undefined,
-        priceDrop: undefined,
+        priceDropChannels: [],
         channels: [],
       },
       []
@@ -172,12 +172,12 @@ describe("HourlyStatsCronService", () => {
       fakeScraperMetricService().service,
       undefined,
       fakeActivityCountService().service,
-      fakeSettingService({ "priceDrop.channelId": 12 }).service
+      fakeSettingService({ "priceDrop.ruleGroups": [[{ channelId: 12, dropPercent: 50 }]] }).service
     );
 
     await service.run();
 
-    expect(sendHourly.mock.calls[0][0].priceDrop).toEqual({ name: "#12", count: 0 });
+    expect(sendHourly.mock.calls[0][0].priceDropChannels).toEqual([{ name: "#12", count: 0 }]);
   });
 
   it("uses the same summaries window when the clock is not exactly on the hour", async () => {
@@ -215,7 +215,7 @@ describe("HourlyStatsCronService", () => {
       scraped: 4,
       comparable: 4,
       minPrices: 4,
-      priceDrop: { name: "hist", count: 4 },
+      priceDropChannels: [{ name: "hist", count: 4 }],
       channels: [
         { name: "outlier-90", count: 4 },
         { name: "outlier-50", count: 4 },

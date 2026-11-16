@@ -15,7 +15,7 @@ export class StatusReportFormatter {
 
     fields.push({
       name: "Channels",
-      value: [...counts.channels, ...(counts.priceDrop ? [counts.priceDrop] : [])]
+      value: [...counts.channels, ...counts.priceDropChannels]
         .map(({ name, count }) => `${name}: **${count}**`)
         .join(DiscordFormatter.spacing(4)),
     });

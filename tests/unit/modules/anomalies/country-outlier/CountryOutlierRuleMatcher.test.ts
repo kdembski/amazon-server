@@ -61,7 +61,25 @@ describe("CountryOutlierRuleMatcher", () => {
     expect(rules.map((rule) => rule.dropSinceSentPercent)).toEqual([5, 15]);
   });
 
-  it.each(["countryOutlier.ruleGroups", "countryOutlier.dropSinceSentPercent"] as const)(
+  it("tries the next rule of a group when a rule needs more countries", async () => {
+    const settings: Partial<Settings> = {
+      "countryOutlier.ruleGroups": [
+        [
+          { channelId: 8, belowMedianPercent: 50, minPrices: 4 },
+          { channelId: 9, belowMedianPercent: 50 },
+        ],
+      ],
+    };
+
+    expect(await matchedChannels([10, 100, 120], settings)).toEqual([9]);
+    expect(await matchedChannels([10, 100, 120, 130], settings)).toEqual([8]);
+  });
+
+  it.each([
+    "countryOutlier.ruleGroups",
+    "countryOutlier.dropSinceSentPercent",
+    "countryOutlier.minPrices",
+  ] as const)(
     "matches nothing without the %s setting",
     async (key) => {
       const rules = await matcher({ [key]: undefined }).getMatches(prices(9, 100, 120));

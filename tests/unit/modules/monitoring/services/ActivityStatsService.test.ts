@@ -23,7 +23,11 @@ const setup = (current: unknown[], previous: unknown[], withSettings = true) => 
   counter.getCountWithMinPrices.mockResolvedValue(30);
   const values = withSettings
     ? { "countryOutlier.minPrices": 4 }
-    : { "countryOutlier.minPrices": undefined, "countryOutlier.ruleGroups": undefined };
+    : {
+        "countryOutlier.minPrices": undefined,
+        "countryOutlier.ruleGroups": undefined,
+        "priceDrop.ruleGroups": undefined,
+      };
   const settings = fakeSettingService(values, [
     { id: 1, name: "outliers-de", token: "t", createdAt: new Date(0), updatedAt: new Date(0) },
   ]);
@@ -39,7 +43,7 @@ describe("ActivityStatsService", () => {
   it("builds hourly series of the range and totals of both periods", async () => {
     const { service, repository } = setup(
       [
-        { type: "price_drop_sent", channel: null, hour: 11 * HOUR, value: 1 },
+        { type: "price_drop_sent", channel: "7", hour: 11 * HOUR, value: 1 },
         { type: "country_outlier_sent", channel: "3", hour: 10 * HOUR, value: 2 },
         { type: "ad_scraped", channel: null, hour: 11 * HOUR, value: 7 },
         { type: "country_outlier_sent", channel: "1", hour: 11 * HOUR, value: 1 },
@@ -76,7 +80,7 @@ describe("ActivityStatsService", () => {
         },
         {
           type: "price_drop_sent",
-          channel: null,
+          channel: "7",
           points: [{ t: "1970-01-01T11:00:00.000Z", value: 1 }],
         },
       ],
@@ -91,6 +95,7 @@ describe("ActivityStatsService", () => {
         { id: "5", name: "#5" },
         { id: "6", name: "#6" },
       ],
+      priceDropChannels: [{ id: "7", name: "#7" }],
     });
   });
 
@@ -112,6 +117,7 @@ describe("ActivityStatsService", () => {
       previousTotals: { ad_scraped: 0, country_outlier_sent: 0, price_drop_sent: 0, ad_created: 0, ad_deleted: 0 },
       comparable: undefined,
       countryOutlierChannels: [],
+      priceDropChannels: [],
     });
     expect(counter.getCountWithMinPrices).not.toHaveBeenCalled();
     expect(counter.getHourlyCountWithMinPrices).not.toHaveBeenCalled();

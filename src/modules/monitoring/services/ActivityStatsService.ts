@@ -26,12 +26,16 @@ export class ActivityStatsService {
 
   async get(range: TimeRange): Promise<ActivityStatsDto> {
     const previous = previousRange(range);
-    const [current, before, comparable, countryOutlierChannels] = await Promise.all([
+    const [current, before, comparable, countryOutlierChannels, priceDropChannels] = await Promise.all([
       this.repository.getSumByTypeChannelAndHour(range.from, range.to),
       this.repository.getSumByTypeChannelAndHour(previous.from, previous.to),
       this.getComparable(range, previous),
       this.settingService.getCountryOutlierChannels(),
+      this.settingService.getPriceDropChannels(),
     ]);
+    const toDto = (channels: { id: number; name: string }[]) => {
+      return channels.map(({ id, name }) => ({ id: String(id), name }));
+    };
 
     const groups = _.groupBy(current, (row) => `${row.type}\u0000${row.channel ?? ""}`);
     const series = _.sortBy(Object.values(groups), [
@@ -48,7 +52,8 @@ export class ActivityStatsService {
       totals: this.totals(current),
       previousTotals: this.totals(before),
       comparable,
-      countryOutlierChannels: countryOutlierChannels.map(({ id, name }) => ({ id: String(id), name })),
+      countryOutlierChannels: toDto(countryOutlierChannels),
+      priceDropChannels: toDto(priceDropChannels),
     };
   }
 

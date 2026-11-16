@@ -16,7 +16,7 @@ const COUNTS = {
   comparable: 0,
   minPrices: 3,
   channels: [],
-  priceDrop: { name: "hist", count: 0 },
+  priceDropChannels: [{ name: "hist", count: 0 }],
 };
 
 const summary = (
@@ -85,7 +85,7 @@ describe("DiscordLogService.sendHourly", () => {
           { name: "50%", count: 1 },
           { name: "90%", count: 3 },
         ],
-        priceDrop: { name: "price-drop", count: 7 },
+        priceDropChannels: [{ name: "price-drop", count: 7 }],
       },
       []
     );
@@ -158,7 +158,7 @@ describe("DiscordLogService without settings", () => {
     const { service, lastEmbed } = setup();
 
     await service.sendHourly(
-      { scraped: 5, channels: [{ name: "50%", count: 1 }] },
+      { scraped: 5, channels: [{ name: "50%", count: 1 }], priceDropChannels: [] },
       []
     );
     await service.sendDaily([], 9);
@@ -170,7 +170,7 @@ describe("DiscordLogService without settings", () => {
   it("renders the hourly embed without a price drop line", async () => {
     const { service, lastEmbed } = setup();
 
-    await service.sendHourly({ scraped: 5, channels: [{ name: "50%", count: 1 }] }, []);
+    await service.sendHourly({ scraped: 5, channels: [{ name: "50%", count: 1 }], priceDropChannels: [] }, []);
 
     expect(lastEmbed().description).toBe("Scraped: **5**");
     expect(lastEmbed().fields[0].value).toBe("50%: **1**");

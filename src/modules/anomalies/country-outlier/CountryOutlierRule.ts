@@ -7,22 +7,26 @@ export class CountryOutlierRule implements CountryOutlierRuleI {
   readonly channelId;
   readonly dropSinceSentPercent;
   private setting;
+  private minPrices;
   private evaluator;
 
   constructor(
     setting: CountryOutlierRuleSetting,
     defaultDropSinceSentPercent: number,
+    globalMinPrices: number,
     evaluator = new CountryOutlierEvaluator()
   ) {
     this.channelId = setting.channelId;
     this.dropSinceSentPercent = setting.dropSinceSentPercent ?? defaultDropSinceSentPercent;
     this.setting = setting;
+    this.minPrices = Math.max(globalMinPrices, setting.minPrices ?? 0);
     this.evaluator = evaluator;
   }
 
   matches(prices: ListingPrice[]) {
     const { belowMedianPercent, minPln, maxPln } = this.setting;
     return (
+      prices.length >= this.minPrices &&
       this.evaluator.isOverPercentageDifference(prices, belowMedianPercent) &&
       this.evaluator.isInRange(prices, minPln, maxPln)
     );

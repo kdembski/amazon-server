@@ -8,7 +8,7 @@ const formatter = new StatusReportFormatter();
 describe("StatusReportFormatter", () => {
   it("getHourlyEmbed lists the channels, the server and the scraped counts", () => {
     const embed = formatter.getHourlyEmbed(
-      { scraped: 1234, comparable: 56, minPrices: 3, channels: [{ name: "a", count: 2 }] },
+      { scraped: 1234, comparable: 56, minPrices: 3, channels: [{ name: "a", count: 2 }], priceDropChannels: [] },
       [],
       { cpu: 12.34, ram: 56 }
     );

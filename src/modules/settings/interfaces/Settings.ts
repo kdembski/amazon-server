@@ -3,15 +3,20 @@ export interface CountryOutlierRuleSetting {
   belowMedianPercent: number;
   minPln?: number;
   maxPln?: number;
+  minPrices?: number;
   dropSinceSentPercent?: number;
+}
+
+export interface PriceDropRuleSetting {
+  channelId: number;
+  dropPercent: number;
 }
 
 export interface Settings {
   "countryOutlier.minPrices": number;
   "countryOutlier.dropSinceSentPercent": number;
   "countryOutlier.ruleGroups": CountryOutlierRuleSetting[][];
-  "priceDrop.dropPercent": number;
-  "priceDrop.channelId": number;
+  "priceDrop.ruleGroups": PriceDropRuleSetting[][];
   "reports.channelId": number;
 }
 

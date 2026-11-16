@@ -19,13 +19,13 @@ describe("SettingRepository", () => {
 
   it("upserts by key", async () => {
     const { repository, delegate } = setup();
-    const create = { key: "priceDrop.dropPercent", value: 40 } as Prisma.SettingCreateInput;
+    const create = { key: "countryOutlier.dropSinceSentPercent", value: 40 } as Prisma.SettingCreateInput;
     const update = { value: 40 } as Prisma.SettingUpdateInput;
 
-    await repository.upsert("priceDrop.dropPercent", create, update);
+    await repository.upsert("countryOutlier.dropSinceSentPercent", create, update);
 
     expect(delegate.upsert).toHaveBeenCalledWith({
-      where: { key: "priceDrop.dropPercent" },
+      where: { key: "countryOutlier.dropSinceSentPercent" },
       create,
       update,
     });

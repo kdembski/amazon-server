@@ -32,7 +32,9 @@ describe("HourlyStatsCronService (MySQL)", () => {
     await countryOutlier("6", minutesAgo(5));
     await countryOutlier("6", minutesAgo(6));
     await countryOutlier("2", minutesAgo(90));
-    await seedBusinessLog({ type: "price_drop_sent", createdAt: minutesAgo(10) });
+    await seedBusinessLog({ type: "price_drop_sent", data: { channel: "7" }, createdAt: minutesAgo(10) });
+    // Before price drop channels
+    await seedBusinessLog({ type: "price_drop_sent", data: {}, createdAt: minutesAgo(15) });
 
     await service.run();
 
@@ -42,7 +44,7 @@ describe("HourlyStatsCronService (MySQL)", () => {
         scraped: 6,
         comparable: 2,
         minPrices: 3,
-        priceDrop: { name: "channel-7", count: 1 },
+        priceDropChannels: [{ name: "channel-7", count: 1 }],
         channels: [3, 2, 1, 4, 5, 6].map((id) => ({
           name: `channel-${id}`,
           count: { 1: 1, 6: 2 }[id] ?? 0,

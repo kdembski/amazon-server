@@ -2,13 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { format } from "date-fns";
 import { AmazonPriceDropDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPriceDropDiscordService";
 import { buildAd, buildListingPrice } from "../../../../../support/factories";
-import { fakeDiscordChannelService, fakeSettingService } from "../../../../../support/fakes";
+import { fakeDiscordChannelService } from "../../../../../support/fakes";
 
-const build = (channel = fakeDiscordChannelService(), channelId = 7) =>
-  new AmazonPriceDropDiscordService(
-    channel.service,
-    fakeSettingService({ "priceDrop.channelId": channelId }).service
-  );
+const build = (channel = fakeDiscordChannelService()) => new AmazonPriceDropDiscordService(channel.service);
 
 describe("AmazonPriceDropDiscordService", () => {
   it("renders price history oldest-first with a link on the newest price", async () => {
@@ -37,7 +33,7 @@ describe("AmazonPriceDropDiscordService", () => {
       createdAt: new Date("2026-01-01T09:30:00"),
     });
 
-    await service.send(ad, [[newest, older]]);
+    await service.send(ad, [[newest, older]], 7);
 
     const newestDate = format(newest.createdAt, "d MMM HH:mm");
     const olderDate = format(older.createdAt, "d MMM HH:mm");
@@ -63,10 +59,10 @@ describe("AmazonPriceDropDiscordService", () => {
     }, { asin: "B0X" });
   });
 
-  it("sends to the price drop channel of the settings", async () => {
+  it("sends to the given channel", async () => {
     const discord = fakeDiscordChannelService();
 
-    await build(discord, 9).send(buildAd(), [[buildListingPrice()]]);
+    await build(discord).send(buildAd(), [[buildListingPrice()]], 9);
 
     expect(discord.send.mock.calls[0][0]).toBe(9);
   });
@@ -75,9 +71,7 @@ describe("AmazonPriceDropDiscordService", () => {
     vi.stubEnv("NODE_ENV", "development");
     const discord = fakeDiscordChannelService();
 
-    await build(discord).send(buildAd(), [
-      [buildListingPrice()],
-    ]);
+    await build(discord).send(buildAd(), [[buildListingPrice()]], 7);
 
     expect(discord.send.mock.calls[0][1].embeds[0].color).toBe(0xe50000);
   });
@@ -113,7 +107,7 @@ describe("AmazonPriceDropDiscordService", () => {
       })
     );
 
-    await service.send(buildAd({ asin: "B0X" }), [history]);
+    await service.send(buildAd({ asin: "B0X" }), [history], 7);
 
     const date = (hour: number) => format(at(hour), "d MMM HH:mm");
     expect(discord.send.mock.calls[0][1].embeds[0].fields[0].value).toBe(

@@ -19,15 +19,18 @@ export class CountryOutlierRuleMatcher {
   async getMatches(prices: ListingPrice[]) {
     if (!this.evaluator.isReportable(prices)) return [];
 
-    const [groups, dropSinceSentPercent] = await Promise.all([
+    const [groups, dropSinceSentPercent, minPrices] = await Promise.all([
       this.settingService.get("countryOutlier.ruleGroups"),
       this.settingService.get("countryOutlier.dropSinceSentPercent"),
+      this.settingService.get("countryOutlier.minPrices"),
     ]);
-    if (!groups || dropSinceSentPercent === undefined) return [];
+    if (!groups || dropSinceSentPercent === undefined || minPrices === undefined) return [];
 
     return groups.flatMap((group) => {
       const rule = group
-        .map((setting) => new CountryOutlierRule(setting, dropSinceSentPercent, this.evaluator))
+        .map((setting) => {
+          return new CountryOutlierRule(setting, dropSinceSentPercent, minPrices, this.evaluator);
+        })
         .find((rule) => rule.matches(prices));
       return rule ? [rule] : [];
     });

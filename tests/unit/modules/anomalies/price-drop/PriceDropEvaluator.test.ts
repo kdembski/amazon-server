@@ -10,24 +10,23 @@ const history = (...values: number[]) =>
   values.map((value) => buildListingPrice({ value }));
 
 describe("isOverPercentageDifference", () => {
-  it("is true when the newest price is at most 50% of the previous and of the median of the older ones", () => {
-    // Median of 100 and 80 is 90.
-    expect(evaluator.isOverPercentageDifference(history(45, 100, 80), 50)).toBe(true);
+  it("is true when the newest price is at most 50% of the lowest older one", () => {
+    expect(evaluator.isOverPercentageDifference(history(40, 100, 80), 50)).toBe(true);
     expect(evaluator.isOverPercentageDifference(history(50, 100), 50)).toBe(true);
   });
 
   it("is false when the drop is smaller than 50%", () => {
     expect(evaluator.isOverPercentageDifference(history(51, 100), 50)).toBe(false);
-    expect(evaluator.isOverPercentageDifference(history(46, 100, 80), 50)).toBe(false);
+    expect(evaluator.isOverPercentageDifference(history(41, 100, 80), 50)).toBe(false);
   });
 
-  it("is not blocked by a single lower older price", () => {
-    expect(evaluator.isOverPercentageDifference(history(40, 100, 100, 30, 100), 50)).toBe(true);
+  it("is false when a temporary spike is followed by a return to the earlier price", () => {
+    expect(evaluator.isOverPercentageDifference(history(44.24, 111, 47.12), 50)).toBe(false);
+    expect(evaluator.isOverPercentageDifference(history(23, 111, 47.12), 50)).toBe(true);
   });
 
-  it("is false when the price had already been low for most of the window", () => {
-    expect(evaluator.isOverPercentageDifference(history(40, 100, 30, 30), 50)).toBe(false);
-    expect(evaluator.isOverPercentageDifference(history(40, 100, 40), 50)).toBe(false);
+  it("is blocked by any lower older price", () => {
+    expect(evaluator.isOverPercentageDifference(history(40, 100, 100, 30, 100), 50)).toBe(false);
     expect(evaluator.isOverPercentageDifference(history(40, 40, 100, 100), 50)).toBe(false);
   });
 

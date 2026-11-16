@@ -18,7 +18,7 @@ export class ExchangeRateDailyReportSection implements DailyReportSection {
         .filter((rate) => rate.source.code !== "PLN")
         .map(
           (rate) =>
-            `${rate.source.code} -> ${rate.target.code}: **${rate.value}**`
+            `${rate.source.code} -> ${rate.target.code}: **${rate.value.toFixed(2)}**`
         )
         .join(DiscordFormatter.spacing(4)),
     };

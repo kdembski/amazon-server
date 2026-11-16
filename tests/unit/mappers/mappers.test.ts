@@ -57,8 +57,8 @@ describe("create mappers", () => {
     {
       name: "SettingUpsertMapper",
       map: (dto: any) => new SettingUpsertMapper().toCreateInput(dto.key, dto.value),
-      dto: { key: "priceDrop.dropPercent", value: 40 },
-      expected: { key: "priceDrop.dropPercent", value: 40, createdAt: NOW, updatedAt: NOW },
+      dto: { key: "countryOutlier.dropSinceSentPercent", value: 40 },
+      expected: { key: "countryOutlier.dropSinceSentPercent", value: 40, createdAt: NOW, updatedAt: NOW },
     },
     {
       name: "BusinessLogCreateMapper",

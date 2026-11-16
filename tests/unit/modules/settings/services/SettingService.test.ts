@@ -44,9 +44,9 @@ afterEach(() => {
 
 describe("SettingService", () => {
   it("get returns the stored value", async () => {
-    const { service, logger } = setup([{ key: "priceDrop.dropPercent", value: 40 }]);
+    const { service, logger } = setup([{ key: "countryOutlier.dropSinceSentPercent", value: 40 }]);
 
-    expect(await service.get("priceDrop.dropPercent")).toBe(40);
+    expect(await service.get("countryOutlier.dropSinceSentPercent")).toBe(40);
     expect(logger.error).not.toHaveBeenCalled();
   });
 
@@ -55,7 +55,7 @@ describe("SettingService", () => {
 
     expect(await service.get("countryOutlier.minPrices")).toBeUndefined();
     await service.get("countryOutlier.minPrices");
-    await service.get("priceDrop.dropPercent");
+    await service.get("countryOutlier.dropSinceSentPercent");
     vi.advanceTimersByTime(60_000);
     await service.get("countryOutlier.minPrices");
 
@@ -67,8 +67,8 @@ describe("SettingService", () => {
       ],
       [
         "SettingService",
-        "Setting priceDrop.dropPercent is missing, its work is skipped",
-        { key: "priceDrop.dropPercent" },
+        "Setting countryOutlier.dropSinceSentPercent is missing, its work is skipped",
+        { key: "countryOutlier.dropSinceSentPercent" },
       ],
       [
         "SettingService",
@@ -114,7 +114,7 @@ describe("SettingService", () => {
     repository.getAll.mockRejectedValue(error);
 
     expect(await service.getChannels()).toEqual([]);
-    expect(await service.getAll()).toContainEqual({ key: "priceDrop.channelId", value: null });
+    expect(await service.getAll()).toContainEqual({ key: "reports.channelId", value: null });
     vi.advanceTimersByTime(60_000);
     await service.getChannels();
 
@@ -125,18 +125,18 @@ describe("SettingService", () => {
   });
 
   it("keeps the last values when a refresh fails and warns again after a success", async () => {
-    const { service, repository, logger } = setup([{ key: "priceDrop.dropPercent", value: 40 }]);
-    await service.get("priceDrop.dropPercent");
+    const { service, repository, logger } = setup([{ key: "countryOutlier.dropSinceSentPercent", value: 40 }]);
+    await service.get("countryOutlier.dropSinceSentPercent");
 
     repository.getAll.mockRejectedValueOnce(new Error("db down"));
     vi.advanceTimersByTime(60_000);
-    expect(await service.get("priceDrop.dropPercent")).toBe(40);
+    expect(await service.get("countryOutlier.dropSinceSentPercent")).toBe(40);
 
     vi.advanceTimersByTime(60_000);
-    await service.get("priceDrop.dropPercent");
+    await service.get("countryOutlier.dropSinceSentPercent");
     repository.getAll.mockRejectedValueOnce(new Error("db down"));
     vi.advanceTimersByTime(60_000);
-    await service.get("priceDrop.dropPercent");
+    await service.get("countryOutlier.dropSinceSentPercent");
 
     expect(logger.warn).toHaveBeenCalledTimes(2);
   });
@@ -144,28 +144,28 @@ describe("SettingService", () => {
   it("set validates against the current channels, stores the value and logs the change", async () => {
     const { service, repository, logger } = setup([], [channel(1), channel(5)]);
     repository.getAll
-      .mockResolvedValueOnce([{ key: "priceDrop.channelId", value: 1 }])
-      .mockResolvedValue([{ key: "priceDrop.channelId", value: 5 }]);
+      .mockResolvedValueOnce([{ key: "reports.channelId", value: 1 }])
+      .mockResolvedValue([{ key: "reports.channelId", value: 5 }]);
 
-    const result = await service.set("priceDrop.channelId", 5);
+    const result = await service.set("reports.channelId", 5);
 
     expect(repository.upsert).toHaveBeenCalledWith(
-      "priceDrop.channelId",
-      { key: "priceDrop.channelId", value: 5, createdAt: FIXED_DATE, updatedAt: FIXED_DATE },
+      "reports.channelId",
+      { key: "reports.channelId", value: 5, createdAt: FIXED_DATE, updatedAt: FIXED_DATE },
       { value: 5, updatedAt: FIXED_DATE }
     );
-    expect(logger.info).toHaveBeenCalledWith("SettingService", "Setting priceDrop.channelId changed", {
-      key: "priceDrop.channelId",
+    expect(logger.info).toHaveBeenCalledWith("SettingService", "Setting reports.channelId changed", {
+      key: "reports.channelId",
       old: 1,
       new: 5,
     });
-    expect(result).toEqual({ key: "priceDrop.channelId", value: 5 });
+    expect(result).toEqual({ key: "reports.channelId", value: 5 });
   });
 
   it("set logs null as the old value of a new row", async () => {
     const { service, logger } = setup();
 
-    await service.set("priceDrop.dropPercent", 40);
+    await service.set("countryOutlier.dropSinceSentPercent", 40);
 
     expect(logger.info.mock.calls[0][2]).toMatchObject({ old: null, new: 40 });
   });
@@ -174,7 +174,7 @@ describe("SettingService", () => {
     const { service, repository } = setup();
 
     await expect(service.set("nope", 1)).rejects.toMatchObject({ status: 400 });
-    await expect(service.set("priceDrop.channelId", 9)).rejects.toMatchObject({ status: 400 });
+    await expect(service.set("reports.channelId", 9)).rejects.toMatchObject({ status: 400 });
     expect(repository.upsert).not.toHaveBeenCalled();
   });
 
@@ -194,7 +194,7 @@ describe("SettingService channels", () => {
 
   it.each([
     [3, ["countryOutlier.ruleGroups"]],
-    [7, ["priceDrop.channelId"]],
+    [7, ["priceDrop.ruleGroups"]],
     [8, ["reports.channelId"]],
     [99, []],
   ])("getKeysReferencingChannel lists the settings using channel %s", async (id, keys) => {
@@ -231,5 +231,15 @@ describe("SettingService channels", () => {
     const { service } = setup();
 
     expect(await service.getCountryOutlierChannels()).toEqual([]);
+  });
+
+  it("getPriceDropChannels lists the channels of the price drop rules once, in rule order", async () => {
+    const groups = [[{ channelId: 2 }, { channelId: 1 }], [{ channelId: 2 }]];
+    const { service } = setup([{ key: "priceDrop.ruleGroups", value: groups }], [channel(1), channel(2)]);
+
+    expect(await service.getPriceDropChannels()).toEqual([
+      { id: 2, name: "channel-2" },
+      { id: 1, name: "channel-1" },
+    ]);
   });
 });

@@ -143,11 +143,11 @@ describe("DiscordChannelService", () => {
 
   it("delete answers 422 for a channel settings use", async () => {
     const { service, repository, settings } = setup();
-    settings.getKeysReferencingChannel.mockResolvedValue(["priceDrop.channelId", "reports.channelId"]);
+    settings.getKeysReferencingChannel.mockResolvedValue(["priceDrop.ruleGroups", "reports.channelId"]);
 
     await expect(service.delete(7)).rejects.toMatchObject({
       status: 422,
-      message: "Discord channel 7 is used by the settings priceDrop.channelId, reports.channelId",
+      message: "Discord channel 7 is used by the settings priceDrop.ruleGroups, reports.channelId",
     });
     expect(settings.getKeysReferencingChannel).toHaveBeenCalledWith(7);
     expect(repository.delete).not.toHaveBeenCalled();

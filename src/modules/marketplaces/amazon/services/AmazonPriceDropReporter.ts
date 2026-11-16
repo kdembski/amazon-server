@@ -18,13 +18,14 @@ export class AmazonPriceDropReporter
     this.discordService = discordService;
   }
 
-  async report(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][]) {
+  async report(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][], channelId: number) {
     await this.businessLogService.creatable.create({
       type: "price_drop_sent",
       marketplace: "amazon",
       data: {
         asin: ad.asin,
         name: ad.name,
+        channel: String(channelId),
         prices: countryPrices.map(([newest]) => ({
           country: newest.country.code,
           value: newest.value.toString(),
@@ -32,6 +33,6 @@ export class AmazonPriceDropReporter
         })),
       },
     });
-    await this.discordService.send(ad, countryPrices);
+    await this.discordService.send(ad, countryPrices, channelId);
   }
 }

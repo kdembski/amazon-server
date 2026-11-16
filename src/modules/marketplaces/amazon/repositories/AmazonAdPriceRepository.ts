@@ -54,7 +54,7 @@ export class AmazonAdPriceRepository {
 
   // LATERAL reads at most count rows per country from the (adId, countryId, createdAt) index;
   // one query returns the prices with their country and currency in the shape of `structure`.
-  async getRecentByAd(adId: number, count = 5) {
+  async getRecentByAd(adId: number, count = 10) {
     const rows = await this.prisma.$queryRaw<AmazonAdRecentPriceRow[]>`
       SELECT p.id, p.adId, p.countryId, p.value, p.dispatchFrom, p.createdAt, p.updatedAt,
         ac.tld, ac.active, c.name AS countryName, c.code AS countryCode, c.currencyId,

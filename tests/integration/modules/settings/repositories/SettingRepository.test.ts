@@ -15,13 +15,13 @@ describe("SettingRepository (MySQL)", () => {
     const groups = [[{ channelId: 1, belowMedianPercent: 50, maxPln: 50 }]];
 
     await upsert("countryOutlier.ruleGroups", groups);
-    await upsert("priceDrop.dropPercent", 40);
-    await upsert("priceDrop.dropPercent", 35);
+    await upsert("countryOutlier.dropSinceSentPercent", 40);
+    await upsert("countryOutlier.dropSinceSentPercent", 35);
 
     expect(await repository.getAll()).toEqual(
       expect.arrayContaining([
         { key: "countryOutlier.ruleGroups", value: groups },
-        { key: "priceDrop.dropPercent", value: 35 },
+        { key: "countryOutlier.dropSinceSentPercent", value: 35 },
       ])
     );
     expect(await prisma.setting.count()).toBe(2);
