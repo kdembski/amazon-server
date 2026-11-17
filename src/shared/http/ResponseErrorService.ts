@@ -1,5 +1,6 @@
 import { Response } from "express";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
+import { isDatabaseUnavailable } from "@/shared/http/isDatabaseUnavailable";
 
 export class ResponseErrorService {
   private response: Response;
@@ -39,11 +40,11 @@ export class ResponseErrorService {
   }
 
   private getMessage(error: any) {
+    if (isDatabaseUnavailable(error)) return "Can't reach database server";
+
     switch (error?.code) {
       case "P2002":
-        return `Unique constraint failed on the '${error?.meta?.target}'`;
-      case "P1001":
-        return `Can't reach database server`;
+        return `Unique constraint failed on the '${error?.meta?.driverAdapterError?.cause?.constraint?.index}'`;
       case undefined: {
         const message =
           typeof error?.message === "string" ? error.message : String(error);
@@ -56,13 +57,12 @@ export class ResponseErrorService {
 
   private getStatus(error: any): number {
     if (typeof error?.status === "number") return error.status;
+    if (isDatabaseUnavailable(error)) return 503;
 
     switch (error?.code) {
       case "P2002":
       case "P2003":
         return 422;
-      case "P1001":
-        return 503;
       default:
         return 500;
     }

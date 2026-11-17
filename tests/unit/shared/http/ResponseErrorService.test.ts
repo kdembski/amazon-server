@@ -7,7 +7,7 @@ describe("ResponseErrorService", () => {
     const { response, status, send } = fakeResponse();
     new ResponseErrorService(response).send({
       code: "P2002",
-      meta: { target: "asin_UNIQUE" },
+      meta: { driverAdapterError: { cause: { constraint: { index: "asin_UNIQUE" } } } },
     });
 
     expect(status).toHaveBeenCalledWith(422);
@@ -36,9 +36,12 @@ describe("ResponseErrorService", () => {
     expect(status).toHaveBeenCalledWith(422);
   });
 
-  it("maps P1001 to 503", () => {
+  it.each([
+    { code: "P1001" },
+    { code: "P2039", meta: { driverAdapterError: { cause: { code: 45028 } } } },
+  ])("maps an unreachable database %j to 503", (error) => {
     const { response, status, send } = fakeResponse();
-    new ResponseErrorService(response).send({ code: "P1001" });
+    new ResponseErrorService(response).send(error);
 
     expect(status).toHaveBeenCalledWith(503);
     expect(send).toHaveBeenCalledWith("Can't reach database server");
