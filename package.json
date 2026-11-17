@@ -32,14 +32,14 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/lodash": "^4.17.27",
-    "@types/node": "^24.19.2",
+    "@types/node": "^26.6.6",
     "@types/supertest": "^7.2.1",
     "@vitest/coverage-v8": "^5.1.0",
     "pkgroll": "^2.29.1",
     "prisma": "^7.10.1",
     "supertest": "^7.3.2",
-    "typescript": "^6.0.3",
-    "vite": "^7.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
     "vite-node": "^6.0.0",
     "vitest": "^5.1.0"
   }
