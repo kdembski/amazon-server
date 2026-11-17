@@ -8,11 +8,3 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
-  - package-ecosystem: npm
-    directory: /
-    target-branch: dev
-    schedule:
-      interval: monthly
-    groups:
-      npm:
-        patterns: ["*"]
