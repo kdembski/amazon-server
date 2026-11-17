@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client/runtime/client";
 import { NumberFormatter } from "@/shared/utils/NumberFormatter";
 
 describe("NumberFormatter.round", () => {

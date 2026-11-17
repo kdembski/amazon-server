@@ -17,7 +17,8 @@
   "license": "ISC",
   "dependencies": {
     "@everapi/freecurrencyapi-js": "^1.0.1",
-    "@prisma/client": "^6.19.3",
+    "@prisma/adapter-mariadb": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "cors": "^2.8.6",
     "cron": "^4.4.0",
     "date-fns": "^4.4.0",
@@ -36,7 +37,7 @@
     "@types/supertest": "^7.2.1",
     "@vitest/coverage-v8": "^5.1.0",
     "pkgroll": "^2.29.1",
-    "prisma": "^6.19.3",
+    "prisma": "^7.10.1",
     "supertest": "^7.3.2",
     "typescript": "^6.0.3",
     "vite": "^7.0.0",

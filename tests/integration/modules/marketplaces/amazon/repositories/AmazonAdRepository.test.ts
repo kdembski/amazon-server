@@ -67,13 +67,12 @@ describe("AmazonAdRepository (MySQL)", () => {
     it("reads the excluded, scrapedAt index without a filesort", async () => {
       await seedAd({ excluded: false });
 
-      // Prisma names the EXPLAIN columns f0..f11: f6 is `key`, f11 is `Extra`.
-      const [plan] = await prisma.$queryRawUnsafe<{ f6: string; f11: string | null }[]>(
+      const [plan] = await prisma.$queryRawUnsafe<{ key: string; Extra: string | null }[]>(
         "EXPLAIN SELECT id, asin, name FROM AmazonAd WHERE excluded = false ORDER BY scrapedAt ASC LIMIT 50"
       );
 
-      expect(plan.f6).toBe("amazon_ad_excluded_scraped_at_idx");
-      expect(plan.f11 ?? "").not.toContain("filesort");
+      expect(plan.key).toBe("amazon_ad_excluded_scraped_at_idx");
+      expect(plan.Extra ?? "").not.toContain("filesort");
     });
   });
 

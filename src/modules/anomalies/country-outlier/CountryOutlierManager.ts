@@ -1,4 +1,4 @@
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client/runtime/client";
 import { AnomalyManagerI } from "@/modules/anomalies/interfaces/AnomalyManagerI";
 import { CountryOutlierReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
