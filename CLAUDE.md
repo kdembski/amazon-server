@@ -29,7 +29,6 @@ npm run test:integration  # tests/integration, needs Docker running
 
 ## Rules
 
-- Before every commit, wait for the user's review; commit only after approval.
 - Commit messages: short English sentence starting with a capitalised past-tense verb (`Added ...`). No attribution in
   commits or PR descriptions.
 - An arrow function whose body does not fit on one line gets a block body.

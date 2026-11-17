@@ -59,8 +59,13 @@ npx vite-node $K/check-rules.js which <rules.txt> [--category id] "<ad name>"
 ## Workflow
 
 Both workflows start from the live rules (never reuse a set from earlier), keep the rule count minimal (extend an
-existing rule of the same kind with `|phrase` or a wider `stem*`, or merge rules, before adding one), end with the
-check and apply the whole diff in one batch call, never one call per rule; report each change and the HTTP status.
+existing rule of the same kind with `|phrase` or a wider `stem*`, or merge rules, before adding one) and end with:
+
+1. Run the check.
+2. Show the user the whole diff (create, update, delete) and stop.
+3. Apply it only after the user's message explicitly says `wrzucaj`; anything else, earlier approvals or context
+   included, is no approval.
+4. Apply the whole diff in one batch call, never one call per rule; report each change and the HTTP status.
 
 ### Full review of a category
 
