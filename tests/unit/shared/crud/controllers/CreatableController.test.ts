@@ -38,7 +38,7 @@ describe("CreatableController", () => {
 
   it("sends an error response when the service throws", async () => {
     const { service, controller } = setup();
-    service.create.mockRejectedValue({ code: "P2002", meta: { target: "x" } });
+    service.create.mockRejectedValue({ code: "P2002", meta: { driverAdapterError: { cause: { constraint: { index: "x" } } } } });
     const { response, status, send, json } = fakeResponse();
 
     await controller.create(fakeRequest({ body: {} }), response);
