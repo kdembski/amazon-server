@@ -10,7 +10,7 @@ Processes:
 
 ## Stack
 
-- Node.js 22, TypeScript (ESM), `vite-node`, built with `pkgroll`
+- Node.js 24, TypeScript (ESM), `vite-node`, built with `pkgroll`
 - Express
 - Prisma + MySQL 8
 - `discord.js` (webhooks), `cron`, `date-fns`, `lodash`

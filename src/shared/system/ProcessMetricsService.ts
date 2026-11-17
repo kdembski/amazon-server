@@ -1,8 +1,8 @@
-import { IntervalHistogram, monitorEventLoopDelay } from "node:perf_hooks";
+import { ELDHistogram, monitorEventLoopDelay } from "node:perf_hooks";
 
 const BYTES_PER_MB = 1024 * 1024;
 
-type Histogram = Pick<IntervalHistogram, "enable" | "reset" | "mean" | "max" | "percentile">;
+type Histogram = Pick<ELDHistogram, "enable" | "reset" | "mean" | "max" | "percentile">;
 type Process = Pick<NodeJS.Process, "cpuUsage" | "memoryUsage" | "hrtime">;
 
 const nsToMs = (ns: number) => Math.round(ns / 100_000) / 10;

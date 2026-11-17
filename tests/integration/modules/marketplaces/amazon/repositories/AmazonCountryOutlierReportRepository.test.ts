@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client/runtime/client";
 import { AmazonCountryOutlierReportRepository } from "@/modules/marketplaces/amazon/repositories/AmazonCountryOutlierReportRepository";
 import { prisma } from "../../../../../support/integration/db";
 import { seedAd, seedAmazonCountry, seedCountry } from "../../../../../support/integration/seed";

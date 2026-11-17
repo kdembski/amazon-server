@@ -26,7 +26,7 @@ export default mergeConfig(
             globalSetup: ["tests/integration/globalSetup.ts"],
             setupFiles: ["tests/integration/setup.ts"],
             pool: "forks",
-            poolOptions: { forks: { singleFork: true } },
+            maxWorkers: 1,
             testTimeout: 30_000,
             hookTimeout: 120_000,
           },

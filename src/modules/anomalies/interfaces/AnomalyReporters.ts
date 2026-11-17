@@ -1,4 +1,4 @@
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client/runtime/client";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 
 // The reported price is kept per listing and country, whichever channel got it.

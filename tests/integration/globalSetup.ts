@@ -22,12 +22,7 @@ export default async function setup(project: TestProject) {
 function pushSchema(databaseUrl: string) {
   execFileSync(
     process.execPath,
-    [
-      require.resolve("prisma/build/index.js"),
-      "db",
-      "push",
-      "--skip-generate",
-    ],
+    [require.resolve("prisma/build/index.js"), "db", "push"],
     { env: { ...process.env, DATABASE_URL: databaseUrl }, stdio: "inherit" }
   );
 }
