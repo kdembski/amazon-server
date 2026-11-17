@@ -4,10 +4,15 @@ updates:
     directory: /
     target-branch: dev
     schedule:
-      interval: weekly
+      interval: monthly
+    groups:
+      github-actions:
+        patterns: ["*"]
   - package-ecosystem: npm
     directory: /
     target-branch: dev
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    groups:
+      npm:
+        patterns: ["*"]
