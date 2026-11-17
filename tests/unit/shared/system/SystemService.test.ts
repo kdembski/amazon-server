@@ -2,31 +2,31 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SystemService } from "@/shared/system/SystemService";
 import { resetSingleton, unitLogger } from "../../../support/fakes";
 
-const { cpuUsage, memUsed, driveInfo } = vi.hoisted(() => ({
+const { cpuUsage, memoryUsage, diskUsage } = vi.hoisted(() => ({
   cpuUsage: vi.fn(),
-  memUsed: vi.fn(),
-  driveInfo: vi.fn(),
+  memoryUsage: vi.fn(),
+  diskUsage: vi.fn(),
 }));
 
 vi.mock("node-os-utils", () => ({
-  default: {
-    cpu: { usage: cpuUsage },
-    mem: { used: memUsed },
-    drive: { info: driveInfo },
+  OSUtils: class {
+    cpu = { usage: cpuUsage };
+    memory = { usage: memoryUsage };
+    disk = { usageByMountPoint: diskUsage };
   },
 }));
+
+const ok = <T>(data: T) => ({ success: true, data });
+const failed = (error: Error) => ({ success: false, error });
+const gb = (value: number) => ({ toGB: () => value });
 
 describe("SystemService", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     resetSingleton(SystemService);
-    cpuUsage.mockResolvedValue(10);
-    memUsed.mockResolvedValue({ totalMemMb: 2000, usedMemMb: 500 });
-    driveInfo.mockResolvedValue({
-      usedGb: "10.0",
-      totalGb: "100.0",
-      usedPercentage: "10.0",
-    });
+    cpuUsage.mockResolvedValue(ok(10));
+    memoryUsage.mockResolvedValue(ok(25.4));
+    diskUsage.mockResolvedValue(ok({ used: gb(10), total: gb(100), usagePercentage: 10 }));
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -41,7 +41,7 @@ describe("SystemService", () => {
     const service = SystemService.getInstance();
 
     await service.updateCpuUsage();
-    cpuUsage.mockResolvedValue(30);
+    cpuUsage.mockResolvedValue(ok(30));
     await service.updateCpuUsage();
 
     expect(service.getCpuUsage()).toBe(20);
@@ -54,7 +54,7 @@ describe("SystemService", () => {
 
     await service.updateCpuUsage();
     await service.updateCpuUsage();
-    cpuUsage.mockResolvedValue(10);
+    cpuUsage.mockResolvedValue(ok(10));
     await service.updateCpuUsage();
     cpuUsage.mockRejectedValue(error);
     await service.updateCpuUsage();
@@ -89,6 +89,30 @@ describe("SystemService", () => {
       total: "100.0",
       percentage: "10.0",
     });
-    expect(driveInfo).toHaveBeenCalledWith("/");
+    expect(diskUsage).toHaveBeenCalledWith("/");
+  });
+
+  it("logs a cpu read that reports a failure", async () => {
+    const error = new Error("unsupported");
+    cpuUsage.mockResolvedValue(failed(error));
+
+    await SystemService.getInstance().updateCpuUsage();
+
+    expect(unitLogger().error).toHaveBeenCalledWith("SystemService", "CPU usage could not be read", { error });
+  });
+
+  it("throws when memory usage cannot be read", async () => {
+    const error = new Error("unsupported");
+    memoryUsage.mockResolvedValue(failed(error));
+
+    await expect(SystemService.getInstance().getMemoryUsage()).rejects.toBe(error);
+  });
+
+  it("returns no disk space when the mount point cannot be read", async () => {
+    diskUsage.mockResolvedValue(failed(new Error("unsupported")));
+    await expect(SystemService.getInstance().getDiskSpace()).resolves.toBeUndefined();
+
+    diskUsage.mockResolvedValue(ok(null));
+    await expect(SystemService.getInstance().getDiskSpace()).resolves.toBeUndefined();
   });
 });

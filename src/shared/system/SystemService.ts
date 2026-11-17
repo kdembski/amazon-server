@@ -1,5 +1,5 @@
 import _ from "lodash";
-import osu from "node-os-utils";
+import { OSUtils } from "node-os-utils";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
 export class SystemService {
@@ -8,9 +8,11 @@ export class SystemService {
   private cpuUsageFailing = false;
 
   private logger;
+  private osUtils;
 
-  private constructor(logger = SystemLogService.getInstance()) {
+  private constructor(logger = SystemLogService.getInstance(), osUtils = new OSUtils()) {
     this.logger = logger;
+    this.osUtils = osUtils;
     setInterval(() => this.updateCpuUsage(), 1000);
   }
 
@@ -29,8 +31,9 @@ export class SystemService {
   // Runs every second: logs only the first failure of a series.
   async updateCpuUsage() {
     try {
-      const usage = await osu.cpu.usage();
-      const length = this.cpuUsageHistory.unshift(usage);
+      const result = await this.osUtils.cpu.usage();
+      if (!result.success) throw result.error;
+      const length = this.cpuUsageHistory.unshift(result.data);
       this.cpuUsageHistory.length = Math.min(length, 60 * 60);
       this.cpuUsageFailing = false;
     } catch (error) {
@@ -42,17 +45,20 @@ export class SystemService {
   }
 
   async getMemoryUsage() {
-    const { totalMemMb, usedMemMb } = await osu.mem.used();
-    return Math.round((usedMemMb * 100) / totalMemMb);
+    const result = await this.osUtils.memory.usage();
+    if (!result.success) throw result.error;
+    return Math.round(result.data);
   }
 
   async getDiskSpace() {
-    const disk = await osu.drive.info("/");
+    const result = await this.osUtils.disk.usageByMountPoint("/");
+    if (!result.success || !result.data) return undefined;
+    const { used, total, usagePercentage } = result.data;
 
     return {
-      used: disk.usedGb,
-      total: disk.totalGb,
-      percentage: disk.usedPercentage,
+      used: used.toGB().toFixed(1),
+      total: total.toGB().toFixed(1),
+      percentage: usagePercentage.toFixed(1),
     };
   }
 }
