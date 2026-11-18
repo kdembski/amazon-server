@@ -3,6 +3,7 @@ import { AnomalyManagerI } from "@/modules/anomalies/interfaces/AnomalyManagerI"
 import { CountryOutlierReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { CountryOutlierRuleMatcher } from "@/modules/anomalies/country-outlier/CountryOutlierRuleMatcher";
+import { CountryOutlierEvaluator } from "@/modules/anomalies/country-outlier/CountryOutlierEvaluator";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
 import { CountryOutlierRuleI } from "@/modules/anomalies/interfaces/CountryOutlierRuleI";
 import { SettingService } from "@/modules/settings/services/SettingService";
@@ -17,6 +18,7 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
   private ruleMatcher;
   private logger;
   private settingService;
+  private evaluator;
   // one warning an hour per currency
   private missingRateThrottle = new LogThrottle(MISSING_RATE_WARNING_INTERVAL_MS);
 
@@ -25,13 +27,15 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     exchangeRateService = new CurrencyExchangeRateService(),
     ruleMatcher = new CountryOutlierRuleMatcher(),
     logger = SystemLogService.getInstance(),
-    settingService = new SettingService()
+    settingService = new SettingService(),
+    evaluator = new CountryOutlierEvaluator()
   ) {
     this.reporter = reporter;
     this.exchangeRateService = exchangeRateService;
     this.ruleMatcher = ruleMatcher;
     this.logger = logger;
     this.settingService = settingService;
+    this.evaluator = evaluator;
   }
 
   async check(listing: T, allCountryPrices: ListingPrice[][]) {
@@ -42,11 +46,14 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     const rules = await this.ruleMatcher.getMatches(prices);
     if (!rules.length) return;
 
-    const [cheapest, previous] = countryPrices.find(([price]) => price.country === prices[0].country)!;
+    const history = countryPrices.find(([price]) => price.country === prices[0].country)!;
+    if (!this.evaluator.isAtLowest(history)) return;
+
+    const [cheapest, lowest] = history;
     const channelIds = await this.getChannelsToReport(listing, cheapest, rules);
     if (!channelIds.length) return;
 
-    const difference = previous && this.getDifference(cheapest.value, previous.value);
+    const difference = lowest && this.getDifference(cheapest.value, lowest.value);
     await this.report(listing, prices, channelIds, difference);
     await this.reporter.setReportedPrice(listing, cheapest);
   }

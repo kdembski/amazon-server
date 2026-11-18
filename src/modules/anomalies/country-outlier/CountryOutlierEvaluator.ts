@@ -10,6 +10,11 @@ export class CountryOutlierEvaluator extends AnomalyEvaluator {
     return first.value.lte(median.times(1 - percentage / 100));
   }
 
+  // Prices are [newest, lowestOlder?] of one country.
+  isAtLowest([newest, lowest]: ListingPrice[]) {
+    return !lowest || newest.value.lte(lowest.value);
+  }
+
   // `min` is inclusive and `max` exclusive, so adjacent ranges do not overlap.
   isInRange(prices: ListingPrice[], min?: number, max?: number) {
     const price = prices[0].value;
