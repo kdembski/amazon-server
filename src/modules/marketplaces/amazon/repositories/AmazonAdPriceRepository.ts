@@ -52,7 +52,7 @@ export class AmazonAdPriceRepository {
     });
   }
 
-  // Per country the newest price and the lowest older one, newest first; each LATERAL part reads one
+  // Per country the newest price and the last seen lowest older one, newest first; each LATERAL part reads one
   // entry of the (adId, countryId, createdAt) or (adId, countryId, value, createdAt) index.
   async getComparisonByAd(adId: number) {
     const rows = await this.prisma.$queryRaw<AmazonAdRecentPriceRow[]>`
@@ -73,7 +73,7 @@ export class AmazonAdPriceRepository {
             AND createdAt < (
               SELECT MAX(createdAt) FROM AmazonAdPrice WHERE adId = ${adId} AND countryId = ac.countryId
             )
-          ORDER BY value LIMIT 1)
+          ORDER BY value, createdAt DESC LIMIT 1)
       ) p
       ORDER BY p.createdAt DESC`;
     return this.recentPriceMapper.toCountryGroups(rows);
