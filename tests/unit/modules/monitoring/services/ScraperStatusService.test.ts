@@ -5,7 +5,7 @@ import { ScraperMetricRepository } from "@/modules/monitoring/repositories/Scrap
 
 const setup = () => {
   const repository = {
-    getLastReports: vi.fn().mockResolvedValue([]),
+    getReportingScrapers: vi.fn().mockResolvedValue([]),
     sumStatusMetrics: vi.fn().mockResolvedValue([]),
   };
   const configRepository = { findAll: vi.fn().mockResolvedValue([]) };
@@ -25,16 +25,11 @@ describe("ScraperStatusService", () => {
       value: number,
       reports = 60
     ) => ({ scraper, metric, outcome, value, reports });
-    const reportedAt = new Date("2026-10-18T11:59:00Z");
 
-    it("returns the last hour averages of every scraper with a config, stopped ones as 0", async () => {
+    it("returns the last hour averages of every configured scraper, stopped without a report in 5 minutes", async () => {
       const { service, repository, configRepository } = setup();
       vi.useFakeTimers({ now: new Date("2026-10-18T12:00:00Z") });
-      repository.getLastReports.mockResolvedValue([
-        { scraper: "unconfigured", reportedAt },
-        { scraper: "stopped", reportedAt: new Date("2026-10-15T08:00:00Z") },
-        { scraper: "a", reportedAt },
-      ]);
+      repository.getReportingScrapers.mockResolvedValue(["unconfigured", "a"]);
       repository.sumStatusMetrics.mockResolvedValue([
         sum("unconfigured", "cpu_percent", null, 3),
         sum("a", "cpu_percent", null, 600, 30),
@@ -46,14 +41,14 @@ describe("ScraperStatusService", () => {
         sum("a", "open_connections", null, 750, 30),
       ]);
       configRepository.findAll.mockResolvedValue([
-        { scraper: "a", rps: 12, concurrency: 50 },
         { scraper: "stopped", rps: 5, concurrency: 10 },
+        { scraper: "a", rps: 12, concurrency: 50 },
       ]);
 
       expect(await service.getStatuses()).toEqual([
         {
           scraper: "a",
-          lastReportAt: "2026-10-18T11:59:00.000Z",
+          stopped: false,
           itemsPerSecond: 2,
           requestsPerSecond: 10,
           rps: 12,
@@ -63,7 +58,7 @@ describe("ScraperStatusService", () => {
         },
         {
           scraper: "stopped",
-          lastReportAt: "2026-10-15T08:00:00.000Z",
+          stopped: true,
           itemsPerSecond: 0,
           requestsPerSecond: 0,
           rps: 5,
@@ -73,7 +68,7 @@ describe("ScraperStatusService", () => {
         },
       ]);
 
-      expect(repository.getLastReports).toHaveBeenCalledWith(new Date("2026-10-11T12:00:00Z"));
+      expect(repository.getReportingScrapers).toHaveBeenCalledWith(new Date("2026-10-18T11:55:00Z"));
       expect(repository.sumStatusMetrics).toHaveBeenCalledWith(new Date("2026-10-18T11:00:00Z"));
       vi.useRealTimers();
     });

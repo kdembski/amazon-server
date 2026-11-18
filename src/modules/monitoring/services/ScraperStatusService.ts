@@ -6,8 +6,7 @@ import { ScraperConfigRepository } from "@/modules/monitoring/repositories/Scrap
 import { ScraperMetricRepository } from "@/modules/monitoring/repositories/ScraperMetricRepository";
 import { ScraperMetricSums } from "@/modules/monitoring/services/ScraperMetricSums";
 
-// Scrapers without a report in this window drop out of the statuses
-const STATUS_WINDOW_MS = 7 * 86_400_000;
+const STOPPED_AFTER_MS = 5 * 60_000;
 
 export class ScraperStatusService {
   private repository;
@@ -21,41 +20,32 @@ export class ScraperStatusService {
   async getStatuses(): Promise<ScraperStatus[]> {
     const to = new Date();
     const from = new Date(to.getTime() - HOUR_MS);
-    const since = new Date(to.getTime() - STATUS_WINDOW_MS);
-    const [lastReports, rows, configs] = await Promise.all([
-      this.repository.getLastReports(since),
+    const [reporting, rows, configs] = await Promise.all([
+      this.repository.getReportingScrapers(new Date(to.getTime() - STOPPED_AFTER_MS)),
       this.repository.sumStatusMetrics(from),
       this.configRepository.findAll(),
     ]);
-    const configByScraper = _.keyBy(configs, "scraper");
     const rowsByScraper = _.groupBy(rows, "scraper");
 
-    return lastReports
+    return configs
       .sort((a, b) => compareScrapers(a.scraper, b.scraper))
-      .flatMap(({ scraper, reportedAt }) => {
-        const config = configByScraper[scraper];
-        if (!config) {
-          return [];
-        }
-
+      .map(({ scraper, rps, concurrency }) => {
         // Stopped for over an hour: no sums, so every average is 0
         const scraperRows = rowsByScraper[scraper] ?? [];
         const sums = new ScraperMetricSums(scraperRows);
         const reports = scraperRows.find((row) => row.metric === "cpu_percent")?.reports ?? 0;
         const average = (metric: string) => (reports > 0 ? sums.total(metric) / reports : 0);
 
-        return [
-          {
-            scraper,
-            lastReportAt: reportedAt.toISOString(),
-            itemsPerSecond: sums.itemsPerSecond({ from, to }),
-            requestsPerSecond: sums.total("requests") / (HOUR_MS / 1000),
-            rps: config.rps,
-            pending: average("pending"),
-            concurrency: config.concurrency,
-            openConnections: average("open_connections"),
-          },
-        ];
+        return {
+          scraper,
+          stopped: !reporting.includes(scraper),
+          itemsPerSecond: sums.itemsPerSecond({ from, to }),
+          requestsPerSecond: sums.total("requests") / (HOUR_MS / 1000),
+          rps,
+          pending: average("pending"),
+          concurrency,
+          openConnections: average("open_connections"),
+        };
       });
   }
 }

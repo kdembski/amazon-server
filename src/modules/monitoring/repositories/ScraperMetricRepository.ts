@@ -5,7 +5,6 @@ import {
   ScraperBreakdownKey,
   ScraperCountKey,
   ScraperGroupHourSum,
-  ScraperLastReport,
   ScraperMetricGroupSum,
   ScraperMetricSum,
   ScraperStatusSum,
@@ -81,15 +80,14 @@ export class ScraperMetricRepository {
     }));
   }
 
-  // Every report carries cpu_percent, so it dates the newest report of every scraper since the date
-  async getLastReports(since: Date): Promise<ScraperLastReport[]> {
+  // Every report carries cpu_percent
+  async getReportingScrapers(since: Date) {
     const groups = await this.delegate.groupBy({
       by: ["scraper"],
       where: { periodStart: { gte: since }, metric: "cpu_percent" },
-      _max: { createdAt: true },
     });
 
-    return groups.map((group) => ({ scraper: group.scraper, reportedAt: group._max.createdAt! }));
+    return groups.map((group) => group.scraper);
   }
 
   // reports = reports with the metric, which gauges are averaged over
