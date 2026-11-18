@@ -3,7 +3,8 @@ import { AmazonAdScrapingService } from "@/modules/marketplaces/amazon/services/
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
 import { AmazonAdMissingService } from "@/modules/marketplaces/amazon/services/AmazonAdMissingService";
 import { Mutex } from "@/shared/utils/Mutex";
-import { deferred } from "../../../../../support/fakes";
+import { LogThrottle } from "@/shared/logging/services/LogThrottle";
+import { deferred, unitLogger } from "../../../../../support/fakes";
 
 type ScrapAd = { id: number; asin: string; name: string };
 
@@ -16,7 +17,8 @@ const setup = () => {
   const service = new AmazonAdScrapingService(
     repository as unknown as AmazonAdRepository,
     missingService as unknown as AmazonAdMissingService,
-    new Mutex()
+    new Mutex(),
+    new LogThrottle(60_000)
   );
   return { service, repository, missingService };
 };
@@ -64,5 +66,29 @@ describe("AmazonAdScrapingService", () => {
 
     await expect(service.getForScraping(1)).rejects.toThrow("db down");
     expect(await service.getForScraping(1)).toEqual([]);
+  });
+});
+
+describe("AmazonAdScrapingService empty batches", () => {
+  it("warns once per interval when no ads are left to scrape", async () => {
+    const { service } = setup();
+
+    await service.getForScraping(50);
+    await service.getForScraping(50);
+
+    expect(unitLogger().warn).toHaveBeenCalledTimes(1);
+    expect(unitLogger().warn).toHaveBeenCalledWith(
+      "AmazonAdScrapingService",
+      "No ads to scrape, the scrapers got an empty batch",
+      { batchSize: 50 }
+    );
+  });
+
+  it("does not warn about a batch of size 0", async () => {
+    const { service } = setup();
+
+    await service.getForScraping(0);
+
+    expect(unitLogger().warn).not.toHaveBeenCalled();
   });
 });

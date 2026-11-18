@@ -53,7 +53,7 @@ describe("AmazonAdPriceRepository", () => {
     });
   });
 
-  it("getRecentByAd queries the ad and count and returns the rows grouped by the mapper", async () => {
+  it("getComparisonByAd queries the ad and returns the rows grouped by the mapper", async () => {
     const db = fakePrisma();
     const groups = [[buildPrice()]];
     const mapper = { toCountryGroups: vi.fn().mockReturnValue(groups) };
@@ -64,25 +64,11 @@ describe("AmazonAdPriceRepository", () => {
     const rows = [{ id: 1 }];
     db.$queryRaw.mockResolvedValue(rows);
 
-    expect(await repository.getRecentByAd(9, 3)).toBe(groups);
+    expect(await repository.getComparisonByAd(9)).toBe(groups);
 
-    const [, adId, count] = db.$queryRaw.mock.calls[0];
-    expect([adId, count]).toEqual([9, 3]);
+    const [, ...values] = db.$queryRaw.mock.calls[0];
+    expect(values).toEqual([9, 9, 9]);
     expect(mapper.toCountryGroups).toHaveBeenCalledWith(rows);
-  });
-
-  it("getRecentByAd reads 10 prices per country by default", async () => {
-    const db = fakePrisma();
-    const mapper = { toCountryGroups: vi.fn().mockReturnValue([]) };
-    const repository = new AmazonAdPriceRepository(
-      db.prisma,
-      mapper as unknown as AmazonAdRecentPriceMapper
-    );
-    db.$queryRaw.mockResolvedValue([]);
-
-    await repository.getRecentByAd(9);
-
-    expect(db.$queryRaw.mock.calls[0][2]).toBe(10);
   });
 
   it("create, update and delete delegate to prisma", async () => {

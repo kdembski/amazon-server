@@ -36,8 +36,8 @@ export class AmazonAdPriceService {
     this.logger = logger;
   }
 
-  getRecentByAd(adId: number) {
-    return this.repository.getRecentByAd(adId);
+  getComparisonByAd(adId: number) {
+    return this.repository.getComparisonByAd(adId);
   }
 
   // One INSERT for all prices; fails as a whole when any row is invalid

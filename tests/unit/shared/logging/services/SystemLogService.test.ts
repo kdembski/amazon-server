@@ -71,16 +71,22 @@ describe("SystemLogService", () => {
     const { service, create } = setup();
     create.mockRejectedValue(new Error("Can't reach database server"));
 
-    service.error("ResponseErrorService", "boom");
+    await expect(service.error("ResponseErrorService", "boom")).resolves.toBeUndefined();
 
-    await vi.waitFor(() =>
-      expect(error).toHaveBeenCalledWith(
-        "[error] SystemLogService: failed to store log: Error: Can't reach database server"
-      )
+    expect(error).toHaveBeenCalledWith(
+      "[error] SystemLogService: failed to store log: Error: Can't reach database server"
     );
   });
 
-  it("never throws", () => {
+  it("resolves once the log is stored", async () => {
+    const { service, create } = setup();
+
+    await expect(service.info("Process", "Received SIGTERM")).resolves.toBeUndefined();
+
+    expect(create).toHaveBeenCalled();
+  });
+
+  it("never throws", async () => {
     const create = vi.fn();
     const mapper = {
       toCreateInput: () => {
@@ -89,7 +95,7 @@ describe("SystemLogService", () => {
     } as unknown as SystemLogCreateMapper;
     const service = new SystemLogService({ create } as unknown as SystemLogRepository, mapper);
 
-    expect(() => service.warn("x", "y")).not.toThrow();
+    await expect(service.warn("x", "y")).resolves.toBeUndefined();
 
     expect(create).not.toHaveBeenCalled();
     expect(error).toHaveBeenCalledWith("[error] SystemLogService: failed to log x: y: Error: bad");

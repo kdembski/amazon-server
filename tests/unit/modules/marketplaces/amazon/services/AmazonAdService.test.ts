@@ -43,7 +43,7 @@ const setup = () => {
   };
   const priceService = {
     store: vi.fn().mockResolvedValue(undefined),
-    getRecentByAd: vi.fn().mockResolvedValue([]),
+    getComparisonByAd: vi.fn().mockResolvedValue([]),
   };
   const counter = fakeActivityCountService();
   const categoryRepository = {
@@ -202,7 +202,7 @@ describe("AmazonAdService.applyBatch anomaly checks", () => {
       getByIds: vi.fn().mockResolvedValue(ids.map((id) => buildAd({ id }))),
     });
     const recent = ids.map(() => deferred<never[]>());
-    ids.forEach((_id, i) => priceService.getRecentByAd.mockReturnValueOnce(recent[i].promise));
+    ids.forEach((_id, i) => priceService.getComparisonByAd.mockReturnValueOnce(recent[i].promise));
     const price = (adId: number) => ({ value: 1, adId, countryId: 1, dispatchFrom: "Amazon" });
 
     await service.applyBatch({
@@ -211,10 +211,10 @@ describe("AmazonAdService.applyBatch anomaly checks", () => {
     });
 
     expect(counter.increment).toHaveBeenCalledTimes(100);
-    expect(priceService.getRecentByAd).toHaveBeenCalledTimes(40);
+    expect(priceService.getComparisonByAd).toHaveBeenCalledTimes(40);
 
     recent.slice(0, 40).forEach((item) => item.resolve([]));
-    await vi.waitFor(() => expect(priceService.getRecentByAd).toHaveBeenCalledTimes(80));
+    await vi.waitFor(() => expect(priceService.getComparisonByAd).toHaveBeenCalledTimes(80));
 
     recent.slice(40).forEach((item) => item.resolve([]));
     await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalledTimes(100));
@@ -226,7 +226,7 @@ describe("AmazonAdService.applyBatch anomaly checks", () => {
     Object.assign(repository, {
       getByIds: vi.fn().mockResolvedValue(ids.map((id) => buildAd({ id }))),
     });
-    priceService.getRecentByAd.mockRejectedValueOnce(new Error("pool")).mockResolvedValue([]);
+    priceService.getComparisonByAd.mockRejectedValueOnce(new Error("pool")).mockResolvedValue([]);
 
     await service.applyBatch({
       prices: ids.map((id) => ({ id, prices: [] })),
@@ -392,14 +392,14 @@ describe("AmazonAdService.updatePrices", () => {
     const ad = buildAd({ id: 9 });
     repository.getById.mockResolvedValue(ad);
     const countryPrices = [[buildPrice(), buildPrice()], [buildPrice()]];
-    priceService.getRecentByAd.mockResolvedValue(countryPrices);
+    priceService.getComparisonByAd.mockResolvedValue(countryPrices);
 
     await service.updatePrices(9, [
       { value: 1, adId: 9, countryId: 1, dispatchFrom: "Amazon" },
     ]);
 
     await vi.waitFor(() => expect(anomalyManager.check).toHaveBeenCalled());
-    expect(priceService.getRecentByAd).toHaveBeenCalledWith(9);
+    expect(priceService.getComparisonByAd).toHaveBeenCalledWith(9);
     expect(priceMapper.map).toHaveBeenCalledWith(ad.asin, countryPrices, [1]);
     expect(anomalyManager.check).toHaveBeenCalledWith(ad, listingPrices);
   });
@@ -409,7 +409,7 @@ describe("AmazonAdService.updatePrices", () => {
     const ad = buildAd({ id: 9, asin: "B0FAIL" });
     repository.getById.mockResolvedValue(ad);
     const error = new Error("db down");
-    priceService.getRecentByAd.mockRejectedValue(error);
+    priceService.getComparisonByAd.mockRejectedValue(error);
 
     await service.updatePrices(9, [
       { value: 1, adId: 9, countryId: 3, dispatchFrom: "Amazon" },

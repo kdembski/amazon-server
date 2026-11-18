@@ -63,3 +63,17 @@ describe("isInRange", () => {
     expect(evaluator.isInRange(prices(10))).toBe(true);
   });
 });
+
+describe("isAtLowest", () => {
+  it("is true without an older price", () => {
+    expect(evaluator.isAtLowest(prices(5))).toBe(true);
+  });
+
+  it("is true when the newest price equals the lowest older price", () => {
+    expect(evaluator.isAtLowest(prices(10, 10))).toBe(true);
+  });
+
+  it("is false when the newest price is above the lowest older price", () => {
+    expect(evaluator.isAtLowest(prices(11, 10))).toBe(false);
+  });
+});

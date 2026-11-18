@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { LogThrottle } from "@/shared/logging/services/LogThrottle";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
 export interface SkippedRoute {
@@ -7,22 +8,29 @@ export interface SkippedRoute {
 }
 
 const LOGGED_METHODS = ["POST", "PUT", "PATCH", "DELETE"];
+const SLOW_REQUEST_MS = 5_000;
+const SLOW_WARNING_INTERVAL_MS = 60_000;
 
-// Logs successful writes; failed requests are logged by ResponseErrorService.
+// Logs successful writes and slow requests of any method; failed requests are logged by ResponseErrorService.
 export class RequestLogMiddleware {
   private skipped;
   private logger;
+  private slowThrottle;
 
-  constructor(skipped: SkippedRoute[] = [], logger = SystemLogService.getInstance()) {
+  constructor(
+    skipped: SkippedRoute[] = [],
+    logger = SystemLogService.getInstance(),
+    slowThrottle = new LogThrottle(SLOW_WARNING_INTERVAL_MS)
+  ) {
     this.skipped = skipped;
     this.logger = logger;
+    this.slowThrottle = slowThrottle;
   }
 
   handle = (request: Request, response: Response, next: NextFunction) => {
-    if (this.isLogged(request)) {
-      const startedAt = Date.now();
-      response.on("finish", () => this.log(request, response, startedAt));
-    }
+    const startedAt = Date.now();
+    const logged = this.isLogged(request);
+    response.on("finish", () => this.log(request, response, logged, Date.now() - startedAt));
     next();
   };
 
@@ -33,10 +41,16 @@ export class RequestLogMiddleware {
     );
   }
 
-  private log(request: Request, response: Response, startedAt: number) {
+  private log(request: Request, response: Response, logged: boolean, durationMs: number) {
     const { method, originalUrl, query, body } = request;
     const status = response.statusCode;
-    if (status >= 400) return;
+
+    if (durationMs >= SLOW_REQUEST_MS && this.slowThrottle.shouldLog()) {
+      this.logger.warn("RequestLogMiddleware", `${method} ${originalUrl} took ${durationMs} ms`, {
+        request: { method, path: originalUrl, query, status, durationMs },
+      });
+    }
+    if (!logged || status >= 400) return;
 
     this.logger.info("RequestLogMiddleware", `${method} ${originalUrl} ${status}`, {
       request: {
@@ -45,7 +59,7 @@ export class RequestLogMiddleware {
         query,
         body,
         status,
-        durationMs: Date.now() - startedAt,
+        durationMs,
       },
     });
   }

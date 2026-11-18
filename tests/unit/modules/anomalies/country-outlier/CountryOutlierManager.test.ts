@@ -300,7 +300,25 @@ describe("CountryOutlierManager", () => {
     expect(reporter.setReportedPrice).not.toHaveBeenCalled();
   });
 
-  it("passes the change of the cheapest price since its previous price in percent", async () => {
+  it("does not report when the cheapest country's newest price is above its lowest older price", async () => {
+    const { manager, reporter, listing } = setup([rule(1)]);
+
+    await manager.check(listing, [history(300), history(60, 50), history(400), history(500)]);
+
+    expect(reporter.getReportedPrice).not.toHaveBeenCalled();
+    expect(reporter.report).not.toHaveBeenCalled();
+    expect(reporter.setReportedPrice).not.toHaveBeenCalled();
+  });
+
+  it("reports when the cheapest country's newest price equals its lowest older price", async () => {
+    const { manager, reporter, listing } = setup([rule(1)]);
+
+    await manager.check(listing, [history(300), history(50, 50), history(400), history(500)]);
+
+    expect(reporter.report.mock.calls[0][3]).toBe(0);
+  });
+
+  it("passes the change of the cheapest price since its lowest older price in percent", async () => {
     const { manager, reporter, listing } = setup([rule(1)], 100);
 
     await manager.check(listing, [
@@ -325,7 +343,7 @@ describe("CountryOutlierManager", () => {
     const { manager, reporter, getPlnRates, listing } = setup([rule(1)], 30);
     const eur = buildCurrency({ code: "EUR" });
     getPlnRates.mockResolvedValue([buildRate({ source: eur, value: 4.5 })]);
-    const eurHistory = [10, 8].map((value) =>
+    const eurHistory = [8, 10].map((value) =>
       buildListingPrice({
         value,
         country: { currencyId: eur.id, currencyCode: "EUR" },

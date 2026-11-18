@@ -174,7 +174,7 @@ export class AmazonAdService {
   private queueAnomalyCheck(ad: AmazonAdSelectDto, prices: AmazonAdPriceCreateDto[]) {
     const scrapedCountryIds = prices.map((price) => price.countryId);
     const getPrices = async () => {
-      return this.priceMapper.map(ad.asin, await this.priceService.getRecentByAd(ad.id), scrapedCountryIds);
+      return this.priceMapper.map(ad.asin, await this.priceService.getComparisonByAd(ad.id), scrapedCountryIds);
     };
     this.anomalyCheckQueue.add(ad, getPrices, { adId: ad.id, asin: ad.asin, scrapedCountryIds });
   }

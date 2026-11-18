@@ -17,3 +17,13 @@ process.on("uncaughtException", (error) => {
 process.on("unhandledRejection", (reason) => {
   logger.error("Process", `Unhandled rejection: ${reason}`, { error: reason });
 });
+
+(["SIGTERM", "SIGINT"] as const).forEach((signal) => {
+  process.once(signal, async () => {
+    await logger.info("Process", `Received ${signal}, shutting down`, {
+      signal,
+      uptimeS: Math.round(process.uptime()),
+    });
+    process.exit(0);
+  });
+});

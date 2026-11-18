@@ -15,6 +15,10 @@ export class ActivityCountFlushCronService extends CronService {
     this.activityCountService = activityCountService;
   }
 
+  protected getFailureContext() {
+    return { pendingCount: this.activityCountService.getPendingCount() };
+  }
+
   run() {
     return this.activityCountService.flush();
   }

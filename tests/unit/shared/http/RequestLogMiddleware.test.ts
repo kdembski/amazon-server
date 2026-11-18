@@ -17,7 +17,8 @@ const call = (
   middleware: RequestLogMiddleware,
   method: string,
   path: string,
-  statusCode = 200
+  statusCode = 200,
+  durationMs = 12
 ) => {
   const request = {
     method,
@@ -30,7 +31,7 @@ const call = (
   const next = vi.fn();
 
   middleware.handle(request, response as unknown as Response, next);
-  vi.advanceTimersByTime(12);
+  vi.advanceTimersByTime(durationMs);
   response.emit("finish");
 
   return next;
@@ -98,5 +99,30 @@ describe("RequestLogMiddleware", () => {
     call(middleware, "PUT", "/amazon/ads/5");
 
     expect(logger.info).toHaveBeenCalledTimes(1);
+  });
+
+  it("warns about a slow request of any method, at most once a minute", () => {
+    const { logger, middleware } = setup();
+
+    call(middleware, "GET", "/stats", 200, 5_000);
+    call(middleware, "PUT", "/amazon/ads/5", 200, 6_000);
+
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith("RequestLogMiddleware", "GET /stats?dry=1 took 5000 ms", {
+      request: { method: "GET", path: "/stats?dry=1", query: { dry: "1" }, status: 200, durationMs: 5_000 },
+    });
+    expect(logger.info).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(60_000);
+    call(middleware, "GET", "/stats", 200, 5_000);
+    expect(logger.warn).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not warn about a fast request", () => {
+    const { logger, middleware } = setup();
+
+    call(middleware, "GET", "/stats", 200, 4_999);
+
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 });
