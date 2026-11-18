@@ -52,9 +52,9 @@ export class AmazonAdPriceRepository {
     });
   }
 
-  // LATERAL reads at most count rows per country from the (adId, countryId, createdAt) index;
-  // one query returns the prices with their country and currency in the shape of `structure`.
-  async getRecentByAd(adId: number, count = 10) {
+  // Per country the newest price and the lowest older one, newest first; each LATERAL part reads one
+  // entry of the (adId, countryId, createdAt) or (adId, countryId, value) index.
+  async getComparisonByAd(adId: number) {
     const rows = await this.prisma.$queryRaw<AmazonAdRecentPriceRow[]>`
       SELECT p.id, p.adId, p.countryId, p.value, p.dispatchFrom, p.createdAt, p.updatedAt,
         ac.tld, ac.active, c.name AS countryName, c.code AS countryCode, c.currencyId,
@@ -64,9 +64,16 @@ export class AmazonAdPriceRepository {
       JOIN Country c ON c.id = ac.countryId
       JOIN Currency cu ON cu.id = c.currencyId
       CROSS JOIN LATERAL (
-        SELECT id, adId, countryId, value, dispatchFrom, createdAt, updatedAt FROM AmazonAdPrice
-        WHERE adId = ${adId} AND countryId = ac.countryId
-        ORDER BY createdAt DESC LIMIT ${count}
+        (SELECT id, adId, countryId, value, dispatchFrom, createdAt, updatedAt FROM AmazonAdPrice
+          WHERE adId = ${adId} AND countryId = ac.countryId
+          ORDER BY createdAt DESC LIMIT 1)
+        UNION ALL
+        (SELECT id, adId, countryId, value, dispatchFrom, createdAt, updatedAt FROM AmazonAdPrice
+          WHERE adId = ${adId} AND countryId = ac.countryId
+            AND createdAt < (
+              SELECT MAX(createdAt) FROM AmazonAdPrice WHERE adId = ${adId} AND countryId = ac.countryId
+            )
+          ORDER BY value LIMIT 1)
       ) p
       ORDER BY p.createdAt DESC`;
     return this.recentPriceMapper.toCountryGroups(rows);

@@ -6,7 +6,7 @@ import { AmazonAdPriceRepository } from "@/modules/marketplaces/amazon/repositor
 const setup = () => {
   const repository = {
     getById: vi.fn(),
-    getRecentByAd: vi.fn().mockResolvedValue([]),
+    getComparisonByAd: vi.fn().mockResolvedValue([]),
     create: vi.fn().mockResolvedValue({}),
     createMany: vi.fn().mockResolvedValue(1),
     update: vi.fn().mockResolvedValue({}),
@@ -20,10 +20,10 @@ const setup = () => {
 };
 
 describe("AmazonAdPriceService", () => {
-  it("delegates getRecentByAd", async () => {
+  it("delegates getComparisonByAd", async () => {
     const { service, repository } = setup();
-    await service.getRecentByAd(1);
-    expect(repository.getRecentByAd).toHaveBeenCalledWith(1);
+    await service.getComparisonByAd(1);
+    expect(repository.getComparisonByAd).toHaveBeenCalledWith(1);
   });
 
   it("delegates deleteOlderThan", async () => {

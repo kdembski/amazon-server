@@ -8,7 +8,7 @@ const repository = new AmazonAdPriceRepository(prisma);
 const minute = (n: number) => new Date(FIXED_DATE.getTime() + n * 60_000);
 
 describe("AmazonAdPriceRepository (MySQL)", () => {
-  it("getRecentByAd groups the newest prices per country, newest first", async () => {
+  it("getComparisonByAd returns the newest and the lowest older price per country", async () => {
     const ad = await seedAd();
     const pl = await seedCountry({ code: "pl" });
     const de = await seedCountry({ code: "de" });
@@ -16,23 +16,24 @@ describe("AmazonAdPriceRepository (MySQL)", () => {
     await seedAmazonCountry({ countryId: pl.id, tld: "pl", active: false });
     await seedAmazonCountry({ countryId: de.id });
     await seedAmazonCountry({ countryId: se.id });
-    const rows: [number, number, number][] = [
-      [se.id, 30, 1],
-      [pl.id, 10, 1],
-      [pl.id, 11, 2],
-      [de.id, 20, 3],
-      [pl.id, 12, 4],
-      [de.id, 21, 5],
-      [pl.id, 13, 6],
+    const rows: [number, number, number, string | null][] = [
+      [se.id, 30, 1, "Amazon"],
+      [pl.id, 50, 1, "Amazon"],
+      [pl.id, 5, 2, null],
+      [de.id, 20, 3, "Amazon"],
+      [pl.id, 40, 3, "Amazon"],
+      [pl.id, 60, 4, "Amazon"],
+      [de.id, 21, 5, "Amazon"],
+      [pl.id, 45, 6, "Amazon"],
     ];
-    for (const [countryId, value, at] of rows) {
-      await seedPrice({ adId: ad.id, countryId, value, createdAt: minute(at) });
+    for (const [countryId, value, at, dispatchFrom] of rows) {
+      await seedPrice({ adId: ad.id, countryId, value, dispatchFrom, createdAt: minute(at) });
     }
 
-    const groups = await repository.getRecentByAd(ad.id, 3);
+    const groups = await repository.getComparisonByAd(ad.id);
 
     expect(groups.map((group) => group.map((p) => p.value.toNumber()))).toEqual([
-      [13, 12, 11],
+      [45, 5],
       [21, 20],
       [30],
     ]);
@@ -51,28 +52,40 @@ describe("AmazonAdPriceRepository (MySQL)", () => {
     }
   });
 
-  it("getRecentByAd ignores other ads", async () => {
+  it("getComparisonByAd ignores other ads", async () => {
     const ad = await seedAd();
     const otherAd = await seedAd();
     const { countryId } = await seedAmazonCountry();
     await seedPrice({ adId: ad.id, countryId, value: 1, createdAt: minute(1) });
-    await seedPrice({ adId: otherAd.id, countryId, value: 3, createdAt: minute(1) });
+    await seedPrice({ adId: otherAd.id, countryId, value: 3, createdAt: minute(0) });
 
-    const groups = await repository.getRecentByAd(ad.id);
+    const groups = await repository.getComparisonByAd(ad.id);
 
     expect(groups.map((group) => group.map((p) => p.value.toNumber()))).toEqual([[1]]);
   });
 
-  it("getRecentByAd returns up to 10 prices per country by default", async () => {
+  it("getComparisonByAd never returns the newest price as the lowest older one", async () => {
     const ad = await seedAd();
     const { countryId } = await seedAmazonCountry();
-    for (let at = 1; at <= 11; at++) {
-      await seedPrice({ adId: ad.id, countryId, value: at, createdAt: minute(at) });
+    for (const [value, at] of [[10, 1], [30, 2], [5, 3]]) {
+      await seedPrice({ adId: ad.id, countryId, value, createdAt: minute(at) });
     }
 
-    const groups = await repository.getRecentByAd(ad.id);
+    const groups = await repository.getComparisonByAd(ad.id);
 
-    expect(groups[0].map((p) => p.value.toNumber())).toEqual([11, 10, 9, 8, 7, 6, 5, 4, 3, 2]);
+    expect(groups.map((group) => group.map((p) => p.value.toNumber()))).toEqual([[5, 10]]);
+  });
+
+  it("getComparisonByAd returns one of several equal lowest prices", async () => {
+    const ad = await seedAd();
+    const { countryId } = await seedAmazonCountry();
+    for (const [value, at] of [[10, 1], [10, 2], [30, 3]]) {
+      await seedPrice({ adId: ad.id, countryId, value, createdAt: minute(at) });
+    }
+
+    const groups = await repository.getComparisonByAd(ad.id);
+
+    expect(groups.map((group) => group.map((p) => p.value.toNumber()))).toEqual([[30, 10]]);
   });
 
   it("stores Decimal(9,2) exactly and rounds extra fractional digits", async () => {

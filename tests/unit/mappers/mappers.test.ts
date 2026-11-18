@@ -342,7 +342,7 @@ describe("update mappers", () => {
   });
 });
 
-// A row of AmazonAdPriceRepository.getRecentByAd; MySQL returns `active` as 0/1
+// A row of AmazonAdPriceRepository.getComparisonByAd; MySQL returns `active` as 0/1
 const toRecentPriceRow = ({
   country: { tld, active, country },
   ...price
