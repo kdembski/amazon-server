@@ -19,7 +19,7 @@ A country's price dropped sharply against its own recent prices, in that country
 ## Input (marketplace)
 
 The same as for country outliers (`.claude/rules/anomalies/country-outlier.md`; keep both in sync when changing the
-marketplace input): per country the newest price and the lowest older price of any seller (90-day retention), `reportable` only for countries in this scrape that
+marketplace input): per country the newest price and the lowest older price of any seller (180-day retention), `reportable` only for countries in this scrape that
 the marketplace considers reportable. Check production with the `database` skill (`BusinessLog` type `price_drop_sent`).
 
 ## Settings

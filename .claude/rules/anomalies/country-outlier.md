@@ -21,7 +21,7 @@ The same listing costs much less in one country than in the others once all pric
 
 1. The marketplace's price update stores the scraped prices and counts `ad_scraped` (flushed once a minute as a `BusinessLog` row with `data.count`), then runs the detectors
    asynchronously.
-2. It loads per country of the listing the newest price and the lowest older price of any seller (90-day retention),
+2. It loads per country of the listing the newest price and the lowest older price of any seller (180-day retention),
    newest first.
 3. Its `ListingPrice` mapper sets `scraped` for prices of countries in this scrape and `reportable` only for those the
    marketplace considers reportable (Amazon: `dispatchFrom === "Amazon"`).
@@ -85,7 +85,7 @@ Production rule groups (the values in parentheses are the production values too)
 
 ## Known limits
 
-- A listing whose cheapest country had a lower price of any seller at any time in the last 90 days is not reported,
+- A listing whose cheapest country had a lower price of any seller at any time in the last 180 days is not reported,
   however far below the median it is.
 - A listing that matches for the first time is reported even when its cheapest price equals its lowest older price (a
   fourth country appeared, other countries rose). After that a channel gets it only when its cheapest price is the

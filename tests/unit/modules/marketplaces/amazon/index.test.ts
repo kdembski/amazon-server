@@ -77,7 +77,7 @@ describe("createAmazonModule", () => {
     const crons = module.workerCrons as RetentionCleanupCronService[];
     expect(crons.every((c) => c instanceof RetentionCleanupCronService)).toBe(true);
     expect(crons.map((c) => [c["cronTime"], c["label"], c["retentionDays"], c["target"]])).toEqual([
-      ["00 00 04 * * *", "Amazon ad prices", 90, vi.mocked(AmazonAdPriceService).mock.results.at(-1)!.value],
+      ["00 00 04 * * *", "Amazon ad prices", 180, vi.mocked(AmazonAdPriceService).mock.results.at(-1)!.value],
       [
         "00 30 04 * * *",
         "Amazon ad missing routes",

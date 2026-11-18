@@ -22,7 +22,7 @@ export function createAmazonModule(): MarketplaceModule {
       new AmazonCountryRouter(),
     ],
     workerCrons: [
-      new RetentionCleanupCronService("00 00 04 * * *", "Amazon ad prices", 90, new AmazonAdPriceService()),
+      new RetentionCleanupCronService("00 00 04 * * *", "Amazon ad prices", 180, new AmazonAdPriceService()),
       new RetentionCleanupCronService(
         "00 30 04 * * *",
         "Amazon ad missing routes",
