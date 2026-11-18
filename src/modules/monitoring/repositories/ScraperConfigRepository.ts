@@ -7,6 +7,13 @@ export class ScraperConfigRepository {
     this.delegate = prisma.scraperConfig;
   }
 
+  get(scraper: string) {
+    return this.delegate.findUnique({
+      where: { scraper },
+      select: { concurrency: true, rps: true, batchSize: true },
+    });
+  }
+
   getOrCreate(scraper: string) {
     return this.delegate.upsert({
       where: { scraper },

@@ -74,4 +74,26 @@ describe("AnomalyCheckQueue", () => {
       ],
     ]);
   });
+
+  it("warns at most once a minute when 5000 checks are queued", () => {
+    vi.useFakeTimers();
+    const queue = { size: 4_999, add: vi.fn() };
+    const { checks } = setup(queue as unknown as ConcurrencyQueue);
+
+    checks.add({ id: 1 }, async () => [], {});
+    expect(unitLogger().warn).not.toHaveBeenCalled();
+
+    queue.size = 5_000;
+    checks.add({ id: 2 }, async () => [], {});
+    checks.add({ id: 3 }, async () => [], {});
+    expect(unitLogger().warn).toHaveBeenCalledTimes(1);
+    expect(unitLogger().warn).toHaveBeenCalledWith("AnomalyCheckQueue", "5000 anomaly checks are queued", {
+      queuedAnomalyChecks: 5_000,
+    });
+
+    vi.advanceTimersByTime(60_000);
+    checks.add({ id: 4 }, async () => [], {});
+    expect(unitLogger().warn).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
 });

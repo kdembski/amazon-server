@@ -128,6 +128,7 @@ describe("ActivityCountService", () => {
       },
       count("price_drop_sent", 1),
     ]);
+    expect(service.getPendingCount()).toBe(4);
   });
 
   it("getCount sums the stored counts", async () => {

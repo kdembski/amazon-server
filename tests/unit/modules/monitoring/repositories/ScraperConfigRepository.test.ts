@@ -3,6 +3,20 @@ import { ScraperConfigRepository } from "@/modules/monitoring/repositories/Scrap
 import { fakePrisma } from "../../../../support/fakes";
 
 describe("ScraperConfigRepository", () => {
+  it("get returns the config of the scraper", async () => {
+    const db = fakePrisma();
+    const config = { concurrency: 150, rps: 150, batchSize: 5000 };
+    db.scraperConfig.findUnique.mockResolvedValue(config);
+    const repository = new ScraperConfigRepository(db.prisma);
+
+    expect(await repository.get("amazon-pdp-1")).toEqual(config);
+
+    expect(db.scraperConfig.findUnique).toHaveBeenCalledWith({
+      where: { scraper: "amazon-pdp-1" },
+      select: { concurrency: true, rps: true, batchSize: true },
+    });
+  });
+
   it("getOrCreate upserts the scraper row and returns its config", async () => {
     const db = fakePrisma();
     const config = { concurrency: 150, rps: 150, batchSize: 5000 };

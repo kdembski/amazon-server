@@ -35,7 +35,9 @@ export function fakeActivityCountService() {
   const getCount = vi.fn().mockResolvedValue(0);
   const getCountWithMinPrices = vi.fn().mockResolvedValue(0);
   const getHourlyCountWithMinPrices = vi.fn().mockResolvedValue([]);
+  const getPendingCount = vi.fn().mockReturnValue(0);
   const service = {
+    getPendingCount,
     increment,
     incrementBy,
     flush,
@@ -43,7 +45,16 @@ export function fakeActivityCountService() {
     getCountWithMinPrices,
     getHourlyCountWithMinPrices,
   } as unknown as ActivityCountService;
-  return { service, increment, incrementBy, flush, getCount, getCountWithMinPrices, getHourlyCountWithMinPrices };
+  return {
+    service,
+    increment,
+    incrementBy,
+    flush,
+    getCount,
+    getCountWithMinPrices,
+    getHourlyCountWithMinPrices,
+    getPendingCount,
+  };
 }
 
 export function fakeSystemLogService() {
@@ -280,7 +291,7 @@ export function fakePrisma() {
       groupBy: vi.fn(),
     },
     scraperMetricHourly: { ...fakeDelegate(), groupBy: vi.fn(), deleteMany: vi.fn() },
-    scraperConfig: { upsert: vi.fn(), findMany: vi.fn() },
+    scraperConfig: { findUnique: vi.fn(), upsert: vi.fn(), findMany: vi.fn() },
     exclusionRuleFingerprint: { findUnique: vi.fn(), upsert: vi.fn() },
     amazonCountryOutlierReport: { findUnique: vi.fn(), upsert: vi.fn() },
     setting: { findMany: vi.fn(), upsert: vi.fn() },

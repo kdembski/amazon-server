@@ -59,6 +59,11 @@ export class ActivityCountService {
     }
   }
 
+  // Events counted in memory and not stored yet
+  getPendingCount() {
+    return _.sumBy([...this.counter.counts.values()], "count");
+  }
+
   getCount(type: BusinessLogType, from: Date, to: Date) {
     return this.repository.getSum(type, from, to);
   }

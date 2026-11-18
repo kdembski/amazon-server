@@ -16,8 +16,9 @@ const setup = () => {
 };
 
 describe("ActivityCountFlushCronService", () => {
-  it("logs a failed run", async () => {
-    const { service } = setup();
+  it("logs a failed run with the pending count", async () => {
+    const { service, counter } = setup();
+    counter.getPendingCount.mockReturnValue(7);
     const error = new Error("boom");
     vi.spyOn(service, "run").mockRejectedValue(error);
 
@@ -30,6 +31,7 @@ describe("ActivityCountFlushCronService", () => {
     await callback();
     expect(unitLogger().error).toHaveBeenCalledWith("ActivityCountFlushCronService", "Cron run failed", {
       error,
+      pendingCount: 7,
     });
   });
 

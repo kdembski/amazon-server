@@ -25,15 +25,15 @@ export class SystemLogService {
   }
 
   error(source: string, message: string, context?: SystemLogContext) {
-    this.log("error", source, message, context);
+    return this.log("error", source, message, context);
   }
 
   warn(source: string, message: string, context?: SystemLogContext) {
-    this.log("warn", source, message, context);
+    return this.log("warn", source, message, context);
   }
 
   info(source: string, message: string, context?: SystemLogContext) {
-    this.log("info", source, message, context);
+    return this.log("info", source, message, context);
   }
 
   deleteOlderThan(date: Date) {
@@ -41,22 +41,25 @@ export class SystemLogService {
   }
 
   // Never throws or rejects: callers log from catch blocks and error handlers.
+  // Resolves once the log is stored, so a process can wait for it before exiting.
   private log(
     level: SystemLogLevel,
     source: string,
     message: string,
     context?: SystemLogContext
-  ) {
+  ): Promise<void> {
     try {
       const data = this.mapper.toCreateInput({ level, source, message, context });
       const write = level === "info" ? console.log : console[level];
       write(`[${level}] ${data.source}: ${data.message}`, ...(data.context ? [data.context] : []));
 
-      this.repository
-        .create(data)
-        .catch((e) => console.error(`[error] SystemLogService: failed to store log: ${e}`));
+      return this.repository.create(data).then(
+        () => undefined,
+        (e) => console.error(`[error] SystemLogService: failed to store log: ${e}`)
+      );
     } catch (e) {
       console.error(`[error] SystemLogService: failed to log ${source}: ${message}: ${e}`);
+      return Promise.resolve();
     }
   }
 }
