@@ -343,7 +343,7 @@ describe("CountryOutlierManager", () => {
     const { manager, reporter, getPlnRates, listing } = setup([rule(1)], 30);
     const eur = buildCurrency({ code: "EUR" });
     getPlnRates.mockResolvedValue([buildRate({ source: eur, value: 4.5 })]);
-    const eurHistory = [10, 8].map((value) =>
+    const eurHistory = [8, 10].map((value) =>
       buildListingPrice({
         value,
         country: { currencyId: eur.id, currencyCode: "EUR" },

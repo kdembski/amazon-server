@@ -53,7 +53,7 @@ export class AmazonAdPriceRepository {
   }
 
   // Per country the newest price and the lowest older one, newest first; each LATERAL part reads one
-  // entry of the (adId, countryId, createdAt) or (adId, countryId, value) index.
+  // entry of the (adId, countryId, createdAt) or (adId, countryId, value, createdAt) index.
   async getComparisonByAd(adId: number) {
     const rows = await this.prisma.$queryRaw<AmazonAdRecentPriceRow[]>`
       SELECT p.id, p.adId, p.countryId, p.value, p.dispatchFrom, p.createdAt, p.updatedAt,
