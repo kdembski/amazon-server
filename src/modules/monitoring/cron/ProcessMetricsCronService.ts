@@ -4,7 +4,7 @@ import { CronService } from "@/shared/system/CronService";
 
 export class ProcessMetricsCronService extends CronService {
   // Second 45 keeps the log away from the activity flush at second 30
-  protected readonly cronTime = "45 * * * * *";
+  protected readonly cronTime = "45 */5 * * * *";
   private role;
   private metricsService;
 
