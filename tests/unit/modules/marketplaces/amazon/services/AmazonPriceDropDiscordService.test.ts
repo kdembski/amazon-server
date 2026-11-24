@@ -129,4 +129,15 @@ describe("AmazonPriceDropDiscordService", () => {
       "**1.00 EUR** *(12%)*"
     );
   });
+
+  it("builds the same embed it sends", async () => {
+    const discord = fakeDiscordChannelService();
+    const service = build(discord);
+    const ad = buildAd();
+    const countryPrices = [[buildListingPrice({ value: 40 }), buildListingPrice({ value: 100 })]];
+
+    await service.send(ad, countryPrices, 7);
+
+    expect(discord.send.mock.calls[0][1]).toEqual({ embeds: [service.buildEmbed(ad, countryPrices)] });
+  });
 });

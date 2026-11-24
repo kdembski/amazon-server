@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AmazonPriceDropReporter } from "@/modules/marketplaces/amazon/services/AmazonPriceDropReporter";
+import { AmazonDealCheckService } from "@/modules/marketplaces/amazon/services/AmazonDealCheckService";
 import { buildAd, buildListingPrice } from "../../../../../support/factories";
 import {
   fakeAmazonPriceDropDiscordService,
@@ -9,9 +10,40 @@ import {
 const setup = () => {
   const log = fakeBusinessLogService();
   const discord = fakeAmazonPriceDropDiscordService();
-  const reporter = new AmazonPriceDropReporter(log.service, discord.service);
-  return { reporter, log, discord };
+  const dealCheck = { check: vi.fn() };
+  const reporter = new AmazonPriceDropReporter(
+    log.service,
+    discord.service,
+    dealCheck as unknown as AmazonDealCheckService
+  );
+  return { reporter, log, discord, dealCheck };
 };
+
+describe("AmazonPriceDropReporter.checkDeal", () => {
+  it("passes the newest price of each country and the alert embed to the deal check without logging or sending", async () => {
+    const { reporter, log, discord, dealCheck } = setup();
+    const ad = buildAd();
+    const de = { name: "Niemcy", currencyCode: "EUR" };
+    const countryPrices = [
+      [
+        buildListingPrice({ value: 10, url: "https://amazon.de/dp/X", country: de }),
+        buildListingPrice({ value: 100, country: de }),
+      ],
+    ];
+
+    await reporter.checkDeal(ad, countryPrices, 9);
+
+    expect(discord.buildEmbed).toHaveBeenCalledWith(ad, countryPrices);
+    expect(dealCheck.check).toHaveBeenCalledWith(
+      ad,
+      [{ country: "Niemcy", value: "10.00", currency: "EUR", url: "https://amazon.de/dp/X" }],
+      { title: "alert" },
+      9
+    );
+    expect(log.create).not.toHaveBeenCalled();
+    expect(discord.send).not.toHaveBeenCalled();
+  });
+});
 
 describe("AmazonPriceDropReporter", () => {
   it("logs the event with the newest price of each country and sends the embed", async () => {

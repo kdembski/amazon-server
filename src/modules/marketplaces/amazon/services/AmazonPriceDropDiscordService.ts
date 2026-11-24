@@ -15,6 +15,11 @@ export class AmazonPriceDropDiscordService {
   }
 
   async send(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][], channelId: number) {
+    const embed = this.buildEmbed(ad, countryPrices);
+    await this.service.send(channelId, { embeds: [embed] }, { asin: ad.asin });
+  }
+
+  buildEmbed(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][]) {
     const fields = countryPrices.map((countryHistory) => {
       const prices = this.getPriceChanges(countryHistory);
       const { name, currencyCode } = prices[0].country;
@@ -38,8 +43,7 @@ export class AmazonPriceDropDiscordService {
       };
     });
 
-    const embed = this.embedBuilder.build(ad, fields);
-    await this.service.send(channelId, { embeds: [embed] }, { asin: ad.asin });
+    return this.embedBuilder.build(ad, fields);
   }
 
   // Prices are newest first: keeps the newest one and the oldest price of every run of equal prices.

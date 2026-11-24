@@ -3,6 +3,7 @@ import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { AmazonCountryOutlierDiscordService } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierDiscordService";
 import { AmazonCountryOutlierReportRepository } from "@/modules/marketplaces/amazon/repositories/AmazonCountryOutlierReportRepository";
+import { AmazonDealCheckService } from "@/modules/marketplaces/amazon/services/AmazonDealCheckService";
 import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
 
 export class AmazonCountryOutlierReporter
@@ -11,15 +12,30 @@ export class AmazonCountryOutlierReporter
   private businessLogService;
   private discordService;
   private reportRepository;
+  private dealCheckService;
 
   constructor(
     businessLogService = new BusinessLogService(),
     discordService = new AmazonCountryOutlierDiscordService(),
-    reportRepository = new AmazonCountryOutlierReportRepository()
+    reportRepository = new AmazonCountryOutlierReportRepository(),
+    dealCheckService = new AmazonDealCheckService()
   ) {
     this.businessLogService = businessLogService;
     this.discordService = discordService;
     this.reportRepository = reportRepository;
+    this.dealCheckService = dealCheckService;
+  }
+
+  // The prices are in PLN already.
+  async checkDeal(ad: AmazonAdSelectDto, prices: ListingPrice[], channelId: number, difference?: number) {
+    const dealPrices = prices.map((price) => ({
+      country: price.country.name,
+      value: price.value.toFixed(2),
+      currency: "PLN",
+      url: price.url,
+    }));
+    const alert = this.discordService.buildEmbed(ad, prices, difference);
+    this.dealCheckService.check(ad, dealPrices, alert, channelId);
   }
 
   getReportedPrice(ad: AmazonAdSelectDto, price: ListingPrice) {
