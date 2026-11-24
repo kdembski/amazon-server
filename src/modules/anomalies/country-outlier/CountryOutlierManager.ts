@@ -43,18 +43,23 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     if (!countryPrices) return;
 
     const prices = await this.getSortedPlnPrices(countryPrices);
-    const rules = await this.ruleMatcher.getMatches(prices);
-    if (!rules.length) return;
+    // Treating every dealCheck rule as passing stops early without reading the reported price.
+    const candidates = await this.ruleMatcher.getMatches(prices, () => true);
+    if (!candidates.length) return;
 
     const history = countryPrices.find(([price]) => price.country === prices[0].country)!;
     if (!this.evaluator.isAtLowest(history)) return;
 
     const [cheapest, lowest] = history;
-    const channelIds = await this.getChannelsToReport(listing, cheapest, rules);
-    if (!channelIds.length) return;
+    const reported = await this.reporter.getReportedPrice(listing, cheapest);
+    const rules = await this.ruleMatcher.getMatches(prices, (percent) => {
+      return !!reported && this.isBelowReported(cheapest.value, reported, percent);
+    });
+    const channels = this.getChannelsToReport(cheapest, rules, reported);
+    if (!channels.length) return;
 
     const difference = lowest && this.getDifference(cheapest.value, lowest.value);
-    await this.report(listing, prices, channelIds, difference);
+    await this.report(listing, prices, channels, difference);
     await this.reporter.setReportedPrice(listing, cheapest);
   }
 
@@ -73,26 +78,38 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     return prices;
   }
 
-  // The matched channels whose dropSinceSentPercent the cheapest price passed since the reported one
-  private async getChannelsToReport(listing: T, cheapest: ListingPrice, rules: CountryOutlierRuleI[]) {
-    const reported = await this.reporter.getReportedPrice(listing, cheapest);
+  // The matched channels whose dropSinceSentPercent the cheapest price passed since the reported one;
+  // dealCheck channels passed it in their rule already.
+  private getChannelsToReport(cheapest: ListingPrice, rules: CountryOutlierRuleI[], reported?: Decimal) {
     return [...this.getChannels(rules)]
-      .filter(([, drop]) => !reported || this.isBelowReported(cheapest.value, reported, drop))
-      .map(([channelId]) => channelId);
+      .filter(([, { dropSinceSentPercent, dealCheck }]) => {
+        return dealCheck || !reported || this.isBelowReported(cheapest.value, reported, dropSinceSentPercent);
+      })
+      .map(([channelId, { dealCheck }]) => ({ channelId, dealCheck }));
   }
 
-  private async report(listing: T, prices: ListingPrice[], channelIds: number[], difference?: number) {
-    for (const channelId of channelIds) {
-      await this.reporter.report(listing, prices, channelId, difference);
+  private async report(
+    listing: T,
+    prices: ListingPrice[],
+    channels: { channelId: number; dealCheck: boolean }[],
+    difference?: number
+  ) {
+    for (const { channelId, dealCheck } of channels) {
+      if (dealCheck) await this.reporter.checkDeal(listing, prices, channelId, difference);
+      else await this.reporter.report(listing, prices, channelId, difference);
     }
   }
 
-  // A channel matched by rules of several groups uses the lowest dropSinceSentPercent.
+  // A channel matched by rules of several groups uses the lowest dropSinceSentPercent and the mode
+  // (dealCheck or plain) of its rule in the earliest group.
   private getChannels(rules: CountryOutlierRuleI[]) {
-    const channels = new Map<number, number>();
-    for (const { channelId, dropSinceSentPercent } of rules) {
-      const current = channels.get(channelId) ?? Infinity;
-      channels.set(channelId, Math.min(current, dropSinceSentPercent));
+    const channels = new Map<number, { dropSinceSentPercent: number; dealCheck: boolean }>();
+    for (const { channelId, dropSinceSentPercent, dealCheck } of rules) {
+      const current = channels.get(channelId);
+      channels.set(channelId, {
+        dropSinceSentPercent: Math.min(current?.dropSinceSentPercent ?? Infinity, dropSinceSentPercent),
+        dealCheck: current ? current.dealCheck : dealCheck,
+      });
     }
     return channels;
   }
