@@ -25,7 +25,7 @@ the marketplace considers reportable. Check production with the `database` skill
 ## Settings
 
 `priceDrop.ruleGroups` (`Setting`, changed through `PUT /settings/priceDrop.ruleGroups`): groups of rules
-`{ channelId, dropPercent }`; without the row nothing is reported.
+`{ channelId, dropPercent, dealCheck? }`; without the row nothing is reported.
 
 Production rule groups:
 
@@ -41,12 +41,14 @@ Production rule groups:
 3. Per country each group takes its first rule, in list order, that matches
    (`PriceDropEvaluator.isOverPercentageDifference`): the country has an older price and the newest price is at least
    the rule's `dropPercent` below the lowest older price, so a temporary spike (47 → 111 → 44) is not a drop.
-4. A country matching any rule is a matched country; the distinct `channelId`s of all matched rules are the channels.
+4. A country matching any rule is a matched country; the distinct `channelId`s of all matched rules are the channels,
+   each with the `dealCheck` of its first matched rule in group order.
 5. Without a channel nothing happens. Otherwise, per channel, the marketplace's `PriceDropReporter.report` gets the
    listing, the price histories of all matched countries and the `channelId`; it stores one `price_drop_sent` event
    (`data.channel` = `String(channelId)`) with the newest price of each country and posts one Discord message to that
    `DiscordChannel`. The Amazon message shows per country the lowest older and the newest price with the percentage
-   between them.
+   between them. A `dealCheck` channel goes to `PriceDropReporter.checkDeal` with the same arguments instead
+   (`.claude/rules/anomalies/deal-check.md`).
 
 ## Repeats
 
