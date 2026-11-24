@@ -5,11 +5,13 @@ export interface CountryOutlierRuleSetting {
   maxPln?: number;
   minPrices?: number;
   dropSinceSentPercent?: number;
+  dealCheck?: boolean;
 }
 
 export interface PriceDropRuleSetting {
   channelId: number;
   dropPercent: number;
+  dealCheck?: boolean;
 }
 
 export interface Settings {
