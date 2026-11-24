@@ -110,8 +110,9 @@ export function fakeScraperConfigService() {
 
 export function fakeAmazonCountryOutlierDiscordService() {
   const send = vi.fn().mockResolvedValue(undefined);
-  const service = { send } as unknown as AmazonCountryOutlierDiscordService;
-  return { service, send };
+  const buildEmbed = vi.fn().mockReturnValue({ title: "alert" });
+  const service = { send, buildEmbed } as unknown as AmazonCountryOutlierDiscordService;
+  return { service, send, buildEmbed };
 }
 
 // Keys missing in `values` come from TEST_SETTINGS; pass a key as undefined for a missing setting.
@@ -181,8 +182,9 @@ export function fakeDiscordChannelService() {
 
 export function fakeAmazonPriceDropDiscordService() {
   const send = vi.fn().mockResolvedValue(undefined);
-  const service = { send } as unknown as AmazonPriceDropDiscordService;
-  return { service, send };
+  const buildEmbed = vi.fn().mockReturnValue({ title: "alert" });
+  const service = { send, buildEmbed } as unknown as AmazonPriceDropDiscordService;
+  return { service, send, buildEmbed };
 }
 
 export function fakeDiscordService() {

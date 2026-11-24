@@ -159,12 +159,12 @@ describe("ScraperMetricController", () => {
 
   it("getStatuses returns the statuses", async () => {
     const { controller, getStatuses } = setup();
-    getStatuses.mockResolvedValue([{ scraper: "a", lastReportAt: "t" }]);
+    getStatuses.mockResolvedValue([{ scraper: "a", stopped: false }]);
     const { response, json } = fakeResponse();
 
     await controller.getStatuses(response);
 
-    expect(json).toHaveBeenCalledWith([{ scraper: "a", lastReportAt: "t" }]);
+    expect(json).toHaveBeenCalledWith([{ scraper: "a", stopped: false }]);
   });
 
   it("getStatuses sends an error response when the service throws", async () => {

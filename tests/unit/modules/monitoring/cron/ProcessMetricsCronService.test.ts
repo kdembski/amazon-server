@@ -36,7 +36,7 @@ describe("ProcessMetricsCronService", () => {
     const [expression, callback] = vi.mocked(CronJob).mock
       .calls[0] as unknown as [string, () => void];
     expect(metrics.start).toHaveBeenCalled();
-    expect(expression).toBe("45 * * * * *");
+    expect(expression).toBe("45 */5 * * * *");
     callback();
     expect(run).toHaveBeenCalled();
     expect(vi.mocked(CronJob).mock.results[0].value.start).toHaveBeenCalled();

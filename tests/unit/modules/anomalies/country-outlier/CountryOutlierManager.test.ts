@@ -13,13 +13,14 @@ import { fakeSettingService, fakeSystemLogService } from "../../../../support/fa
 
 const fakeReporter = (reported?: number) => ({
   report: vi.fn().mockResolvedValue(undefined),
+  checkDeal: vi.fn().mockResolvedValue(undefined),
   getReportedPrice: vi
     .fn()
     .mockResolvedValue(reported === undefined ? undefined : new Decimal(reported)),
   setReportedPrice: vi.fn().mockResolvedValue(undefined),
 });
 
-type Rule = { channelId: number; dropSinceSentPercent: number };
+type Rule = { channelId: number; dropSinceSentPercent: number; dealCheck?: boolean };
 const rule = (channelId: number, dropSinceSentPercent = 10): Rule => ({
   channelId,
   dropSinceSentPercent,
@@ -33,7 +34,10 @@ const setup = (
 ) => {
   const reporter = fakeReporter(reported);
   const getPlnRates = vi.fn().mockResolvedValue([]);
-  const getMatches = vi.fn().mockResolvedValue(rules);
+  // Applies isBelowReported like CountryOutlierRule: a plain rule passes without a reported price.
+  const getMatches = vi.fn(async (_: ListingPrice[], isBelowReported?: (percent: number) => boolean) => {
+    return rules.filter((rule) => isBelowReported?.(rule.dropSinceSentPercent) ?? !rule.dealCheck);
+  });
   const manager = new CountryOutlierManager(
     reporter,
     { getPlnRates } as unknown as CurrencyExchangeRateService,
@@ -358,5 +362,89 @@ describe("CountryOutlierManager", () => {
     ]);
 
     expect(reporter.report).not.toHaveBeenCalled();
+  });
+
+  describe("with dealCheck rules", () => {
+    const dealCheck = (channelId: number): Rule => ({ channelId, dropSinceSentPercent: 50, dealCheck: true });
+    // The target group: the dealCheck rule wins only when its drop since the reported price passes.
+    const targetGroup = async (_: ListingPrice[], isBelowReported?: (percent: number) => boolean) => {
+      return isBelowReported?.(50) ? [dealCheck(10)] : [rule(2)];
+    };
+    const countries = (...cheapest: number[]) => [history(300), history(...cheapest), history(400), history(500)];
+
+    it("sends the first alert of a listing to the plain rule", async () => {
+      const { manager, reporter, getMatches, listing } = setup();
+      getMatches.mockImplementation(targetGroup);
+      const prices = countries(100);
+
+      await manager.check(listing, prices);
+
+      expect(reporter.report.mock.calls.map((call) => call[2])).toEqual([2]);
+      expect(reporter.checkDeal).not.toHaveBeenCalled();
+      expect(reporter.setReportedPrice).toHaveBeenCalledWith(listing, prices[1][0]);
+    });
+
+    it("deal-checks a drop of at least 50% since the reported price instead of the plain alert", async () => {
+      const { manager, reporter, getMatches, listing } = setup(undefined, 100);
+      getMatches.mockImplementation(targetGroup);
+
+      await manager.check(listing, countries(50, 100));
+
+      const [matched] = getMatches.mock.calls[0];
+      expect(reporter.checkDeal.mock.calls).toEqual([[listing, matched, 10, -50]]);
+      expect(reporter.report).not.toHaveBeenCalled();
+      expect(reporter.setReportedPrice).toHaveBeenCalledTimes(1);
+    });
+
+    it("falls through to the plain rule for a drop below 50%", async () => {
+      const { manager, reporter, getMatches, listing } = setup(undefined, 100);
+      getMatches.mockImplementation(targetGroup);
+
+      await manager.check(listing, countries(80));
+
+      expect(reporter.report.mock.calls.map((call) => call[2])).toEqual([2]);
+      expect(reporter.checkDeal).not.toHaveBeenCalled();
+    });
+
+    it("compares the raw price of the cheapest country with the reported one", async () => {
+      const { manager, getPlnRates, getMatches, listing } = setup(undefined, 20);
+      const eur = buildCurrency({ code: "EUR" });
+      getPlnRates.mockResolvedValue([buildRate({ source: eur, value: 4.5 })]);
+      const eurPrice = buildListingPrice({ value: 10, country: { currencyId: eur.id, currencyCode: "EUR" } });
+
+      await manager.check(listing, [history(300), [eurPrice], history(400), history(500)]);
+
+      const isBelowReported = getMatches.mock.calls[1][1]!;
+      expect(isBelowReported(50)).toBe(true);
+      expect(isBelowReported(51)).toBe(false);
+    });
+
+    it("passes no isBelowReported without a reported price", async () => {
+      const { manager, getMatches, listing } = setup();
+
+      await manager.check(listing, countries(10));
+
+      expect(getMatches.mock.calls[1][1]).toBeUndefined();
+    });
+
+    it("deal-checks a listing whose only matching rule is a dealCheck rule", async () => {
+      const { manager, reporter, getMatches, listing } = setup(undefined, 100);
+      getMatches.mockImplementation(async (_, isBelowReported) => (isBelowReported?.(50) ? [dealCheck(10)] : []));
+
+      await manager.check(listing, countries(50));
+
+      expect(reporter.checkDeal).toHaveBeenCalledTimes(1);
+    });
+
+    it("takes the mode of the earlier group for a channel of two groups", async () => {
+      const first = setup([dealCheck(5), rule(5)], 100);
+      const reversed = setup([rule(5), dealCheck(5)], 100);
+
+      await first.manager.check(first.listing, countries(50));
+      await reversed.manager.check(reversed.listing, countries(50));
+
+      expect([first.reporter.checkDeal.mock.calls.length, first.reporter.report.mock.calls.length]).toEqual([1, 0]);
+      expect([reversed.reporter.checkDeal.mock.calls.length, reversed.reporter.report.mock.calls.length]).toEqual([0, 1]);
+    });
   });
 });

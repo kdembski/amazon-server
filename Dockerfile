@@ -9,6 +9,7 @@ WORKDIR /app
 COPY package.json package-lock.json prisma.config.ts ./
 COPY prisma ./prisma
 RUN npm ci && npx prisma generate
+RUN npm install -g @anthropic-ai/claude-code@2.1.318
 
 COPY tsconfig.json vite.config.ts ./
 COPY src ./src

@@ -108,4 +108,38 @@ describe("CountryOutlierRuleMatcher", () => {
 
     expect(await matcher().getMatches(list)).toEqual([]);
   });
+
+  it("falls through a dealCheck rule to the next rule of its group unless the reported price dropped enough", async () => {
+    const settings: Partial<Settings> = {
+      "countryOutlier.ruleGroups": [
+        [
+          { channelId: 10, belowMedianPercent: 70, dropSinceSentPercent: 50, dealCheck: true },
+          { channelId: 3, belowMedianPercent: 90 },
+          { channelId: 2, belowMedianPercent: 70 },
+        ],
+      ],
+    };
+    const getMatches = (isBelowReported?: (percent: number) => boolean) => {
+      return matcher(settings).getMatches(prices(25, 100, 120), isBelowReported);
+    };
+
+    expect((await getMatches()).map((rule) => rule.channelId)).toEqual([2]);
+    expect((await getMatches(() => false)).map((rule) => rule.channelId)).toEqual([]);
+    expect((await getMatches((percent) => percent <= 10)).map((rule) => rule.channelId)).toEqual([2]);
+    expect((await getMatches((percent) => percent >= 50)).map((rule) => rule.channelId)).toEqual([10]);
+  });
+
+  it("falls through a plain rule whose drop since the reported price is below its dropSinceSentPercent", async () => {
+    const settings: Partial<Settings> = {
+      "countryOutlier.ruleGroups": [
+        [
+          { channelId: 2, belowMedianPercent: 70, dropSinceSentPercent: 20 },
+          { channelId: 1, belowMedianPercent: 50, dropSinceSentPercent: 5 },
+        ],
+      ],
+    };
+    const rules = await matcher(settings).getMatches(prices(25, 100, 120), (percent) => percent <= 10);
+
+    expect(rules.map((rule) => rule.channelId)).toEqual([1]);
+  });
 });

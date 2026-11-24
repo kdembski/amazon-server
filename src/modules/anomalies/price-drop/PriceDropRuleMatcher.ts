@@ -12,11 +12,11 @@ export class PriceDropRuleMatcher {
   }
 
   // Each group takes its first matching rule per country; returns the countries that matched any rule
-  // and the distinct channels of the matched rules.
+  // and the distinct channels of the matched rules, each with dealCheck of its first matched rule.
   async getMatches(countryPrices: ListingPrice[][]) {
     const groups = await this.settingService.get("priceDrop.ruleGroups");
     const matchedCountries: ListingPrice[][] = [];
-    const channelIds = new Set<number>();
+    const channels = new Map<number, boolean>();
 
     for (const prices of countryPrices) {
       const rules = (groups ?? []).flatMap((group) => {
@@ -28,9 +28,12 @@ export class PriceDropRuleMatcher {
       if (!rules.length) continue;
 
       matchedCountries.push(prices);
-      rules.forEach((rule) => channelIds.add(rule.channelId));
+      for (const { channelId, dealCheck } of rules) {
+        if (!channels.has(channelId)) channels.set(channelId, dealCheck ?? false);
+      }
     }
 
-    return { countryPrices: matchedCountries, channelIds: [...channelIds] };
+    const matchedChannels = [...channels].map(([channelId, dealCheck]) => ({ channelId, dealCheck }));
+    return { countryPrices: matchedCountries, channels: matchedChannels };
   }
 }

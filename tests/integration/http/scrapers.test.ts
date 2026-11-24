@@ -183,7 +183,7 @@ describe("/scrapers", () => {
     expect(response.body).toEqual([
       {
         scraper: "amazon-pdp",
-        lastReportAt: expect.any(String),
+        stopped: false,
         itemsPerSecond: 0,
         requestsPerSecond: 6600 / 3600,
         rps: 0,
@@ -192,7 +192,6 @@ describe("/scrapers", () => {
         openConnections: 7,
       },
     ]);
-    expect(Date.parse(response.body[0].lastReportAt)).toBeGreaterThanOrEqual(before - 1000);
   });
 
   it("GET /series answers 400 for an invalid range", async () => {

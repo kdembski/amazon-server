@@ -53,4 +53,44 @@ describe("CountryOutlierRule", () => {
     expect([own.channelId, own.dropSinceSentPercent]).toEqual([3, 5]);
     expect([fallback.channelId, fallback.dropSinceSentPercent]).toEqual([4, 10]);
   });
+
+  describe("with dealCheck", () => {
+    const dealCheck = new CountryOutlierRule(
+      { channelId: 10, belowMedianPercent: 70, dropSinceSentPercent: 50, dealCheck: true },
+      10,
+      3
+    );
+    const matching = prices(25, 100, 100);
+
+    it("keeps dealCheck, false by default", () => {
+      const plain = new CountryOutlierRule({ channelId: 1, belowMedianPercent: 50 }, 10, 3);
+
+      expect(dealCheck.dealCheck).toBe(true);
+      expect(plain.dealCheck).toBe(false);
+    });
+
+    it("does not match without a reported price", () => {
+      expect(dealCheck.matches(matching)).toBe(false);
+    });
+
+    it("does not match when the drop since the reported price is below its dropSinceSentPercent", () => {
+      expect(dealCheck.matches(matching, () => false)).toBe(false);
+    });
+
+    it("matches when the drop since the reported price reaches its dropSinceSentPercent", () => {
+      expect(dealCheck.matches(matching, (percent) => percent === 50)).toBe(true);
+    });
+
+    it("still requires belowMedianPercent", () => {
+      expect(dealCheck.matches(prices(31, 100, 100), () => true)).toBe(false);
+    });
+
+    it("matches a plain rule without a reported price, else only when its drop passes", () => {
+      const plain = new CountryOutlierRule({ channelId: 2, belowMedianPercent: 70 }, 10, 3);
+
+      expect(plain.matches(matching)).toBe(true);
+      expect(plain.matches(matching, () => false)).toBe(false);
+      expect(plain.matches(matching, (percent) => percent === 10)).toBe(true);
+    });
+  });
 });

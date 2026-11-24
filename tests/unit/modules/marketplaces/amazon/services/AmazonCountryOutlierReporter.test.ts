@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Decimal } from "@prisma/client/runtime/client";
 import { AmazonCountryOutlierReportRepository } from "@/modules/marketplaces/amazon/repositories/AmazonCountryOutlierReportRepository";
 import { AmazonCountryOutlierReporter } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierReporter";
+import { AmazonDealCheckService } from "@/modules/marketplaces/amazon/services/AmazonDealCheckService";
 import { buildAd, buildListingPrice } from "../../../../../support/factories";
 import {
   fakeAmazonCountryOutlierDiscordService,
@@ -15,13 +16,41 @@ const setup = () => {
     getValue: vi.fn().mockResolvedValue(new Decimal(95)),
     set: vi.fn().mockResolvedValue(undefined),
   };
+  const dealCheck = { check: vi.fn() };
   const reporter = new AmazonCountryOutlierReporter(
     log.service,
     discord.service,
-    repository as unknown as AmazonCountryOutlierReportRepository
+    repository as unknown as AmazonCountryOutlierReportRepository,
+    dealCheck as unknown as AmazonDealCheckService
   );
-  return { reporter, log, discord, repository };
+  return { reporter, log, discord, repository, dealCheck };
 };
+
+describe("AmazonCountryOutlierReporter.checkDeal", () => {
+  it("passes the PLN prices and the alert embed to the deal check without logging or sending", async () => {
+    const { reporter, log, discord, dealCheck } = setup();
+    const ad = buildAd();
+    const prices = [
+      buildListingPrice({ value: 49.21246953, url: "https://amazon.se/dp/X", country: { name: "Szwecja" } }),
+      buildListingPrice({ value: 200, url: "https://amazon.pl/dp/X", country: { name: "Polska" } }),
+    ];
+
+    await reporter.checkDeal(ad, prices, 10, -50);
+
+    expect(discord.buildEmbed).toHaveBeenCalledWith(ad, prices, -50);
+    expect(dealCheck.check).toHaveBeenCalledWith(
+      ad,
+      [
+        { country: "Szwecja", value: "49.21", currency: "PLN", url: "https://amazon.se/dp/X" },
+        { country: "Polska", value: "200.00", currency: "PLN", url: "https://amazon.pl/dp/X" },
+      ],
+      { title: "alert" },
+      10
+    );
+    expect(log.create).not.toHaveBeenCalled();
+    expect(discord.send).not.toHaveBeenCalled();
+  });
+});
 
 describe("AmazonCountryOutlierReporter", () => {
   it("logs the event with the PLN prices and sends the embed to the rule's channel", async () => {

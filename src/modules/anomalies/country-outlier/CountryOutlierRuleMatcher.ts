@@ -1,4 +1,5 @@
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { IsBelowReported } from "@/modules/anomalies/interfaces/CountryOutlierRuleI";
 import { CountryOutlierEvaluator } from "@/modules/anomalies/country-outlier/CountryOutlierEvaluator";
 import { CountryOutlierRule } from "@/modules/anomalies/country-outlier/CountryOutlierRule";
 import { SettingService } from "@/modules/settings/services/SettingService";
@@ -16,7 +17,8 @@ export class CountryOutlierRuleMatcher {
   }
 
   // Each group reports at most one rule: the first one that matches.
-  async getMatches(prices: ListingPrice[]) {
+  // `isBelowReported` only with a reported price (see CountryOutlierRule.matches).
+  async getMatches(prices: ListingPrice[], isBelowReported?: IsBelowReported) {
     if (!this.evaluator.isReportable(prices)) return [];
 
     const [groups, dropSinceSentPercent, minPrices] = await Promise.all([
@@ -31,7 +33,7 @@ export class CountryOutlierRuleMatcher {
         .map((setting) => {
           return new CountryOutlierRule(setting, dropSinceSentPercent, minPrices, this.evaluator);
         })
-        .find((rule) => rule.matches(prices));
+        .find((rule) => rule.matches(prices, isBelowReported));
       return rule ? [rule] : [];
     });
   }

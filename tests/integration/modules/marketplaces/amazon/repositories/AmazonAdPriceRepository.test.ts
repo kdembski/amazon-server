@@ -76,16 +76,17 @@ describe("AmazonAdPriceRepository (MySQL)", () => {
     expect(groups.map((group) => group.map((p) => p.value.toNumber()))).toEqual([[5, 10]]);
   });
 
-  it("getComparisonByAd returns one of several equal lowest prices", async () => {
+  it("getComparisonByAd returns the last seen of several equal lowest prices", async () => {
     const ad = await seedAd();
     const { countryId } = await seedAmazonCountry();
-    for (const [value, at] of [[10, 1], [10, 2], [30, 3]]) {
+    for (const [value, at] of [[10, 1], [10, 3], [20, 4], [10, 2], [30, 5]]) {
       await seedPrice({ adId: ad.id, countryId, value, createdAt: minute(at) });
     }
 
     const groups = await repository.getComparisonByAd(ad.id);
 
     expect(groups.map((group) => group.map((p) => p.value.toNumber()))).toEqual([[30, 10]]);
+    expect(groups[0][1].createdAt).toEqual(minute(3));
   });
 
   it("stores Decimal(9,2) exactly and rounds extra fractional digits", async () => {

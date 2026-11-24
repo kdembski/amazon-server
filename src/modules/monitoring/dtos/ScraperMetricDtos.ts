@@ -68,10 +68,11 @@ export interface ScraperBreakdown extends ScraperMetrics {
   group: string;
 }
 
-// Averages of the last hour: rates over the whole hour, gauges over its reports; rps and concurrency from ScraperConfig, scrapers without a row are left out
+// One per ScraperConfig row; averages of the last hour: rates over the whole hour, gauges over its reports
 export interface ScraperStatus {
   scraper: string;
-  lastReportAt: string;
+  // No report in the last 5 minutes
+  stopped: boolean;
   itemsPerSecond: number;
   requestsPerSecond: number;
   // 0 = no limit
@@ -79,11 +80,6 @@ export interface ScraperStatus {
   pending: number;
   concurrency: number;
   openConnections: number;
-}
-
-export interface ScraperLastReport {
-  scraper: string;
-  reportedAt: Date;
 }
 
 export interface ScraperStatusSum extends ScraperMetricSum {

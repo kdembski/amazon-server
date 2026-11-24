@@ -7,7 +7,7 @@ import { buildListingPrice } from "../../../../support/factories";
 import { fakeSettingService } from "../../../../support/fakes";
 
 const setup = (ruleGroups?: Settings["priceDrop.ruleGroups"]) => {
-  const reporter = { report: vi.fn().mockResolvedValue(undefined) };
+  const reporter = { report: vi.fn().mockResolvedValue(undefined), checkDeal: vi.fn().mockResolvedValue(undefined) };
   const settings = fakeSettingService(ruleGroups ? { "priceDrop.ruleGroups": ruleGroups } : {});
   const matcher = new PriceDropRuleMatcher(settings.service);
   const manager = new PriceDropManager(reporter, new PriceDropEvaluator(), matcher);
@@ -76,5 +76,18 @@ describe("PriceDropManager", () => {
     await manager.check(listing, [history(90, 100), matching]);
 
     expect(reporter.report).toHaveBeenCalledWith(listing, [matching], 7);
+  });
+
+  it("deal-checks the channel of a dealCheck rule and reports the others", async () => {
+    const { manager, reporter, listing } = setup([
+      [{ channelId: 9, dropPercent: 80, dealCheck: true }],
+      [{ channelId: 7, dropPercent: 50 }],
+    ]);
+    const country = history(10, 100);
+
+    await manager.check(listing, [country]);
+
+    expect(reporter.checkDeal.mock.calls).toEqual([[listing, [country], 9]]);
+    expect(reporter.report.mock.calls).toEqual([[listing, [country], 7]]);
   });
 });

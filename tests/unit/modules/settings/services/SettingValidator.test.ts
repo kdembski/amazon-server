@@ -182,4 +182,30 @@ describe("SettingValidator.validate", () => {
   ])("rejects rule groups with %s", (_, value, message) => {
     expectInvalid(() => validator.validate("countryOutlier.ruleGroups", value, CHANNELS), message);
   });
+
+  it("keeps dealCheck of a country outlier rule", () => {
+    const groups = ruleGroups({ dealCheck: true });
+    expect(validator.validate("countryOutlier.ruleGroups", groups, CHANNELS)).toEqual(groups);
+  });
+
+  it("keeps dealCheck of a price drop rule", () => {
+    const groups = [[{ channelId: 1, dropPercent: 80, dealCheck: false }]];
+    expect(validator.validate("priceDrop.ruleGroups", groups, CHANNELS)).toEqual(groups);
+  });
+
+  it("omits dealCheck when absent", () => {
+    const groups = [[{ channelId: 1, dropPercent: 80 }]];
+    const [[rule]] = validator.validate("priceDrop.ruleGroups", groups, CHANNELS);
+    expect(rule).not.toHaveProperty("dealCheck");
+  });
+
+  it.each([
+    ["priceDrop.ruleGroups", [[{ channelId: 1, dropPercent: 80, dealCheck: "yes" }]]],
+    ["countryOutlier.ruleGroups", ruleGroups({ dealCheck: 1 })],
+  ] as const)("rejects a non-boolean dealCheck in %s", (key, value) => {
+    expectInvalid(
+      () => validator.validate(key, value, CHANNELS),
+      `Setting "${key}"[0][0].dealCheck must be a boolean`
+    );
+  });
 });

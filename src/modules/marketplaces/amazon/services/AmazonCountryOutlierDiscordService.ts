@@ -19,6 +19,11 @@ export class AmazonCountryOutlierDiscordService {
     prices: ListingPrice[],
     difference?: number
   ) {
+    const embed = this.buildEmbed(ad, prices, difference);
+    await this.service.send(channelId, { embeds: [embed] }, { asin: ad.asin });
+  }
+
+  buildEmbed(ad: AmazonAdSelectDto, prices: ListingPrice[], difference?: number) {
     const fields = prices.map((price, i) => {
       const link = `[${NumberFormatter.round(price.value, 2)} PLN](${price.url})`;
       return {
@@ -26,8 +31,6 @@ export class AmazonCountryOutlierDiscordService {
         value: i === 0 && difference ? `${link} *(${difference}%)*` : link,
       };
     });
-    const embed = this.embedBuilder.build(ad, fields);
-
-    await this.service.send(channelId, { embeds: [embed] }, { asin: ad.asin });
+    return this.embedBuilder.build(ad, fields);
   }
 }

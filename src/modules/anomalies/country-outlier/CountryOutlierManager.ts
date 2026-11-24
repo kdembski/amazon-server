@@ -43,18 +43,21 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     if (!countryPrices) return;
 
     const prices = await this.getSortedPlnPrices(countryPrices);
-    const rules = await this.ruleMatcher.getMatches(prices);
-    if (!rules.length) return;
+    // Treating every drop since the reported price as passing stops early without reading the reported price.
+    const candidates = await this.ruleMatcher.getMatches(prices, () => true);
+    if (!candidates.length) return;
 
     const history = countryPrices.find(([price]) => price.country === prices[0].country)!;
     if (!this.evaluator.isAtLowest(history)) return;
 
     const [cheapest, lowest] = history;
-    const channelIds = await this.getChannelsToReport(listing, cheapest, rules);
-    if (!channelIds.length) return;
+    const reported = await this.reporter.getReportedPrice(listing, cheapest);
+    const isBelowReported = reported && ((percent: number) => this.isBelowReported(cheapest.value, reported, percent));
+    const channels = this.getChannels(await this.ruleMatcher.getMatches(prices, isBelowReported));
+    if (!channels.length) return;
 
     const difference = lowest && this.getDifference(cheapest.value, lowest.value);
-    await this.report(listing, prices, channelIds, difference);
+    await this.report(listing, prices, channels, difference);
     await this.reporter.setReportedPrice(listing, cheapest);
   }
 
@@ -73,28 +76,26 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     return prices;
   }
 
-  // The matched channels whose dropSinceSentPercent the cheapest price passed since the reported one
-  private async getChannelsToReport(listing: T, cheapest: ListingPrice, rules: CountryOutlierRuleI[]) {
-    const reported = await this.reporter.getReportedPrice(listing, cheapest);
-    return [...this.getChannels(rules)]
-      .filter(([, drop]) => !reported || this.isBelowReported(cheapest.value, reported, drop))
-      .map(([channelId]) => channelId);
-  }
-
-  private async report(listing: T, prices: ListingPrice[], channelIds: number[], difference?: number) {
-    for (const channelId of channelIds) {
-      await this.reporter.report(listing, prices, channelId, difference);
+  private async report(
+    listing: T,
+    prices: ListingPrice[],
+    channels: { channelId: number; dealCheck: boolean }[],
+    difference?: number
+  ) {
+    for (const { channelId, dealCheck } of channels) {
+      if (dealCheck) await this.reporter.checkDeal(listing, prices, channelId, difference);
+      else await this.reporter.report(listing, prices, channelId, difference);
     }
   }
 
-  // A channel matched by rules of several groups uses the lowest dropSinceSentPercent.
+  // A channel matched by rules of several groups is reported once, in the mode (dealCheck or plain) of its rule
+  // in the earliest group.
   private getChannels(rules: CountryOutlierRuleI[]) {
-    const channels = new Map<number, number>();
-    for (const { channelId, dropSinceSentPercent } of rules) {
-      const current = channels.get(channelId) ?? Infinity;
-      channels.set(channelId, Math.min(current, dropSinceSentPercent));
+    const channels = new Map<number, boolean>();
+    for (const { channelId, dealCheck } of rules) {
+      if (!channels.has(channelId)) channels.set(channelId, dealCheck);
     }
-    return channels;
+    return [...channels].map(([channelId, dealCheck]) => ({ channelId, dealCheck }));
   }
 
   // Compares raw prices of the cheapest country only: PLN values move with exchange rates and

@@ -154,21 +154,15 @@ describe("ScraperMetricRepository", () => {
     );
   });
 
-  it("getLastReports dates the newest report of every scraper", async () => {
+  it("getReportingScrapers lists the scrapers with a report since the date", async () => {
     const db = fakePrisma();
-    const reportedAt = new Date(60_000);
-    db.scraperMetric.groupBy.mockResolvedValue([
-      { scraper: "amazon-pdp", _max: { createdAt: reportedAt } },
-    ]);
+    db.scraperMetric.groupBy.mockResolvedValue([{ scraper: "amazon-pdp" }]);
     const repository = new ScraperMetricRepository(db.prisma);
 
-    expect(await repository.getLastReports(new Date(1))).toEqual([
-      { scraper: "amazon-pdp", reportedAt },
-    ]);
+    expect(await repository.getReportingScrapers(new Date(1))).toEqual(["amazon-pdp"]);
     expect(db.scraperMetric.groupBy).toHaveBeenCalledWith({
       by: ["scraper"],
       where: { periodStart: { gte: new Date(1) }, metric: "cpu_percent" },
-      _max: { createdAt: true },
     });
   });
 

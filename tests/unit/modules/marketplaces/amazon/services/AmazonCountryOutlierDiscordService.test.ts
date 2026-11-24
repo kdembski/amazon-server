@@ -68,4 +68,15 @@ describe("AmazonCountryOutlierDiscordService", () => {
 
     expect(discord.send.mock.calls[0][1].embeds[0].color).toBe(0xe50000);
   });
+
+  it("builds the same embed it sends", async () => {
+    const discord = fakeDiscordChannelService();
+    const service = new AmazonCountryOutlierDiscordService(discord.service);
+    const ad = buildAd();
+    const prices = [buildListingPrice({ value: 10 }), buildListingPrice({ value: 50 })];
+
+    await service.send(3, ad, prices, -20);
+
+    expect(discord.send.mock.calls[0][1]).toEqual({ embeds: [service.buildEmbed(ad, prices, -20)] });
+  });
 });
