@@ -35,7 +35,6 @@ Tytuł, ASIN, kategoria i ceny z linkami per kraj Amazona, najtańszy pierwszy.
 - Oferty na Allegro dużo powyżej rynku (jeden sprzedawca za 119 zł, zestawy po 49 zł): bierz typową cenę, nie
   najwyższą.
 - Marka sprzedaje na Allegro sama (oficjalny sklep): trudno przebić.
-- Błąd cenowy na Amazonie: zamówienie może zostać anulowane.
 - Mało ocen i brak "kupionych" na Amazonie oraz brak sprzedaży na Allegro: niski popyt.
 
 ## Odpowiedź
