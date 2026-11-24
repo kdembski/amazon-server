@@ -1,6 +1,6 @@
 import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
 
-// Whether the cheapest price is at least the given percent below the reported one; false without a reported price
+// Whether the cheapest price is at least the given percent below the reported one; passed only with a reported price
 export type IsBelowReported = (dropSinceSentPercent: number) => boolean;
 
 export interface CountryOutlierRuleI {

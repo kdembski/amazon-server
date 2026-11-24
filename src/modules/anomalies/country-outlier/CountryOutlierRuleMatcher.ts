@@ -17,7 +17,7 @@ export class CountryOutlierRuleMatcher {
   }
 
   // Each group reports at most one rule: the first one that matches.
-  // Without `isBelowReported` no dealCheck rule matches.
+  // `isBelowReported` only with a reported price (see CountryOutlierRule.matches).
   async getMatches(prices: ListingPrice[], isBelowReported?: IsBelowReported) {
     if (!this.evaluator.isReportable(prices)) return [];
 

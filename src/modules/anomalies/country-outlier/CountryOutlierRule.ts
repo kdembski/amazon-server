@@ -25,15 +25,15 @@ export class CountryOutlierRule implements CountryOutlierRuleI {
     this.evaluator = evaluator;
   }
 
-  // A dealCheck rule also needs its dropSinceSentPercent below the reported price, so the group falls
-  // through to its next rule on the first alert of a listing.
+  // `isBelowReported` is missing without a reported price: a plain rule then matches, a dealCheck rule does not,
+  // so the group falls through to its next rule on the first alert of a listing.
   matches(prices: ListingPrice[], isBelowReported?: IsBelowReported) {
     const { belowMedianPercent, minPln, maxPln } = this.setting;
     return (
       prices.length >= this.minPrices &&
       this.evaluator.isOverPercentageDifference(prices, belowMedianPercent) &&
       this.evaluator.isInRange(prices, minPln, maxPln) &&
-      (!this.dealCheck || isBelowReported?.(this.dropSinceSentPercent) === true)
+      (isBelowReported?.(this.dropSinceSentPercent) ?? !this.dealCheck)
     );
   }
 }

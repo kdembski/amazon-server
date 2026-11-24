@@ -43,7 +43,7 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     if (!countryPrices) return;
 
     const prices = await this.getSortedPlnPrices(countryPrices);
-    // Treating every dealCheck rule as passing stops early without reading the reported price.
+    // Treating every drop since the reported price as passing stops early without reading the reported price.
     const candidates = await this.ruleMatcher.getMatches(prices, () => true);
     if (!candidates.length) return;
 
@@ -52,10 +52,8 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
 
     const [cheapest, lowest] = history;
     const reported = await this.reporter.getReportedPrice(listing, cheapest);
-    const rules = await this.ruleMatcher.getMatches(prices, (percent) => {
-      return !!reported && this.isBelowReported(cheapest.value, reported, percent);
-    });
-    const channels = this.getChannelsToReport(cheapest, rules, reported);
+    const isBelowReported = reported && ((percent: number) => this.isBelowReported(cheapest.value, reported, percent));
+    const channels = this.getChannels(await this.ruleMatcher.getMatches(prices, isBelowReported));
     if (!channels.length) return;
 
     const difference = lowest && this.getDifference(cheapest.value, lowest.value);
@@ -78,16 +76,6 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     return prices;
   }
 
-  // The matched channels whose dropSinceSentPercent the cheapest price passed since the reported one;
-  // dealCheck channels passed it in their rule already.
-  private getChannelsToReport(cheapest: ListingPrice, rules: CountryOutlierRuleI[], reported?: Decimal) {
-    return [...this.getChannels(rules)]
-      .filter(([, { dropSinceSentPercent, dealCheck }]) => {
-        return dealCheck || !reported || this.isBelowReported(cheapest.value, reported, dropSinceSentPercent);
-      })
-      .map(([channelId, { dealCheck }]) => ({ channelId, dealCheck }));
-  }
-
   private async report(
     listing: T,
     prices: ListingPrice[],
@@ -100,18 +88,14 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     }
   }
 
-  // A channel matched by rules of several groups uses the lowest dropSinceSentPercent and the mode
-  // (dealCheck or plain) of its rule in the earliest group.
+  // A channel matched by rules of several groups is reported once, in the mode (dealCheck or plain) of its rule
+  // in the earliest group.
   private getChannels(rules: CountryOutlierRuleI[]) {
-    const channels = new Map<number, { dropSinceSentPercent: number; dealCheck: boolean }>();
-    for (const { channelId, dropSinceSentPercent, dealCheck } of rules) {
-      const current = channels.get(channelId);
-      channels.set(channelId, {
-        dropSinceSentPercent: Math.min(current?.dropSinceSentPercent ?? Infinity, dropSinceSentPercent),
-        dealCheck: current ? current.dealCheck : dealCheck,
-      });
+    const channels = new Map<number, boolean>();
+    for (const { channelId, dealCheck } of rules) {
+      if (!channels.has(channelId)) channels.set(channelId, dealCheck);
     }
-    return channels;
+    return [...channels].map(([channelId, dealCheck]) => ({ channelId, dealCheck }));
   }
 
   // Compares raw prices of the cheapest country only: PLN values move with exchange rates and

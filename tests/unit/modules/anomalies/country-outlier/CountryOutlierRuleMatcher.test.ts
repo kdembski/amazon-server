@@ -124,7 +124,22 @@ describe("CountryOutlierRuleMatcher", () => {
     };
 
     expect((await getMatches()).map((rule) => rule.channelId)).toEqual([2]);
-    expect((await getMatches(() => false)).map((rule) => rule.channelId)).toEqual([2]);
+    expect((await getMatches(() => false)).map((rule) => rule.channelId)).toEqual([]);
+    expect((await getMatches((percent) => percent <= 10)).map((rule) => rule.channelId)).toEqual([2]);
     expect((await getMatches((percent) => percent >= 50)).map((rule) => rule.channelId)).toEqual([10]);
+  });
+
+  it("falls through a plain rule whose drop since the reported price is below its dropSinceSentPercent", async () => {
+    const settings: Partial<Settings> = {
+      "countryOutlier.ruleGroups": [
+        [
+          { channelId: 2, belowMedianPercent: 70, dropSinceSentPercent: 20 },
+          { channelId: 1, belowMedianPercent: 50, dropSinceSentPercent: 5 },
+        ],
+      ],
+    };
+    const rules = await matcher(settings).getMatches(prices(25, 100, 120), (percent) => percent <= 10);
+
+    expect(rules.map((rule) => rule.channelId)).toEqual([1]);
   });
 });

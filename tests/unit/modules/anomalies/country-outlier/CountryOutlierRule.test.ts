@@ -85,10 +85,12 @@ describe("CountryOutlierRule", () => {
       expect(dealCheck.matches(prices(31, 100, 100), () => true)).toBe(false);
     });
 
-    it("leaves plain rules independent of the reported price", () => {
+    it("matches a plain rule without a reported price, else only when its drop passes", () => {
       const plain = new CountryOutlierRule({ channelId: 2, belowMedianPercent: 70 }, 10, 3);
 
-      expect(plain.matches(matching, () => false)).toBe(true);
+      expect(plain.matches(matching)).toBe(true);
+      expect(plain.matches(matching, () => false)).toBe(false);
+      expect(plain.matches(matching, (percent) => percent === 10)).toBe(true);
     });
   });
 });

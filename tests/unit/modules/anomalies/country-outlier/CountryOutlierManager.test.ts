@@ -34,7 +34,10 @@ const setup = (
 ) => {
   const reporter = fakeReporter(reported);
   const getPlnRates = vi.fn().mockResolvedValue([]);
-  const getMatches = vi.fn().mockResolvedValue(rules);
+  // Applies isBelowReported like CountryOutlierRule: a plain rule passes without a reported price.
+  const getMatches = vi.fn(async (_: ListingPrice[], isBelowReported?: (percent: number) => boolean) => {
+    return rules.filter((rule) => isBelowReported?.(rule.dropSinceSentPercent) ?? !rule.dealCheck);
+  });
   const manager = new CountryOutlierManager(
     reporter,
     { getPlnRates } as unknown as CurrencyExchangeRateService,
@@ -364,7 +367,7 @@ describe("CountryOutlierManager", () => {
   describe("with dealCheck rules", () => {
     const dealCheck = (channelId: number): Rule => ({ channelId, dropSinceSentPercent: 50, dealCheck: true });
     // The target group: the dealCheck rule wins only when its drop since the reported price passes.
-    const targetGroup = (_: ListingPrice[], isBelowReported?: (percent: number) => boolean) => {
+    const targetGroup = async (_: ListingPrice[], isBelowReported?: (percent: number) => boolean) => {
       return isBelowReported?.(50) ? [dealCheck(10)] : [rule(2)];
     };
     const countries = (...cheapest: number[]) => [history(300), history(...cheapest), history(400), history(500)];
@@ -411,22 +414,22 @@ describe("CountryOutlierManager", () => {
 
       await manager.check(listing, [history(300), [eurPrice], history(400), history(500)]);
 
-      const isBelowReported = getMatches.mock.calls[1][1];
+      const isBelowReported = getMatches.mock.calls[1][1]!;
       expect(isBelowReported(50)).toBe(true);
       expect(isBelowReported(51)).toBe(false);
     });
 
-    it("never passes isBelowReported without a reported price", async () => {
+    it("passes no isBelowReported without a reported price", async () => {
       const { manager, getMatches, listing } = setup();
 
       await manager.check(listing, countries(10));
 
-      expect(getMatches.mock.calls[1][1](0)).toBe(false);
+      expect(getMatches.mock.calls[1][1]).toBeUndefined();
     });
 
     it("deal-checks a listing whose only matching rule is a dealCheck rule", async () => {
       const { manager, reporter, getMatches, listing } = setup(undefined, 100);
-      getMatches.mockImplementation((_, isBelowReported) => (isBelowReported?.(50) ? [dealCheck(10)] : []));
+      getMatches.mockImplementation(async (_, isBelowReported) => (isBelowReported?.(50) ? [dealCheck(10)] : []));
 
       await manager.check(listing, countries(50));
 
