@@ -4,6 +4,7 @@ enum BusinessLogType {
   price_drop_sent
   ad_created
   ad_deleted
+  deal_check_sent
 }
 
 model BusinessLog {
