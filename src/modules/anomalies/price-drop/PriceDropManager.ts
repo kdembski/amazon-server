@@ -24,8 +24,9 @@ export class PriceDropManager<T> implements AnomalyManagerI<T> {
     if (!reportable.length) return;
 
     const matches = await this.ruleMatcher.getMatches(reportable);
-    for (const channelId of matches.channelIds) {
-      await this.reporter.report(listing, matches.countryPrices, channelId);
+    for (const { channelId, dealCheck } of matches.channels) {
+      if (dealCheck) await this.reporter.checkDeal(listing, matches.countryPrices, channelId);
+      else await this.reporter.report(listing, matches.countryPrices, channelId);
     }
   }
 }

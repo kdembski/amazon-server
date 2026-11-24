@@ -12,6 +12,8 @@ const matcher = (ruleGroups?: Settings["priceDrop.ruleGroups"]) => {
   return new PriceDropRuleMatcher(fakeSettingService({ "priceDrop.ruleGroups": ruleGroups }).service);
 };
 
+const plain = (channelId: number) => ({ channelId, dealCheck: false });
+
 describe("PriceDropRuleMatcher", () => {
   it("takes the first matching rule of each group per country", async () => {
     const groups = [
@@ -25,7 +27,7 @@ describe("PriceDropRuleMatcher", () => {
 
     expect(await matcher(groups).getMatches([country])).toEqual({
       countryPrices: [country],
-      channelIds: [2, 3],
+      channels: [plain(2), plain(3)],
     });
   });
 
@@ -42,11 +44,22 @@ describe("PriceDropRuleMatcher", () => {
 
     expect(await matcher(groups).getMatches([weak, strong, history(90, 100), weaker])).toEqual({
       countryPrices: [weak, strong, weaker],
-      channelIds: [2, 1],
+      channels: [plain(2), plain(1)],
     });
   });
 
   it("matches nothing without the priceDrop.ruleGroups setting", async () => {
-    expect(await matcher().getMatches([history(10, 100)])).toEqual({ countryPrices: [], channelIds: [] });
+    expect(await matcher().getMatches([history(10, 100)])).toEqual({ countryPrices: [], channels: [] });
+  });
+
+  it("keeps dealCheck of the channel's first matched rule in group order", async () => {
+    const groups = [
+      [{ channelId: 9, dropPercent: 80, dealCheck: true }],
+      [{ channelId: 9, dropPercent: 50 }],
+    ];
+
+    expect((await matcher(groups).getMatches([history(10, 100)])).channels).toEqual([
+      { channelId: 9, dealCheck: true },
+    ]);
   });
 });
