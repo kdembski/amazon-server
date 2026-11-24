@@ -97,14 +97,14 @@ describe("AmazonDealCheckService", () => {
     });
   });
 
-  it("truncates the analysis to the 4096 characters of an embed description", async () => {
+  it("truncates the analysis to 3500 characters to stay under the 6000 characters of a Discord message", async () => {
     const { service, discord, flush } = setup(`**Werdykt: KUPUJ**\n${"a".repeat(5000)}`);
 
     service.check(ad, prices, alert, 5);
     await flush();
 
     const [, { embeds }] = discord.send.mock.calls[0];
-    expect(embeds[1].description).toHaveLength(4096);
+    expect(embeds[1].description).toHaveLength(3500);
   });
 
   it("asks about the ad with its prices in the given order and the deal check instructions", async () => {
@@ -120,5 +120,15 @@ describe("AmazonDealCheckService", () => {
       "Niemcy: 50 PLN (https://amazon.de/dp/B000TEST01)\nPolska: 200 PLN (https://amazon.pl/dp/B000TEST01)"
     );
     expect(systemPrompt).toBe(AMAZON_DEAL_CHECK_PROMPT);
+  });
+
+  it("strips a code fence around the analysis", async () => {
+    const { service, discord, flush } = setup("```\n**Werdykt: KUPUJ**\nProdukt: Bosch drill\n```");
+
+    service.check(ad, prices, alert, 5);
+    await flush();
+
+    const [, { embeds }] = discord.send.mock.calls[0];
+    expect(embeds[1].description).toBe("**Werdykt: KUPUJ**\nProdukt: Bosch drill");
   });
 });

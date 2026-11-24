@@ -21,7 +21,7 @@ resale analysis rates the deal `KUPUJ` or `MOŻE`.
    `WebSearch`/`WebFetch`, env only `PATH`, `HOME`, `CLAUDE_CODE_OAUTH_TOKEN`, timeout 5 min.
 5. The verdict comes from the `Werdykt: KUPUJ | MOŻE | NIE` line of the answer.
 6. `KUPUJ`/`MOŻE`: stores a `deal_check_sent` event and posts the alert embed plus the analysis embed (green/yellow,
-   at most 4096 characters) to the rule's channel.
+   at most 3500 characters, a surrounding code fence stripped) to the rule's channel.
 7. `NIE`: info log only. No verdict or a failed run: error log, nothing sent.
 
 ## Setup

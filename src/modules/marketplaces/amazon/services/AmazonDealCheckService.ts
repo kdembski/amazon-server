@@ -16,7 +16,9 @@ export interface DealCheckPrice {
 
 const VERDICT = /Werdykt:\s*\**\s*(KUPUJ|MOŻE|NIE)/;
 const COLORS: Record<string, number> = { KUPUJ: 0x2ecc71, MOŻE: 0xf1c40f };
-const MAX_DESCRIPTION_LENGTH = 4096;
+// Discord rejects a message whose embeds exceed 6000 characters; the alert embed takes up to about 1500.
+const MAX_DESCRIPTION_LENGTH = 3500;
+const CODE_FENCE = /^\s*```\w*\n([\s\S]*?)\n```\s*$/;
 
 // Analyses whether an ad is worth buying for resale on Allegro, one at a time, and posts the alert with the
 // analysis only for KUPUJ and MOŻE.
@@ -48,7 +50,8 @@ export class AmazonDealCheckService {
   private async run(ad: AmazonAdSelectDto, prices: DealCheckPrice[], alert: APIEmbed, channelId: number) {
     const context = { asin: ad.asin };
     try {
-      const analysis = await this.claude.run(this.getPrompt(ad, prices), AMAZON_DEAL_CHECK_PROMPT);
+      const output = await this.claude.run(this.getPrompt(ad, prices), AMAZON_DEAL_CHECK_PROMPT);
+      const analysis = output.match(CODE_FENCE)?.[1] ?? output;
       const verdict = analysis.match(VERDICT)?.[1];
       if (!verdict) {
         this.logger.error("AmazonDealCheckService", `Deal check of ${ad.asin} returned no verdict`, {
