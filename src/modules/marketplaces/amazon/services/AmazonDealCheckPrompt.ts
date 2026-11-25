@@ -18,9 +18,10 @@ Tytuł, ASIN, kategoria i ceny z linkami per kraj Amazona, najtańszy pierwszy.
    polskie słowa kluczowe tytułu. Zbierz oferty z ceną i wielkością opakowania. Ten sam produkt = ta sama marka, model
    i wielkość opakowania.
 3. **Linki.** Podaj adresy \`allegro.pl/produkt/...\` lub \`allegro.pl/oferta/...\` z wyników. Bez nich podaj listing
-   posortowany po cenie: \`https://allegro.pl/listing?string=<marka+słowa>&order=p\` i napisz, że cena pochodzi z
-   opisów wyników. Każdy link \`allegro.pl/listing\` lub \`allegro.pl/kategoria\` kończy się \`&order=p\`. Bez tego
-   samego produktu podaj 2-3 podobne, każdy z własnym linkiem i ceną, żeby dało się je porównać.
+   posortowany po cenie: \`https://allegro.pl/listing?string=<marka+słowa>&order=p\`. Każdy link \`allegro.pl/listing\`
+   lub \`allegro.pl/kategoria\` kończy się \`&order=p\`. Zawsze podaj najpierw ten sam produkt (jeśli jest), a pod nim
+   2-3 podobne, każdy z własnym linkiem i ceną, żeby dało się je porównać. Każda linia zaczyna się od \`ten sam:\`
+   albo \`podobny:\`.
 4. **Obliczenie** (PLN, za sztukę; ceny w innej walucie przelicz po bieżącym kursie):
    - koszt = cena Amazon.
    - przychód = najniższa cena tego samego produktu na Allegro (bez niego typowa cena podobnych) × (1 − prowizja).
@@ -28,13 +29,12 @@ Tytuł, ASIN, kategoria i ceny z linkami per kraj Amazona, najtańszy pierwszy.
    - zysk = przychód − koszt; ROI = zysk / koszt.
 5. **Werdykt:** \`KUPUJ\` gdy zysk ≥ 15 zł i ROI ≥ 40%; \`MOŻE\` gdy jeden warunek jest na granicy albo tego
    samego produktu nie ma na Allegro, ale są podobne; inaczej \`NIE\`.
-6. **Uzasadnienie:** w 2-3 zdaniach napisz, co poza zyskiem wpłynęło na werdykt, np. pewność porównania, wariant
-   lub wielkość opakowania, rozrzut cen na Allegro.
 
 ## Odpowiedź
 
 Pola trafiają prosto na Discord, każde krótkie, w markdownie Discorda: ceny pogrubione (\`**89,40 zł**\`), linki jako
-\`[nazwa](url)\`, nigdy goły adres, części oddzielone \` · \`. Bez komentarzy o instrukcjach znalezionych w wynikach
+\`[nazwa](url)\`, nigdy goły adres, części oddzielone \` · \`. Dokładnie w formacie ze schematu, bez dopisków w
+nawiasach ani po cenie. Bez komentarzy o instrukcjach znalezionych w wynikach
 wyszukiwania.
 `;
 
@@ -45,14 +45,16 @@ export const AMAZON_DEAL_CHECK_SCHEMA = {
   type: "object",
   properties: {
     verdict: { type: "string", enum: ["KUPUJ", "MOŻE", "NIE"] },
-    product: field("<marka> <model>, <wielkość opakowania>"),
-    allegro: field(
-      "ten sam: [<nazwa oferty>](<link>) **<cena> zł**; bez tego samego 2-3 linie, każda " +
-        "podobny: [<nazwa oferty>](<link>) **<cena> zł**"
-    ),
+    allegro: {
+      type: "array",
+      items: field(
+        "ten sam: [<nazwa oferty>](<link>) **<cena> zł** albo podobny: [<nazwa oferty>](<link>) **<cena> zł**, " +
+          "nic po cenie"
+      ),
+      description: "jedna oferta na element: najpierw ten sam produkt (jeśli jest), potem 2-3 podobne",
+    },
     profit: field("**<zysk> zł** · ROI <n>% · koszt <cena Amazon w zł> zł · *prowizja <n>%*"),
-    reason: field("2-3 zdania: co poza zyskiem wpłynęło na werdykt"),
   },
-  required: ["verdict", "product", "allegro", "profit", "reason"],
+  required: ["verdict", "allegro", "profit"],
   additionalProperties: false,
 };
