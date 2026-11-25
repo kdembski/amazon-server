@@ -19,16 +19,14 @@ export interface DealCheckPrice {
 
 interface DealCheckAnswer {
   verdict: string;
-  product: string;
-  allegro: string;
+  allegro: string[];
   profit: string;
-  reason: string;
 }
 
 // Discord colours no text in embeds, so the verdict gets a coloured emoji.
 const VERDICTS: Record<string, string> = { KUPUJ: "✅ **KUPUJ**", MOŻE: "❔ **MOŻE**", NIE: "❌ **NIE**" };
-// Discord rejects a message whose embeds exceed 6000 characters and a field value over 1024 or empty.
-const MAX_FIELD_LENGTH = 700;
+// Discord rejects a message whose embeds exceed 6000 characters.
+const MAX_PART_LENGTH = 700;
 
 // Analyses whether an ad is worth buying for resale on Allegro, one at a time, and posts the alert with the
 // analysis, or the alert alone when the analysis fails.
@@ -89,17 +87,9 @@ export class AmazonDealCheckService {
     }
   }
 
-  private getAnalysisEmbed({ verdict, product, allegro, profit, reason }: DealCheckAnswer) {
-    const fields: [string, string][] = [
-      ["Produkt", product],
-      ["Allegro", allegro],
-      ["Zysk", profit],
-      ["Uzasadnienie", reason],
-    ];
-    return {
-      description: VERDICTS[verdict],
-      fields: fields.map(([name, value]) => ({ name, value: value.slice(0, MAX_FIELD_LENGTH) || "brak danych" })),
-    };
+  private getAnalysisEmbed({ verdict, allegro, profit }: DealCheckAnswer) {
+    const parts = [allegro.join("\n"), profit].map((part) => part.slice(0, MAX_PART_LENGTH) || "brak danych");
+    return { description: [VERDICTS[verdict], ...parts].join("\n\n") };
   }
 
   private getPrompt(ad: AmazonAdSelectDto, prices: DealCheckPrice[]) {

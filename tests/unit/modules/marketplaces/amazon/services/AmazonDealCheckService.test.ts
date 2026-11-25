@@ -38,10 +38,11 @@ const prices = [
 ];
 const answer = (overrides: object = {}) => ({
   verdict: "KUPUJ",
-  product: "Bosch GSR 12V-15, 1 szt.",
-  allegro: "ten sam [Bosch](https://allegro.pl/oferta/1) **289 zł**",
+  allegro: [
+    "podobny: [Bosch](https://allegro.pl/oferta/1) **289 zł**",
+    "podobny: [Makita](https://allegro.pl/oferta/2) **299 zł**",
+  ],
   profit: "**163 zł** · ROI 183% · koszt 89,40 zł · *prowizja 11%*",
-  reason: "Ten sam model i opakowanie, ceny na Allegro wyrównane.",
   ...overrides,
 });
 
@@ -71,13 +72,11 @@ describe("AmazonDealCheckService", () => {
         embeds: [
           alert,
           {
-            description,
-            fields: [
-              { name: "Produkt", value: "Bosch GSR 12V-15, 1 szt." },
-              { name: "Allegro", value: "ten sam [Bosch](https://allegro.pl/oferta/1) **289 zł**" },
-              { name: "Zysk", value: "**163 zł** · ROI 183% · koszt 89,40 zł · *prowizja 11%*" },
-              { name: "Uzasadnienie", value: "Ten sam model i opakowanie, ceny na Allegro wyrównane." },
-            ],
+            description:
+              `${description}\n\n` +
+              "podobny: [Bosch](https://allegro.pl/oferta/1) **289 zł**\n" +
+              "podobny: [Makita](https://allegro.pl/oferta/2) **299 zł**\n\n" +
+              "**163 zł** · ROI 183% · koszt 89,40 zł · *prowizja 11%*",
           },
         ],
       },
@@ -116,15 +115,13 @@ describe("AmazonDealCheckService", () => {
     });
   });
 
-  it("truncates a field to 700 characters and fills an empty one", async () => {
-    const { service, discord, flush } = setup(answer({ product: "a".repeat(1000), allegro: "" }));
+  it("truncates a part to 700 characters and fills an empty one", async () => {
+    const { service, discord, flush } = setup(answer({ allegro: ["a".repeat(1000)], profit: "" }));
 
     service.check(ad, prices, alert, 5);
     await flush();
 
-    const { fields } = sentAnalysis(discord);
-    expect(fields[0].value).toHaveLength(700);
-    expect(fields[1].value).toBe("brak danych");
+    expect(sentAnalysis(discord).description).toBe(`✅ **KUPUJ**\n\n${"a".repeat(700)}\n\nbrak danych`);
   });
 
   it("asks about the ad with its prices, the deal check instructions and the answer schema", async () => {
