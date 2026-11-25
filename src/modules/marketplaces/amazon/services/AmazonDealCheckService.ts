@@ -20,14 +20,13 @@ export interface DealCheckPrice {
 interface DealCheckAnswer {
   verdict: string;
   product: string;
-  amazon: string;
   allegro: string;
   profit: string;
-  risks: string[];
+  reason: string;
 }
 
 // Discord colours no text in embeds, so the verdict gets a coloured emoji.
-const VERDICTS: Record<string, string> = { KUPUJ: "✅ **KUPUJ**", MOŻE: "⚠️ **MOŻE**", NIE: "❌ **NIE**" };
+const VERDICTS: Record<string, string> = { KUPUJ: "✅ **KUPUJ**", MOŻE: "❔ **MOŻE**", NIE: "❌ **NIE**" };
 // Discord rejects a message whose embeds exceed 6000 characters and a field value over 1024 or empty.
 const MAX_FIELD_LENGTH = 700;
 
@@ -90,13 +89,12 @@ export class AmazonDealCheckService {
     }
   }
 
-  private getAnalysisEmbed({ verdict, product, amazon, allegro, profit, risks }: DealCheckAnswer) {
+  private getAnalysisEmbed({ verdict, product, allegro, profit, reason }: DealCheckAnswer) {
     const fields: [string, string][] = [
       ["Produkt", product],
-      ["Amazon", amazon],
       ["Allegro", allegro],
       ["Zysk", profit],
-      ["Ryzyka", risks.map((risk) => `– ${risk}`).join("\n")],
+      ["Uzasadnienie", reason],
     ];
     return {
       description: VERDICTS[verdict],
