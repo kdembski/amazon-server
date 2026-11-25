@@ -11,7 +11,7 @@ const matcher = (values: { [K in keyof Settings]?: Settings[K] | undefined } = {
   new CountryOutlierRuleMatcher(fakeSettingService(values).service);
 
 const matchedChannels = async (values: number[], settings: Partial<Settings> = {}) => {
-  const rules = await matcher(settings).getMatches(prices(...values));
+  const rules = await matcher(settings).getMatches(prices(...values), prices(...values).slice(0, 1));
   return rules.map((rule) => rule.channelId);
 };
 
@@ -47,20 +47,6 @@ describe("CountryOutlierRuleMatcher", () => {
     expect(await matchedChannels([60, 100, 120], settings)).toEqual([9]);
   });
 
-  it("uses the rule's dropSinceSentPercent or the default one", async () => {
-    const settings: Partial<Settings> = {
-      "countryOutlier.dropSinceSentPercent": 15,
-      "countryOutlier.ruleGroups": [
-        [{ channelId: 1, belowMedianPercent: 50, dropSinceSentPercent: 5 }],
-        [{ channelId: 2, belowMedianPercent: 50 }],
-      ],
-    };
-
-    const rules = await matcher(settings).getMatches(prices(10, 100, 120));
-
-    expect(rules.map((rule) => rule.dropSinceSentPercent)).toEqual([5, 15]);
-  });
-
   it("tries the next rule of a group when a rule needs more countries", async () => {
     const settings: Partial<Settings> = {
       "countryOutlier.ruleGroups": [
@@ -77,12 +63,11 @@ describe("CountryOutlierRuleMatcher", () => {
 
   it.each([
     "countryOutlier.ruleGroups",
-    "countryOutlier.dropSinceSentPercent",
     "countryOutlier.minPrices",
   ] as const)(
     "matches nothing without the %s setting",
     async (key) => {
-      const rules = await matcher({ [key]: undefined }).getMatches(prices(9, 100, 120));
+      const rules = await matcher({ [key]: undefined }).getMatches(prices(9, 100, 120), prices(9));
       expect(rules).toEqual([]);
     }
   );
@@ -97,7 +82,7 @@ describe("CountryOutlierRuleMatcher", () => {
       ...prices(100, 120),
     ];
 
-    expect(await matcher().getMatches(list)).toEqual([]);
+    expect(await matcher().getMatches(list, list.slice(0, 1))).toEqual([]);
   });
 
   it("matches nothing when the cheapest country is inactive", async () => {
@@ -106,40 +91,25 @@ describe("CountryOutlierRuleMatcher", () => {
       ...prices(100, 120),
     ];
 
-    expect(await matcher().getMatches(list)).toEqual([]);
+    expect(await matcher().getMatches(list, list.slice(0, 1))).toEqual([]);
   });
 
-  it("falls through a dealCheck rule to the next rule of its group unless the reported price dropped enough", async () => {
+  it("falls through a dropPercent rule to the next rule of its group when the drop is too small", async () => {
     const settings: Partial<Settings> = {
       "countryOutlier.ruleGroups": [
         [
-          { channelId: 10, belowMedianPercent: 70, dropSinceSentPercent: 50, dealCheck: true, requireSent: true },
-          { channelId: 3, belowMedianPercent: 90 },
+          { channelId: 10, belowMedianPercent: 70, dropPercent: 50, dealCheck: true },
           { channelId: 2, belowMedianPercent: 70 },
         ],
       ],
     };
-    const getMatches = (isBelowReported?: (percent: number) => boolean) => {
-      return matcher(settings).getMatches(prices(25, 100, 120), isBelowReported);
+    const getChannels = async (history: number[]) => {
+      const rules = await matcher(settings).getMatches(prices(25, 100, 120), prices(...history));
+      return rules.map((rule) => [rule.channelId, rule.dealCheck]);
     };
 
-    expect((await getMatches()).map((rule) => rule.channelId)).toEqual([2]);
-    expect((await getMatches(() => false)).map((rule) => rule.channelId)).toEqual([]);
-    expect((await getMatches((percent) => percent <= 10)).map((rule) => rule.channelId)).toEqual([2]);
-    expect((await getMatches((percent) => percent >= 50)).map((rule) => rule.channelId)).toEqual([10]);
-  });
-
-  it("falls through a plain rule whose drop since the reported price is below its dropSinceSentPercent", async () => {
-    const settings: Partial<Settings> = {
-      "countryOutlier.ruleGroups": [
-        [
-          { channelId: 2, belowMedianPercent: 70, dropSinceSentPercent: 20 },
-          { channelId: 1, belowMedianPercent: 50, dropSinceSentPercent: 5 },
-        ],
-      ],
-    };
-    const rules = await matcher(settings).getMatches(prices(25, 100, 120), (percent) => percent <= 10);
-
-    expect(rules.map((rule) => rule.channelId)).toEqual([1]);
+    expect(await getChannels([25, 50])).toEqual([[10, true]]);
+    expect(await getChannels([25, 40])).toEqual([[2, false]]);
+    expect(await getChannels([25])).toEqual([[2, false]]);
   });
 });

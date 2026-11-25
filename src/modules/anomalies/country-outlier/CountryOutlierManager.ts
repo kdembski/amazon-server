@@ -43,18 +43,12 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     if (!countryPrices) return;
 
     const prices = await this.getSortedPlnPrices(countryPrices);
-    // Treating every drop since the reported price as passing stops early without reading the reported price.
-    const candidates = await this.ruleMatcher.getMatches(prices, () => true);
-    if (!candidates.length) return;
-
     const history = countryPrices.find(([price]) => price.country === prices[0].country)!;
-    if (!this.evaluator.isAtLowest(history)) return;
+    const channels = this.getChannels(await this.ruleMatcher.getMatches(prices, history));
+    if (!channels.length || !this.evaluator.isAtLowest(history)) return;
 
     const [cheapest, lowest] = history;
-    const reported = await this.reporter.getReportedPrice(listing, cheapest);
-    const isBelowReported = reported && ((percent: number) => this.isBelowReported(cheapest.value, reported, percent));
-    const channels = this.getChannels(await this.ruleMatcher.getMatches(prices, isBelowReported));
-    if (!channels.length) return;
+    if (!(await this.isBelowReported(listing, cheapest))) return;
 
     const difference = lowest && this.getDifference(cheapest.value, lowest.value);
     await this.report(listing, prices, channels, difference);
@@ -98,10 +92,15 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
     return [...channels].map(([channelId, dealCheck]) => ({ channelId, dealCheck }));
   }
 
-  // Compares raw prices of the cheapest country only: PLN values move with exchange rates and
-  // changes of the other countries never report a listing again.
-  private isBelowReported(value: Decimal, reported: Decimal, dropSinceSentPercent: number) {
-    return reported.minus(value).gte(reported.times(dropSinceSentPercent / 100));
+  // Without a reported price the drop since it is not checked. Compares raw prices of the cheapest country only:
+  // PLN values move with exchange rates and changes of the other countries never report a listing again.
+  private async isBelowReported(listing: T, cheapest: ListingPrice) {
+    const dropSinceSentPercent = await this.settingService.get("countryOutlier.dropSinceSentPercent");
+    if (dropSinceSentPercent === undefined) return false;
+
+    const reported = await this.reporter.getReportedPrice(listing, cheapest);
+    if (!reported) return true;
+    return reported.minus(cheapest.value).gte(reported.times(dropSinceSentPercent / 100));
   }
 
   private getDifference(value: Decimal, previous: Decimal) {
