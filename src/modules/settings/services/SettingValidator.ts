@@ -19,10 +19,9 @@ const COUNTRY_OUTLIER_RULE_FIELDS = [
   "belowMedianPercent",
   "minPln",
   "maxPln",
-  "dropSinceSentPercent",
   "minPrices",
+  "dropPercent",
   "dealCheck",
-  "requireSent",
 ];
 
 const PRICE_DROP_RULE_FIELDS = ["channelId", "dropPercent", "dealCheck"];
@@ -126,18 +125,13 @@ export class SettingValidator {
         throw new HttpError(400, `${path}.maxPln must be greater than minPln and 0`);
       }
     }
-    if (fields.dropSinceSentPercent !== undefined) {
-      result.dropSinceSentPercent = this.validatePercent(
-        `${path}.dropSinceSentPercent`,
-        fields.dropSinceSentPercent,
-        true
-      );
+    if (fields.dropPercent !== undefined) {
+      result.dropPercent = this.validatePercent(`${path}.dropPercent`, fields.dropPercent, false);
     }
     if (fields.minPrices !== undefined) {
       result.minPrices = this.validateInteger(`${path}.minPrices`, fields.minPrices, 2);
     }
     this.setBoolean(path, fields, result, "dealCheck");
-    this.setBoolean(path, fields, result, "requireSent");
     return result;
   }
 
@@ -148,7 +142,7 @@ export class SettingValidator {
     return value as number;
   }
 
-  // belowMedianPercent and dropPercent need a drop; dropSinceSentPercent may be 0.
+  // belowMedianPercent and dropPercent need a drop; the global dropSinceSentPercent may be 0.
   private validatePercent(path: string, value: unknown, allowZero: boolean) {
     const valid =
       typeof value === "number" &&

@@ -39,14 +39,15 @@ through `/discord-channels`. `SettingService` caches both for 60 s per process.
 
 - `countryOutlier.minPrices` (3): minimum number of countries in the scrape.
 - `countryOutlier.ruleGroups`: groups of rules
-  `{ channelId, belowMedianPercent, minPln?, maxPln?, minPrices?, dropSinceSentPercent?, dealCheck?, requireSent? }`.
-- `countryOutlier.dropSinceSentPercent` (10): `dropSinceSentPercent` of rules without one.
+  `{ channelId, belowMedianPercent, minPln?, maxPln?, minPrices?, dropPercent?, dealCheck? }`.
+- `countryOutlier.dropSinceSentPercent` (10): drop since the reported price needed by every channel.
 
 Production rule groups (the values in parentheses are the production values too):
 
 | Group | Rule | Channel |
 |---|---|---|
-| 1 | at least 90% below the median | `3` |
+| 1 | at least 70% below the median and cheapest price 50% below its lowest older price, deal check | `10` |
+| | at least 90% below, deal check | `3` |
 | | at least 70% below | `2` |
 | | at least 50% below | `1` |
 | 2 | at least 70% below and cheapest under 50 PLN | `4` |
@@ -65,26 +66,26 @@ Production rule groups (the values in parentheses are the production values too)
 7. A rule matches when the cheapest is at most `median × (1 − belowMedianPercent / 100)`
    (`CountryOutlierEvaluator.isOverPercentageDifference`), `minPln ≤ cheapest < maxPln` (`isInRange`, a missing
    bound is open) and the scrape has at least `max(countryOutlier.minPrices, rule minPrices)` countries; otherwise
-   the next rule of the group is tried. With a reported price (step 11) a rule also needs the newest price at least
-   its `dropSinceSentPercent` below it; without one a rule matches unless it has `requireSent`, so the
-   first alert of a listing falls through to the next rule.
+   the next rule of the group is tried. A rule with `dropPercent` also needs the newest price of the cheapest country
+   at least `dropPercent` below its lowest older price, in its own currency (`PriceDropEvaluator`); without an older
+   price it does not match.
 8. Median: weighted median of the other PLN prices, ascending, weights `n`..`1` from the cheapest; the first price whose
    cumulative weight passes half, or the mean with the next one at exactly half.
 9. Merges matches by `channelId`; a channel in several groups is reported once, with the `dealCheck` of its rule in
    the earliest group.
-10. This first pass treats every drop since the reported price as passing; no match: stops. Then it stops when the
-    newest price of the cheapest country is above its lowest older price (`CountryOutlierEvaluator.isAtLowest`);
-    without an older price it goes on.
-11. Gets the reported price of the cheapest country (`getReportedPrice`: the last price sent to any channel, in its own
-    currency) and matches the rules again (steps 6–9) with it.
-12. No channel left: stops. Changes of other countries or since the previous scrape never pass.
-13. Per remaining channel, `CountryOutlierReporter.report` gets the listing, the sorted PLN prices, the `channelId` and
+10. No match: stops. Then it stops when the newest price of the cheapest country is above its lowest older price
+    (`CountryOutlierEvaluator.isAtLowest`); without an older price it goes on.
+11. Without the `countryOutlier.dropSinceSentPercent` row: stops. Gets the reported price of the cheapest country
+    (`getReportedPrice`: the last price sent to any channel, in its own currency); with one, stops unless the newest
+    price is at least `dropSinceSentPercent` below it. Changes of other countries or since the previous scrape never
+    pass.
+12. Per matched channel, `CountryOutlierReporter.report` gets the listing, the sorted PLN prices, the `channelId` and
     the cheapest price's change in percent against the lowest older price of its country (none without one; shown next
     to the cheapest price on Discord); a `dealCheck` channel goes to `CountryOutlierReporter.checkDeal` with the same
     arguments instead (`.claude/rules/anomalies/deal-check.md`).
-14. The reporter stores a `country_outlier_sent` event (`data.channel` = `String(channelId)`) and posts through
+13. The reporter stores a `country_outlier_sent` event (`data.channel` = `String(channelId)`) and posts through
     `DiscordChannelService.send` (a missing channel logs an error).
-15. `setReportedPrice` stores the cheapest price once, in its own currency (Amazon: `AmazonCountryOutlierReport`, one
+14. `setReportedPrice` stores the cheapest price once, in its own currency (Amazon: `AmazonCountryOutlierReport`, one
     row per ad and country).
 
 ## Known limits
@@ -92,10 +93,8 @@ Production rule groups (the values in parentheses are the production values too)
 - A listing whose cheapest country had a lower price of any seller at any time in the last 180 days is not reported,
   however far below the median it is.
 - A listing that matches for the first time is reported even when its cheapest price equals its lowest older price (a
-  fourth country appeared, other countries rose). After that a channel gets it only when its cheapest price is the
-  channel's `dropSinceSentPercent` below the last reported price; a price that rises and comes back is not reported
-  again.
-- A channel with a high `dropSinceSentPercent` misses gradual drops reported on other channels (100 → 94 → 80 with 5%
-  and 20%: the 20% channel gets neither), and a listing that only moves into a stronger rule without a price drop is
-  not reported there.
+  fourth country appeared, other countries rose). After that it is reported only when its cheapest price is
+  `dropSinceSentPercent` below the last reported price; a price that rises and comes back is not reported again.
+- A listing that only moves into a stronger rule without a price drop is not reported there.
+- A `dropPercent` rule never matches a cheapest country without an older price.
 - PLN prices in the event drift with exchange rates; the duplicate check uses the original currency.

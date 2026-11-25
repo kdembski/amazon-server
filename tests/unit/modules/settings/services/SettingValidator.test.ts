@@ -109,7 +109,7 @@ describe("SettingValidator.validate", () => {
   it("returns the rule groups with only the given fields", () => {
     const groups = [
       [
-        { channelId: 3, belowMedianPercent: 90, dropSinceSentPercent: 0 },
+        { channelId: 3, belowMedianPercent: 90, dropPercent: 50 },
         { channelId: 1, belowMedianPercent: 50 },
       ],
       [{ channelId: 2, belowMedianPercent: 70, minPln: 0, maxPln: 50 }],
@@ -165,9 +165,9 @@ describe("SettingValidator.validate", () => {
       'Setting "countryOutlier.ruleGroups"[0][0].maxPln must be greater than minPln and 0',
     ],
     [
-      "a dropSinceSentPercent over 100",
-      ruleGroups({ dropSinceSentPercent: 101 }),
-      'Setting "countryOutlier.ruleGroups"[0][0].dropSinceSentPercent must be a number at least 0 and at most 100',
+      "a dropPercent of 0",
+      ruleGroups({ dropPercent: 0 }),
+      'Setting "countryOutlier.ruleGroups"[0][0].dropPercent must be a number greater than 0 and at most 100',
     ],
     [
       "a minPrices below 2",
@@ -209,22 +209,14 @@ describe("SettingValidator.validate", () => {
     );
   });
 
-  it("keeps requireSent of a country outlier rule", () => {
-    const groups = ruleGroups({ requireSent: true });
-    expect(validator.validate("countryOutlier.ruleGroups", groups, CHANNELS)).toEqual(groups);
-  });
-
-  it("rejects a non-boolean requireSent", () => {
+  it("rejects the removed requireSent and dropSinceSentPercent of a country outlier rule", () => {
     expectInvalid(
-      () => validator.validate("countryOutlier.ruleGroups", ruleGroups({ requireSent: "yes" }), CHANNELS),
-      'Setting "countryOutlier.ruleGroups"[0][0].requireSent must be a boolean'
+      () => validator.validate("countryOutlier.ruleGroups", ruleGroups({ requireSent: true }), CHANNELS),
+      'Setting "countryOutlier.ruleGroups"[0][0] has an unknown field "requireSent"'
     );
-  });
-
-  it("rejects requireSent on a price drop rule", () => {
     expectInvalid(
-      () => validator.validate("priceDrop.ruleGroups", [[{ channelId: 1, dropPercent: 80, requireSent: true }]], CHANNELS),
-      'Setting "priceDrop.ruleGroups"[0][0] has an unknown field "requireSent"'
+      () => validator.validate("countryOutlier.ruleGroups", ruleGroups({ dropSinceSentPercent: 10 }), CHANNELS),
+      'Setting "countryOutlier.ruleGroups"[0][0] has an unknown field "dropSinceSentPercent"'
     );
   });
 });
