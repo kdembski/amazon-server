@@ -27,7 +27,7 @@ interface DealCheckAnswer {
 }
 
 // Discord colours no text in embeds, so the verdict gets a coloured emoji.
-const VERDICTS: Record<string, string> = { KUPUJ: "🟩 **KUPUJ**", MOŻE: "🟨 **MOŻE**", NIE: "🟥 **NIE**" };
+const VERDICTS: Record<string, string> = { KUPUJ: "✅ **KUPUJ**", MOŻE: "⚠️ **MOŻE**", NIE: "❌ **NIE**" };
 // Discord rejects a message whose embeds exceed 6000 characters and a field value over 1024 or empty.
 const MAX_FIELD_LENGTH = 700;
 

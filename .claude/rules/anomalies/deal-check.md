@@ -21,7 +21,7 @@ analysis and its verdict `KUPUJ`, `MOŻE` or `NIE`.
    `WebSearch`/`WebFetch`, env only `PATH`, `HOME`, `CLAUDE_CODE_OAUTH_TOKEN`, timeout 5 min, and the answer as
    `AMAZON_DEAL_CHECK_SCHEMA` (`--json-schema`, read from `structured_output`).
 5. Stores a `deal_check_sent` event and posts the alert embed plus the analysis embed to the rule's channel:
-   description 🟩 **KUPUJ** / 🟨 **MOŻE** / 🟥 **NIE**, fields Produkt, Amazon, Allegro, Zysk, Ryzyka (`– ` lines),
+   description ✅ **KUPUJ** / ⚠️ **MOŻE** / ❌ **NIE**, fields Produkt, Amazon, Allegro, Zysk, Ryzyka (`– ` lines),
    each at most 700 characters, `brak danych` when empty.
 6. No known verdict or a failed run: error log, nothing sent.
 

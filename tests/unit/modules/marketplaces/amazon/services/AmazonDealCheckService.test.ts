@@ -52,9 +52,9 @@ const sentAnalysis = (discord: ReturnType<typeof fakeDiscordChannelService>) => 
 
 describe("AmazonDealCheckService", () => {
   it.each([
-    ["KUPUJ", "🟩 **KUPUJ**"],
-    ["MOŻE", "🟨 **MOŻE**"],
-    ["NIE", "🟥 **NIE**"],
+    ["KUPUJ", "✅ **KUPUJ**"],
+    ["MOŻE", "⚠️ **MOŻE**"],
+    ["NIE", "❌ **NIE**"],
   ])("sends the alert with the analysis fields for %s", async (verdict, description) => {
     const { service, log, discord, flush } = setup(answer({ verdict }));
 
