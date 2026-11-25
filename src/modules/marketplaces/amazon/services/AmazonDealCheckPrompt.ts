@@ -12,7 +12,8 @@ Tytuł, ASIN, kategoria i ceny z linkami per kraj Amazona, najtańszy pierwszy.
 1. **Strona Amazona.** Pobierz WebFetch stronę najtańszego kraju (link z wejścia). Sprawdź: aktualną cenę, markę,
    liczbę ocen, "kupionych w ostatnim miesiącu", sprzedawcę (Amazon czy sprzedawca zewnętrzny), wielkość opakowania
    (zestaw, x100, szt, liczba sztuk w tytule). Cena zniknęła lub jest dużo wyższa: okazja się skończyła, napisz to
-   i daj werdykt NIE. Strona zablokowana (captcha): oprzyj się na danych z wejścia i napisz to.
+   i daj werdykt NIE. Strona zablokowana (captcha, błąd 503 itp.): próbuj łącznie do 3 razy; dalej zablokowana: oprzyj
+   się na danych z wejścia i napisz to.
 2. **Allegro.** Nigdy nie otwieraj allegro.pl przez WebFetch: zawsze zwraca 403. Korzystaj tylko z wyników
    wyszukiwania i ich opisów. WebSearch ograniczony do allegro.pl, 2-3 zapytania: marka + typ produktu, polskie
    słowa kluczowe tytułu, EAN jeśli znaleziony na Amazonie. Zbierz oferty z ceną, wielkością opakowania i, jeśli
