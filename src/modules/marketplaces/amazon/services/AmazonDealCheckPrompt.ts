@@ -39,13 +39,16 @@ Tytuł, ASIN, kategoria i ceny z linkami per kraj Amazona, najtańszy pierwszy.
 
 ## Odpowiedź
 
-Tylko ten blok, pierwsza linia zawsze z werdyktem:
+Odpowiedź trafia prosto na Discord. Zwróć wyłącznie poniższe linie w markdownie Discorda: bez bloku kodu, bez
+wstępu, bez komentarzy na końcu (także o instrukcjach znalezionych w wynikach wyszukiwania). Pierwsza linia zawsze
+z werdyktem. Każda linia krótka, łącznie najwyżej 800 znaków. Linki jako \`[nazwa](url)\`, nigdy goły adres.
 
-\`\`\`
-**Werdykt: KUPUJ | MOŻE | NIE**
-Produkt: <tytuł>, <marka>, <wielkość opakowania> — Amazon <kraj> <cena> zł
-Allegro: <ten sam/podobny> — <cena> zł (<link>), sprzedaż: <X osób kupiło | brak danych>
-Zysk: <przychód> − <koszt> = <zysk> zł (ROI <n>%), założenia: prowizja <n>%, wysyłka <n> zł
-Ryzyka: <1-3 punkty>
-\`\`\`
+Werdykt: KUPUJ | MOŻE | NIE
+**Produkt:** <marka> <model>, <wielkość opakowania>
+**Amazon:** <kraj> **<cena> zł** · <sprzedawca> · <oceny lub "brak danych">
+**Allegro:** <ten sam | podobny> [<nazwa oferty>](<link>) **<cena> zł** · sprzedaż: <X osób kupiło | brak danych>
+**Zysk:** **<zysk> zł** · ROI <n>% · *prowizja <n>%, wysyłka <n> zł*
+**Ryzyka:**
+- <ryzyko 1>
+- <ryzyko 2, najwyżej 3>
 `;

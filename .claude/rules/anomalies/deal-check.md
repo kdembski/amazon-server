@@ -19,9 +19,9 @@ resale analysis rates the deal `KUPUJ` or `MOŻE`.
 3. `AmazonDealCheckService` queues the check, one at a time per reporter.
 4. `ClaudeCliService` runs `claude -p` with the `AMAZON_DEAL_CHECK_PROMPT` system prompt: model `sonnet`, only
    `WebSearch`/`WebFetch`, env only `PATH`, `HOME`, `CLAUDE_CODE_OAUTH_TOKEN`, timeout 5 min.
-5. The verdict comes from the `Werdykt: KUPUJ | MOŻE | NIE` line of the answer.
-6. `KUPUJ`/`MOŻE`: stores a `deal_check_sent` event and posts the alert embed plus the analysis embed (green/yellow,
-   at most 3500 characters, a surrounding code fence stripped) to the rule's channel.
+5. The verdict comes only from the first line, `Werdykt: KUPUJ | MOŻE | NIE`.
+6. `KUPUJ`/`MOŻE`: stores a `deal_check_sent` event and posts the alert embed plus the analysis embed (title 🟢/🟡 verdict,
+   no colour bar, only the content of a code fence if any, at most 3500 characters) to the rule's channel.
 7. `NIE`: info log only. No verdict or a failed run: error log, nothing sent.
 
 ## Setup

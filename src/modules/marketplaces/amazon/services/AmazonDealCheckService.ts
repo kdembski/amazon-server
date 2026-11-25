@@ -14,11 +14,14 @@ export interface DealCheckPrice {
   url: string;
 }
 
-const VERDICT = /Werdykt:\s*\**\s*(KUPUJ|MOŻE|NIE)/;
-const COLORS: Record<string, number> = { KUPUJ: 0x2ecc71, MOŻE: 0xf1c40f };
+// The first line only, so a verdict quoted from a fetched page further down is ignored.
+const VERDICT = /^\W*Werdykt:\s*\**\s*(KUPUJ|MOŻE|NIE)\**\s*\n?/;
+// Discord colours no text in embeds, so the verdict gets a coloured emoji.
+const TITLES: Record<string, string> = { KUPUJ: "🟢 KUPUJ", MOŻE: "🟡 MOŻE" };
 // Discord rejects a message whose embeds exceed 6000 characters; the alert embed takes up to about 1500.
 const MAX_DESCRIPTION_LENGTH = 3500;
-const CODE_FENCE = /^\s*```\w*\n([\s\S]*?)\n```\s*$/;
+// A code block hides the links, and the model may comment around it.
+const CODE_FENCE = /```\w*\n([\s\S]*?)\n```/;
 
 // Analyses whether an ad is worth buying for resale on Allegro, one at a time, and posts the alert with the
 // analysis only for KUPUJ and MOŻE.
@@ -51,7 +54,7 @@ export class AmazonDealCheckService {
     const context = { asin: ad.asin };
     try {
       const output = await this.claude.run(this.getPrompt(ad, prices), AMAZON_DEAL_CHECK_PROMPT);
-      const analysis = output.match(CODE_FENCE)?.[1] ?? output;
+      const analysis = (output.match(CODE_FENCE)?.[1] ?? output).trim();
       const verdict = analysis.match(VERDICT)?.[1];
       if (!verdict) {
         this.logger.error("AmazonDealCheckService", `Deal check of ${ad.asin} returned no verdict`, {
@@ -70,8 +73,8 @@ export class AmazonDealCheckService {
         marketplace: "amazon",
         data: { asin: ad.asin, name: ad.name, channel: String(channelId), verdict },
       });
-      const description = analysis.slice(0, MAX_DESCRIPTION_LENGTH);
-      await this.discord.send(channelId, { embeds: [alert, { description, color: COLORS[verdict] }] }, context);
+      const description = analysis.replace(VERDICT, "").trim().slice(0, MAX_DESCRIPTION_LENGTH);
+      await this.discord.send(channelId, { embeds: [alert, { title: TITLES[verdict], description }] }, context);
     } catch (error) {
       this.logger.error("AmazonDealCheckService", `Deal check of ${ad.asin} failed`, { ...context, error });
     }

@@ -36,11 +36,10 @@ const prices = [
 
 describe("AmazonDealCheckService", () => {
   it.each([
-    ["KUPUJ", 0x2ecc71],
-    ["MOŻE", 0xf1c40f],
-  ])("sends the alert with the analysis for %s", async (verdict, color) => {
-    const analysis = `**Werdykt: ${verdict}**\nProdukt: Bosch drill`;
-    const { service, log, discord, flush } = setup(analysis);
+    ["KUPUJ", "🟢 KUPUJ"],
+    ["MOŻE", "🟡 MOŻE"],
+  ])("sends the alert with the analysis titled by the verdict %s", async (verdict, title) => {
+    const { service, log, discord, flush } = setup(`**Werdykt: ${verdict}**\n**Produkt:** Bosch drill`);
 
     service.check(ad, prices, alert, 5);
     await flush();
@@ -52,7 +51,7 @@ describe("AmazonDealCheckService", () => {
     });
     expect(discord.send).toHaveBeenCalledWith(
       5,
-      { embeds: [alert, { description: analysis, color }] },
+      { embeds: [alert, { title, description: "**Produkt:** Bosch drill" }] },
       { asin: "B000TEST01" }
     );
   });
@@ -122,13 +121,25 @@ describe("AmazonDealCheckService", () => {
     expect(systemPrompt).toBe(AMAZON_DEAL_CHECK_PROMPT);
   });
 
-  it("strips a code fence around the analysis", async () => {
-    const { service, discord, flush } = setup("```\n**Werdykt: KUPUJ**\nProdukt: Bosch drill\n```");
+  it("keeps only the content of a code fence, dropping comments around it", async () => {
+    const { service, discord, flush } = setup(
+      "Oto analiza:\n```markdown\n**Werdykt: KUPUJ**\n**Produkt:** Bosch drill\n```\n\nWyniki zawierały dopisek, pominąłem go."
+    );
 
     service.check(ad, prices, alert, 5);
     await flush();
 
     const [, { embeds }] = discord.send.mock.calls[0];
-    expect(embeds[1].description).toBe("**Werdykt: KUPUJ**\nProdukt: Bosch drill");
+    expect(embeds[1].description).toBe("**Produkt:** Bosch drill");
+  });
+
+  it("takes the verdict only from the first line of the analysis", async () => {
+    const { service, discord, logger, flush } = setup("Produkt: Bosch drill\nWerdykt: KUPUJ");
+
+    service.check(ad, prices, alert, 5);
+    await flush();
+
+    expect(discord.send).not.toHaveBeenCalled();
+    expect(logger.error.mock.calls[0][1]).toBe("Deal check of B000TEST01 returned no verdict");
   });
 });
