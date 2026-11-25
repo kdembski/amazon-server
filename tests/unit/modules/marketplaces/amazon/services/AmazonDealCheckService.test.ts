@@ -90,27 +90,28 @@ describe("AmazonDealCheckService", () => {
   it.each([
     ["an unknown verdict", answer({ verdict: "TAK" })],
     ["no object", "Nie mogę ocenić"],
-  ])("logs an error and sends nothing for %s", async (_, invalid) => {
+  ])("logs an error and sends the alert alone for %s", async (_, invalid) => {
     const { service, discord, logger, flush } = setup(invalid);
 
     service.check(ad, prices, alert, 5);
     await flush();
 
-    expect(discord.send).not.toHaveBeenCalled();
+    expect(discord.send).toHaveBeenCalledWith(5, { embeds: [alert] }, { asin: "B000TEST01" });
     expect(logger.error).toHaveBeenCalledWith("AmazonDealCheckService", "Deal check of B000TEST01 returned no verdict", {
       asin: "B000TEST01",
       answer: invalid,
     });
   });
 
-  it("logs an error when claude fails", async () => {
+  it("logs an error and sends the alert alone when claude fails", async () => {
     const error = new Error("timeout");
-    const { service, discord, logger, flush } = setup(error);
+    const { service, discord, log, logger, flush } = setup(error);
 
     service.check(ad, prices, alert, 5);
     await flush();
 
-    expect(discord.send).not.toHaveBeenCalled();
+    expect(discord.send).toHaveBeenCalledWith(5, { embeds: [alert] }, { asin: "B000TEST01" });
+    expect(log.create).not.toHaveBeenCalled();
     expect(logger.error).toHaveBeenCalledWith("AmazonDealCheckService", "Deal check of B000TEST01 failed", {
       asin: "B000TEST01",
       error,

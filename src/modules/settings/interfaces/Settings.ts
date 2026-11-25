@@ -6,6 +6,7 @@ export interface CountryOutlierRuleSetting {
   minPrices?: number;
   dropSinceSentPercent?: number;
   dealCheck?: boolean;
+  requireSent?: boolean;
 }
 
 export interface PriceDropRuleSetting {

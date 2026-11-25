@@ -20,7 +20,7 @@ const fakeReporter = (reported?: number) => ({
   setReportedPrice: vi.fn().mockResolvedValue(undefined),
 });
 
-type Rule = { channelId: number; dropSinceSentPercent: number; dealCheck?: boolean };
+type Rule = { channelId: number; dropSinceSentPercent: number; dealCheck?: boolean; requireSent?: boolean };
 const rule = (channelId: number, dropSinceSentPercent = 10): Rule => ({
   channelId,
   dropSinceSentPercent,
@@ -34,9 +34,9 @@ const setup = (
 ) => {
   const reporter = fakeReporter(reported);
   const getPlnRates = vi.fn().mockResolvedValue([]);
-  // Applies isBelowReported like CountryOutlierRule: a plain rule passes without a reported price.
+  // Applies isBelowReported like CountryOutlierRule: without a reported price only requireSent rules fail.
   const getMatches = vi.fn(async (_: ListingPrice[], isBelowReported?: (percent: number) => boolean) => {
-    return rules.filter((rule) => isBelowReported?.(rule.dropSinceSentPercent) ?? !rule.dealCheck);
+    return rules.filter((rule) => isBelowReported?.(rule.dropSinceSentPercent) ?? !rule.requireSent);
   });
   const manager = new CountryOutlierManager(
     reporter,
@@ -365,7 +365,9 @@ describe("CountryOutlierManager", () => {
   });
 
   describe("with dealCheck rules", () => {
-    const dealCheck = (channelId: number): Rule => ({ channelId, dropSinceSentPercent: 50, dealCheck: true });
+    const dealCheck = (channelId: number): Rule => {
+      return { channelId, dropSinceSentPercent: 50, dealCheck: true, requireSent: true };
+    };
     // The target group: the dealCheck rule wins only when its drop since the reported price passes.
     const targetGroup = async (_: ListingPrice[], isBelowReported?: (percent: number) => boolean) => {
       return isBelowReported?.(50) ? [dealCheck(10)] : [rule(2)];
@@ -445,6 +447,15 @@ describe("CountryOutlierManager", () => {
 
       expect([first.reporter.checkDeal.mock.calls.length, first.reporter.report.mock.calls.length]).toEqual([1, 0]);
       expect([reversed.reporter.checkDeal.mock.calls.length, reversed.reporter.report.mock.calls.length]).toEqual([0, 1]);
+    });
+
+    it("deal-checks the first alert of a dealCheck rule without requireSent", async () => {
+      const { manager, reporter, listing } = setup([{ channelId: 3, dropSinceSentPercent: 10, dealCheck: true }]);
+
+      await manager.check(listing, countries(10));
+
+      expect(reporter.checkDeal.mock.calls.map((call) => call[2])).toEqual([3]);
+      expect(reporter.report).not.toHaveBeenCalled();
     });
   });
 });

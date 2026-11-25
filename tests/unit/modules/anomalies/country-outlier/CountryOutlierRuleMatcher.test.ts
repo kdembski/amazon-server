@@ -113,7 +113,7 @@ describe("CountryOutlierRuleMatcher", () => {
     const settings: Partial<Settings> = {
       "countryOutlier.ruleGroups": [
         [
-          { channelId: 10, belowMedianPercent: 70, dropSinceSentPercent: 50, dealCheck: true },
+          { channelId: 10, belowMedianPercent: 70, dropSinceSentPercent: 50, dealCheck: true, requireSent: true },
           { channelId: 3, belowMedianPercent: 90 },
           { channelId: 2, belowMedianPercent: 70 },
         ],

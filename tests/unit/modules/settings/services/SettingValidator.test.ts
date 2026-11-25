@@ -208,4 +208,23 @@ describe("SettingValidator.validate", () => {
       `Setting "${key}"[0][0].dealCheck must be a boolean`
     );
   });
+
+  it("keeps requireSent of a country outlier rule", () => {
+    const groups = ruleGroups({ requireSent: true });
+    expect(validator.validate("countryOutlier.ruleGroups", groups, CHANNELS)).toEqual(groups);
+  });
+
+  it("rejects a non-boolean requireSent", () => {
+    expectInvalid(
+      () => validator.validate("countryOutlier.ruleGroups", ruleGroups({ requireSent: "yes" }), CHANNELS),
+      'Setting "countryOutlier.ruleGroups"[0][0].requireSent must be a boolean'
+    );
+  });
+
+  it("rejects requireSent on a price drop rule", () => {
+    expectInvalid(
+      () => validator.validate("priceDrop.ruleGroups", [[{ channelId: 1, dropPercent: 80, requireSent: true }]], CHANNELS),
+      'Setting "priceDrop.ruleGroups"[0][0] has an unknown field "requireSent"'
+    );
+  });
 });

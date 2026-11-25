@@ -22,6 +22,7 @@ const COUNTRY_OUTLIER_RULE_FIELDS = [
   "dropSinceSentPercent",
   "minPrices",
   "dealCheck",
+  "requireSent",
 ];
 
 const PRICE_DROP_RULE_FIELDS = ["channelId", "dropPercent", "dealCheck"];
@@ -87,16 +88,21 @@ export class SettingValidator {
       channelId: this.validateChannel(`${path}.channelId`, fields.channelId, channelIds),
       dropPercent: this.validatePercent(`${path}.dropPercent`, fields.dropPercent, false),
     };
-    this.setDealCheck(path, fields, result);
+    this.setBoolean(path, fields, result, "dealCheck");
     return result;
   }
 
-  private setDealCheck(path: string, fields: Record<string, unknown>, result: { dealCheck?: boolean }) {
-    if (fields.dealCheck === undefined) return;
-    if (typeof fields.dealCheck !== "boolean") {
-      throw new HttpError(400, `${path}.dealCheck must be a boolean`);
+  private setBoolean<K extends string>(
+    path: string,
+    fields: Record<string, unknown>,
+    result: { [key in K]?: boolean },
+    key: K
+  ) {
+    if (fields[key] === undefined) return;
+    if (typeof fields[key] !== "boolean") {
+      throw new HttpError(400, `${path}.${key} must be a boolean`);
     }
-    result.dealCheck = fields.dealCheck;
+    result[key] = fields[key];
   }
 
   private validateCountryOutlierRule(path: string, rule: unknown, channelIds: number[]) {
@@ -130,7 +136,8 @@ export class SettingValidator {
     if (fields.minPrices !== undefined) {
       result.minPrices = this.validateInteger(`${path}.minPrices`, fields.minPrices, 2);
     }
-    this.setDealCheck(path, fields, result);
+    this.setBoolean(path, fields, result, "dealCheck");
+    this.setBoolean(path, fields, result, "requireSent");
     return result;
   }
 
