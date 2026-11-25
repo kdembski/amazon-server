@@ -7,6 +7,7 @@ export class CountryOutlierRule implements CountryOutlierRuleI {
   readonly channelId;
   readonly dropSinceSentPercent;
   readonly dealCheck;
+  readonly requireSent;
   private setting;
   private minPrices;
   private evaluator;
@@ -20,20 +21,21 @@ export class CountryOutlierRule implements CountryOutlierRuleI {
     this.channelId = setting.channelId;
     this.dropSinceSentPercent = setting.dropSinceSentPercent ?? defaultDropSinceSentPercent;
     this.dealCheck = setting.dealCheck ?? false;
+    this.requireSent = setting.requireSent ?? false;
     this.setting = setting;
     this.minPrices = Math.max(globalMinPrices, setting.minPrices ?? 0);
     this.evaluator = evaluator;
   }
 
-  // `isBelowReported` is missing without a reported price: a plain rule then matches, a dealCheck rule does not,
-  // so the group falls through to its next rule on the first alert of a listing.
+  // `isBelowReported` is missing without a reported price: a rule then matches unless it has requireSent, which
+  // makes the group fall through to its next rule on the first alert of a listing.
   matches(prices: ListingPrice[], isBelowReported?: IsBelowReported) {
     const { belowMedianPercent, minPln, maxPln } = this.setting;
     return (
       prices.length >= this.minPrices &&
       this.evaluator.isOverPercentageDifference(prices, belowMedianPercent) &&
       this.evaluator.isInRange(prices, minPln, maxPln) &&
-      (isBelowReported?.(this.dropSinceSentPercent) ?? !this.dealCheck)
+      (isBelowReported?.(this.dropSinceSentPercent) ?? !this.requireSent)
     );
   }
 }

@@ -39,7 +39,7 @@ through `/discord-channels`. `SettingService` caches both for 60 s per process.
 
 - `countryOutlier.minPrices` (3): minimum number of countries in the scrape.
 - `countryOutlier.ruleGroups`: groups of rules
-  `{ channelId, belowMedianPercent, minPln?, maxPln?, minPrices?, dropSinceSentPercent?, dealCheck? }`.
+  `{ channelId, belowMedianPercent, minPln?, maxPln?, minPrices?, dropSinceSentPercent?, dealCheck?, requireSent? }`.
 - `countryOutlier.dropSinceSentPercent` (10): `dropSinceSentPercent` of rules without one.
 
 Production rule groups (the values in parentheses are the production values too):
@@ -66,7 +66,7 @@ Production rule groups (the values in parentheses are the production values too)
    (`CountryOutlierEvaluator.isOverPercentageDifference`), `minPln ≤ cheapest < maxPln` (`isInRange`, a missing
    bound is open) and the scrape has at least `max(countryOutlier.minPrices, rule minPrices)` countries; otherwise
    the next rule of the group is tried. With a reported price (step 11) a rule also needs the newest price at least
-   its `dropSinceSentPercent` below it; without one a plain rule matches and a `dealCheck` rule does not, so the
+   its `dropSinceSentPercent` below it; without one a rule matches unless it has `requireSent`, so the
    first alert of a listing falls through to the next rule.
 8. Median: weighted median of the other PLN prices, ascending, weights `n`..`1` from the cheapest; the first price whose
    cumulative weight passes half, or the mean with the next one at exactly half.

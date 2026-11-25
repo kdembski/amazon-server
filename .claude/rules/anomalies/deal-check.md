@@ -23,7 +23,7 @@ analysis and its verdict `KUPUJ`, `MOŻE` or `NIE`.
 5. Stores a `deal_check_sent` event and posts the alert embed plus the analysis embed to the rule's channel:
    description ✅ **KUPUJ** / ⚠️ **MOŻE** / ❌ **NIE**, fields Produkt, Amazon, Allegro, Zysk, Ryzyka (`– ` lines),
    each at most 700 characters, `brak danych` when empty.
-6. No known verdict or a failed run: error log, nothing sent.
+6. No known verdict or a failed run: error log, and the alert embed alone goes to the rule's channel.
 
 ## Setup
 

@@ -32,7 +32,7 @@ const VERDICTS: Record<string, string> = { KUPUJ: "✅ **KUPUJ**", MOŻE: "⚠�
 const MAX_FIELD_LENGTH = 700;
 
 // Analyses whether an ad is worth buying for resale on Allegro, one at a time, and posts the alert with the
-// analysis.
+// analysis, or the alert alone when the analysis fails.
 export class AmazonDealCheckService {
   private claude;
   private discord;
@@ -72,6 +72,7 @@ export class AmazonDealCheckService {
           ...context,
           answer,
         });
+        await this.discord.send(channelId, { embeds: [alert] }, context);
         return;
       }
 
@@ -84,6 +85,8 @@ export class AmazonDealCheckService {
       await this.discord.send(channelId, { embeds: [alert, analysis] }, context);
     } catch (error) {
       this.logger.error("AmazonDealCheckService", `Deal check of ${ad.asin} failed`, { ...context, error });
+      // The rule caught the listing, so the channel still gets the alert without the analysis.
+      await this.discord.send(channelId, { embeds: [alert] }, context);
     }
   }
 

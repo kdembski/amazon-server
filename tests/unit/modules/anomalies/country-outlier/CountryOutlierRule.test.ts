@@ -54,35 +54,42 @@ describe("CountryOutlierRule", () => {
     expect([fallback.channelId, fallback.dropSinceSentPercent]).toEqual([4, 10]);
   });
 
-  describe("with dealCheck", () => {
-    const dealCheck = new CountryOutlierRule(
-      { channelId: 10, belowMedianPercent: 70, dropSinceSentPercent: 50, dealCheck: true },
+  describe("with requireSent and dealCheck", () => {
+    const requireSent = new CountryOutlierRule(
+      { channelId: 10, belowMedianPercent: 70, dropSinceSentPercent: 50, requireSent: true },
       10,
       3
     );
     const matching = prices(25, 100, 100);
 
-    it("keeps dealCheck, false by default", () => {
+    it("keeps dealCheck and requireSent, false by default", () => {
       const plain = new CountryOutlierRule({ channelId: 1, belowMedianPercent: 50 }, 10, 3);
+      const dealCheck = new CountryOutlierRule({ channelId: 1, belowMedianPercent: 50, dealCheck: true }, 10, 3);
 
-      expect(dealCheck.dealCheck).toBe(true);
-      expect(plain.dealCheck).toBe(false);
+      expect([dealCheck.dealCheck, requireSent.requireSent]).toEqual([true, true]);
+      expect([plain.dealCheck, plain.requireSent]).toEqual([false, false]);
     });
 
-    it("does not match without a reported price", () => {
-      expect(dealCheck.matches(matching)).toBe(false);
+    it("does not match a requireSent rule without a reported price", () => {
+      expect(requireSent.matches(matching)).toBe(false);
     });
 
     it("does not match when the drop since the reported price is below its dropSinceSentPercent", () => {
-      expect(dealCheck.matches(matching, () => false)).toBe(false);
+      expect(requireSent.matches(matching, () => false)).toBe(false);
     });
 
     it("matches when the drop since the reported price reaches its dropSinceSentPercent", () => {
-      expect(dealCheck.matches(matching, (percent) => percent === 50)).toBe(true);
+      expect(requireSent.matches(matching, (percent) => percent === 50)).toBe(true);
     });
 
     it("still requires belowMedianPercent", () => {
-      expect(dealCheck.matches(prices(31, 100, 100), () => true)).toBe(false);
+      expect(requireSent.matches(prices(31, 100, 100), () => true)).toBe(false);
+    });
+
+    it("matches a dealCheck rule without requireSent on the first alert", () => {
+      const dealCheck = new CountryOutlierRule({ channelId: 3, belowMedianPercent: 70, dealCheck: true }, 10, 3);
+
+      expect(dealCheck.matches(matching)).toBe(true);
     });
 
     it("matches a plain rule without a reported price, else only when its drop passes", () => {

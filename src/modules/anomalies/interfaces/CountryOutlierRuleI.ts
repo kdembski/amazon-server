@@ -7,5 +7,6 @@ export interface CountryOutlierRuleI {
   readonly channelId: number;
   readonly dropSinceSentPercent: number;
   readonly dealCheck: boolean;
+  readonly requireSent: boolean;
   matches(prices: ListingPrice[], isBelowReported?: IsBelowReported): boolean;
 }
