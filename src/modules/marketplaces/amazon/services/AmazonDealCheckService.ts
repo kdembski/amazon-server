@@ -1,6 +1,9 @@
 import { APIEmbed } from "discord.js";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
-import { AMAZON_DEAL_CHECK_PROMPT } from "@/modules/marketplaces/amazon/services/AmazonDealCheckPrompt";
+import {
+  AMAZON_DEAL_CHECK_PROMPT,
+  AMAZON_DEAL_CHECK_SCHEMA,
+} from "@/modules/marketplaces/amazon/services/AmazonDealCheckPrompt";
 import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
 import { DiscordChannelService } from "@/modules/settings/services/DiscordChannelService";
 import { ClaudeCliService } from "@/shared/claude/ClaudeCliService";
@@ -14,14 +17,22 @@ export interface DealCheckPrice {
   url: string;
 }
 
-const VERDICT = /Werdykt:\s*\**\s*(KUPUJ|MOŻE|NIE)/;
-const COLORS: Record<string, number> = { KUPUJ: 0x2ecc71, MOŻE: 0xf1c40f };
-// Discord rejects a message whose embeds exceed 6000 characters; the alert embed takes up to about 1500.
-const MAX_DESCRIPTION_LENGTH = 3500;
-const CODE_FENCE = /^\s*```\w*\n([\s\S]*?)\n```\s*$/;
+interface DealCheckAnswer {
+  verdict: string;
+  product: string;
+  amazon: string;
+  allegro: string;
+  profit: string;
+  risks: string[];
+}
+
+// Discord colours no text in embeds, so the verdict gets a coloured emoji.
+const VERDICTS: Record<string, string> = { KUPUJ: "✅ **KUPUJ**", MOŻE: "⚠️ **MOŻE**", NIE: "❌ **NIE**" };
+// Discord rejects a message whose embeds exceed 6000 characters and a field value over 1024 or empty.
+const MAX_FIELD_LENGTH = 700;
 
 // Analyses whether an ad is worth buying for resale on Allegro, one at a time, and posts the alert with the
-// analysis only for KUPUJ and MOŻE.
+// analysis.
 export class AmazonDealCheckService {
   private claude;
   private discord;
@@ -50,18 +61,17 @@ export class AmazonDealCheckService {
   private async run(ad: AmazonAdSelectDto, prices: DealCheckPrice[], alert: APIEmbed, channelId: number) {
     const context = { asin: ad.asin };
     try {
-      const output = await this.claude.run(this.getPrompt(ad, prices), AMAZON_DEAL_CHECK_PROMPT);
-      const analysis = output.match(CODE_FENCE)?.[1] ?? output;
-      const verdict = analysis.match(VERDICT)?.[1];
-      if (!verdict) {
+      const answer = await this.claude.run(
+        this.getPrompt(ad, prices),
+        AMAZON_DEAL_CHECK_PROMPT,
+        AMAZON_DEAL_CHECK_SCHEMA
+      );
+      const verdict = (answer as DealCheckAnswer | undefined)?.verdict;
+      if (!verdict || !VERDICTS[verdict]) {
         this.logger.error("AmazonDealCheckService", `Deal check of ${ad.asin} returned no verdict`, {
           ...context,
-          analysis,
+          answer,
         });
-        return;
-      }
-      if (verdict === "NIE") {
-        this.logger.info("AmazonDealCheckService", `Deal check of ${ad.asin}: NIE`, context);
         return;
       }
 
@@ -70,11 +80,25 @@ export class AmazonDealCheckService {
         marketplace: "amazon",
         data: { asin: ad.asin, name: ad.name, channel: String(channelId), verdict },
       });
-      const description = analysis.slice(0, MAX_DESCRIPTION_LENGTH);
-      await this.discord.send(channelId, { embeds: [alert, { description, color: COLORS[verdict] }] }, context);
+      const analysis = this.getAnalysisEmbed(answer as DealCheckAnswer);
+      await this.discord.send(channelId, { embeds: [alert, analysis] }, context);
     } catch (error) {
       this.logger.error("AmazonDealCheckService", `Deal check of ${ad.asin} failed`, { ...context, error });
     }
+  }
+
+  private getAnalysisEmbed({ verdict, product, amazon, allegro, profit, risks }: DealCheckAnswer) {
+    const fields: [string, string][] = [
+      ["Produkt", product],
+      ["Amazon", amazon],
+      ["Allegro", allegro],
+      ["Zysk", profit],
+      ["Ryzyka", risks.map((risk) => `– ${risk}`).join("\n")],
+    ];
+    return {
+      description: VERDICTS[verdict],
+      fields: fields.map(([name, value]) => ({ name, value: value.slice(0, MAX_FIELD_LENGTH) || "brak danych" })),
+    };
   }
 
   private getPrompt(ad: AmazonAdSelectDto, prices: DealCheckPrice[]) {

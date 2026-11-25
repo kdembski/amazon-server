@@ -18,7 +18,8 @@ export class ClaudeCliService {
     this.execFile = execFile;
   }
 
-  async run(prompt: string, systemPrompt: string) {
+  // Resolves with the answer matching `schema` (--json-schema).
+  async run(prompt: string, systemPrompt: string, schema: object): Promise<unknown> {
     const { stdout } = await this.execFile(
       "claude",
       [
@@ -30,6 +31,7 @@ export class ClaudeCliService {
         "--max-turns", "15",
         "--no-session-persistence",
         "--output-format", "json",
+        "--json-schema", JSON.stringify(schema),
       ],
       {
         timeout: 300_000,
@@ -42,8 +44,11 @@ export class ClaudeCliService {
       }
     );
 
-    const output: { is_error: boolean; result: string } = JSON.parse(String(stdout));
+    const output: { is_error: boolean; result: string; structured_output?: unknown } = JSON.parse(String(stdout));
     if (output.is_error) throw new Error(`Claude CLI failed: ${output.result}`);
-    return output.result;
+    if (output.structured_output === undefined) {
+      throw new Error(`Claude CLI returned no structured output: ${output.result}`);
+    }
+    return output.structured_output;
   }
 }

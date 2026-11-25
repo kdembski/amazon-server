@@ -8,8 +8,8 @@ paths:
 
 # Deal check
 
-A rule with `dealCheck: true` (`countryOutlier.ruleGroups`, `priceDrop.ruleGroups`) posts its alert only when an AI
-resale analysis rates the deal `KUPUJ` or `MOŻE`.
+A rule with `dealCheck: true` (`countryOutlier.ruleGroups`, `priceDrop.ruleGroups`) posts its alert with an AI resale
+analysis and its verdict `KUPUJ`, `MOŻE` or `NIE`.
 
 ## Steps
 
@@ -18,11 +18,12 @@ resale analysis rates the deal `KUPUJ` or `MOŻE`.
    prices (country outlier: PLN; price drop: newest price per country in its own currency) to `AmazonDealCheckService`.
 3. `AmazonDealCheckService` queues the check, one at a time per reporter.
 4. `ClaudeCliService` runs `claude -p` with the `AMAZON_DEAL_CHECK_PROMPT` system prompt: model `sonnet`, only
-   `WebSearch`/`WebFetch`, env only `PATH`, `HOME`, `CLAUDE_CODE_OAUTH_TOKEN`, timeout 5 min.
-5. The verdict comes from the `Werdykt: KUPUJ | MOŻE | NIE` line of the answer.
-6. `KUPUJ`/`MOŻE`: stores a `deal_check_sent` event and posts the alert embed plus the analysis embed (green/yellow,
-   at most 3500 characters, a surrounding code fence stripped) to the rule's channel.
-7. `NIE`: info log only. No verdict or a failed run: error log, nothing sent.
+   `WebSearch`/`WebFetch`, env only `PATH`, `HOME`, `CLAUDE_CODE_OAUTH_TOKEN`, timeout 5 min, and the answer as
+   `AMAZON_DEAL_CHECK_SCHEMA` (`--json-schema`, read from `structured_output`).
+5. Stores a `deal_check_sent` event and posts the alert embed plus the analysis embed to the rule's channel:
+   description ✅ **KUPUJ** / ⚠️ **MOŻE** / ❌ **NIE**, fields Produkt, Amazon, Allegro, Zysk, Ryzyka (`– ` lines),
+   each at most 700 characters, `brak danych` when empty.
+6. No known verdict or a failed run: error log, nothing sent.
 
 ## Setup
 
