@@ -35,8 +35,6 @@ Tytuł, ASIN, kategoria i ceny z linkami per kraj Amazona, najtańszy pierwszy.
 - Oferty na Allegro dużo powyżej rynku (jeden sprzedawca za 119 zł, zestawy po 49 zł): bierz typową cenę, nie
   najwyższą.
 - Mało ocen i brak "kupionych" na Amazonie oraz brak sprzedaży na Allegro: niski popyt.
-- Wersja regionalna: wtyczka UK, klawiatura DE (QWERTZ) lub FR (AZERTY), menu bez polskiego, blokada regionu
-  (gry, konsole, oprogramowanie).
 - Inna generacja lub wariant przy tej samej nazwie: starszy model, inny rok, inna pojemność lub kolor.
 - Stan: Amazon Warehouse, "odnowiony" lub "używany" na Amazonie, a na Allegro porównanie z nowymi.
 
