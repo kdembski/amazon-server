@@ -39,10 +39,9 @@ const prices = [
 const answer = (overrides: object = {}) => ({
   verdict: "KUPUJ",
   product: "Bosch GSR 12V-15, 1 szt.",
-  amazon: "Niemcy **89,40 zł** · Amazon",
   allegro: "ten sam [Bosch](https://allegro.pl/oferta/1) **289 zł**",
-  profit: "**163 zł** · ROI 183% · *prowizja 11%*",
-  risks: ["wersja solo", "oficjalny sklep"],
+  profit: "**163 zł** · ROI 183% · koszt 89,40 zł · *prowizja 11%*",
+  reason: "Ten sam model i opakowanie, ceny na Allegro wyrównane.",
   ...overrides,
 });
 
@@ -53,7 +52,7 @@ const sentAnalysis = (discord: ReturnType<typeof fakeDiscordChannelService>) => 
 describe("AmazonDealCheckService", () => {
   it.each([
     ["KUPUJ", "✅ **KUPUJ**"],
-    ["MOŻE", "⚠️ **MOŻE**"],
+    ["MOŻE", "❔ **MOŻE**"],
     ["NIE", "❌ **NIE**"],
   ])("sends the alert with the analysis fields for %s", async (verdict, description) => {
     const { service, log, discord, flush } = setup(answer({ verdict }));
@@ -75,10 +74,9 @@ describe("AmazonDealCheckService", () => {
             description,
             fields: [
               { name: "Produkt", value: "Bosch GSR 12V-15, 1 szt." },
-              { name: "Amazon", value: "Niemcy **89,40 zł** · Amazon" },
               { name: "Allegro", value: "ten sam [Bosch](https://allegro.pl/oferta/1) **289 zł**" },
-              { name: "Zysk", value: "**163 zł** · ROI 183% · *prowizja 11%*" },
-              { name: "Ryzyka", value: "– wersja solo\n– oficjalny sklep" },
+              { name: "Zysk", value: "**163 zł** · ROI 183% · koszt 89,40 zł · *prowizja 11%*" },
+              { name: "Uzasadnienie", value: "Ten sam model i opakowanie, ceny na Allegro wyrównane." },
             ],
           },
         ],
@@ -119,7 +117,7 @@ describe("AmazonDealCheckService", () => {
   });
 
   it("truncates a field to 700 characters and fills an empty one", async () => {
-    const { service, discord, flush } = setup(answer({ product: "a".repeat(1000), amazon: "", risks: [] }));
+    const { service, discord, flush } = setup(answer({ product: "a".repeat(1000), allegro: "" }));
 
     service.check(ad, prices, alert, 5);
     await flush();
@@ -127,7 +125,6 @@ describe("AmazonDealCheckService", () => {
     const { fields } = sentAnalysis(discord);
     expect(fields[0].value).toHaveLength(700);
     expect(fields[1].value).toBe("brak danych");
-    expect(fields[4].value).toBe("brak danych");
   });
 
   it("asks about the ad with its prices, the deal check instructions and the answer schema", async () => {
