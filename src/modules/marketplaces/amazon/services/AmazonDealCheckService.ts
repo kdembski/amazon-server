@@ -17,14 +17,14 @@ export interface DealCheckPrice {
 // The first line only, so a verdict quoted from a fetched page further down is ignored.
 const VERDICT = /^\W*Werdykt:\s*\**\s*(KUPUJ|MOŻE|NIE)\**\s*\n?/;
 // Discord colours no text in embeds, so the verdict gets a coloured emoji.
-const TITLES: Record<string, string> = { KUPUJ: "🟢 KUPUJ", MOŻE: "🟡 MOŻE" };
+const TITLES: Record<string, string> = { KUPUJ: "🟩 KUPUJ", MOŻE: "🟨 MOŻE", NIE: "🟥 NIE" };
 // Discord rejects a message whose embeds exceed 6000 characters; the alert embed takes up to about 1500.
 const MAX_DESCRIPTION_LENGTH = 3500;
 // A code block hides the links, and the model may comment around it.
 const CODE_FENCE = /```\w*\n([\s\S]*?)\n```/;
 
 // Analyses whether an ad is worth buying for resale on Allegro, one at a time, and posts the alert with the
-// analysis only for KUPUJ and MOŻE.
+// analysis.
 export class AmazonDealCheckService {
   private claude;
   private discord;
@@ -61,10 +61,6 @@ export class AmazonDealCheckService {
           ...context,
           analysis,
         });
-        return;
-      }
-      if (verdict === "NIE") {
-        this.logger.info("AmazonDealCheckService", `Deal check of ${ad.asin}: NIE`, context);
         return;
       }
 

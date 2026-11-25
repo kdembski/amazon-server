@@ -36,8 +36,9 @@ const prices = [
 
 describe("AmazonDealCheckService", () => {
   it.each([
-    ["KUPUJ", "🟢 KUPUJ"],
-    ["MOŻE", "🟡 MOŻE"],
+    ["KUPUJ", "🟩 KUPUJ"],
+    ["MOŻE", "🟨 MOŻE"],
+    ["NIE", "🟥 NIE"],
   ])("sends the alert with the analysis titled by the verdict %s", async (verdict, title) => {
     const { service, log, discord, flush } = setup(`**Werdykt: ${verdict}**\n**Produkt:** Bosch drill`);
 
@@ -54,19 +55,6 @@ describe("AmazonDealCheckService", () => {
       { embeds: [alert, { title, description: "**Produkt:** Bosch drill" }] },
       { asin: "B000TEST01" }
     );
-  });
-
-  it("sends nothing for NIE", async () => {
-    const { service, log, discord, logger, flush } = setup("**Werdykt: NIE**\nRyzyka: brak sprzedaży");
-
-    service.check(ad, prices, alert, 5);
-    await flush();
-
-    expect(log.create).not.toHaveBeenCalled();
-    expect(discord.send).not.toHaveBeenCalled();
-    expect(logger.info).toHaveBeenCalledWith("AmazonDealCheckService", "Deal check of B000TEST01: NIE", {
-      asin: "B000TEST01",
-    });
   });
 
   it("logs an error and sends nothing when the analysis has no verdict", async () => {
