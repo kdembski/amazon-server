@@ -18,11 +18,12 @@ analysis and its verdict `KUPUJ`, `MOŻE` or `NIE`.
    prices (country outlier: PLN; price drop: newest price per country in its own currency) to `AmazonDealCheckService`.
 3. `AmazonDealCheckService` queues the check, one at a time per reporter.
 4. `ClaudeCliService` runs `claude -p` with the `AMAZON_DEAL_CHECK_PROMPT` system prompt: model `sonnet`, only
-   `WebSearch`/`WebFetch`, env only `PATH`, `HOME`, `CLAUDE_CODE_OAUTH_TOKEN`, timeout 5 min.
-5. The verdict comes only from the first line, `Werdykt: KUPUJ | MOŻE | NIE`.
-6. Stores a `deal_check_sent` event and posts the alert embed plus the analysis embed (title 🟩 KUPUJ / 🟨 MOŻE /
-   🟥 NIE, no colour bar, only the content of a code fence if any, at most 3500 characters) to the rule's channel.
-7. No verdict or a failed run: error log, nothing sent.
+   `WebSearch`/`WebFetch`, env only `PATH`, `HOME`, `CLAUDE_CODE_OAUTH_TOKEN`, timeout 5 min, and the answer as
+   `AMAZON_DEAL_CHECK_SCHEMA` (`--json-schema`, read from `structured_output`).
+5. Stores a `deal_check_sent` event and posts the alert embed plus the analysis embed to the rule's channel:
+   description 🟩 **KUPUJ** / 🟨 **MOŻE** / 🟥 **NIE**, fields Produkt, Amazon, Allegro, Zysk, Ryzyka (`– ` lines),
+   each at most 700 characters, `brak danych` when empty.
+6. No known verdict or a failed run: error log, nothing sent.
 
 ## Setup
 
