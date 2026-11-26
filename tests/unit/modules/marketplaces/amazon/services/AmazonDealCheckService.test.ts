@@ -3,7 +3,7 @@ import { AmazonDealCheckService } from "@/modules/marketplaces/amazon/services/A
 import {
   AMAZON_DEAL_CHECK_PROMPT,
   AMAZON_DEAL_CHECK_SCHEMA,
-} from "@/modules/marketplaces/amazon/services/AmazonDealCheckPrompt";
+} from "@/modules/marketplaces/amazon/helpers/deal-check-prompt";
 import { ClaudeCliService } from "@/shared/claude/ClaudeCliService";
 import { ConcurrencyQueue } from "@/shared/utils/ConcurrencyQueue";
 import { buildAd } from "../../../../../support/factories";
@@ -11,6 +11,7 @@ import {
   fakeBusinessLogService,
   fakeDiscordChannelService,
   fakeSystemLogService,
+  resetSingleton,
 } from "../../../../../support/fakes";
 
 const setup = (answer: unknown) => {
@@ -38,11 +39,15 @@ const prices = [
 ];
 const answer = (overrides: object = {}) => ({
   verdict: "KUPUJ",
-  allegro: [
-    "podobny: [Bosch](https://allegro.pl/oferta/1) **289 zł**",
-    "podobny: [Makita](https://allegro.pl/oferta/2) **299 zł**",
-  ],
-  profit: "**163 zł** · ROI 183% · koszt 89,40 zł · *prowizja 11%*",
+  query: "bosch gsr 12v-15",
+  minPrice: 289,
+  maxPrice: 299.9,
+  estimated: false,
+  profit: 167.81,
+  sale: 289,
+  cost: 89.4,
+  roi: 187.7,
+  commission: 11,
   ...overrides,
 });
 
@@ -55,7 +60,7 @@ describe("AmazonDealCheckService", () => {
     ["KUPUJ", "✅ **KUPUJ**"],
     ["MOŻE", "❔ **MOŻE**"],
     ["NIE", "❌ **NIE**"],
-  ])("sends the alert with the analysis fields for %s", async (verdict, description) => {
+  ])("sends the alert with the analysis for %s", async (verdict, description) => {
     const { service, log, discord, flush } = setup(answer({ verdict }));
 
     service.check(ad, prices, alert, 5);
@@ -74,9 +79,10 @@ describe("AmazonDealCheckService", () => {
           {
             description:
               `${description}\n\n` +
-              "podobny: [Bosch](https://allegro.pl/oferta/1) **289 zł**\n" +
-              "podobny: [Makita](https://allegro.pl/oferta/2) **299 zł**\n\n" +
-              "**163 zł** · ROI 183% · koszt 89,40 zł · *prowizja 11%*",
+              "Wycena: **289.00 – 299.90 zł**\n" +
+              "Allegro: [bosch gsr 12v-15](https://allegro.pl/listing?string=bosch+gsr+12v-15&order=p)\n\n" +
+              ["Zysk **167.81 zł**", "Sprzedaż 289.00 zł", "Koszt 89.40 zł", "ROI 188%", "Prowizja 11%"]
+                .join(" · "),
           },
         ],
       },
@@ -115,13 +121,100 @@ describe("AmazonDealCheckService", () => {
     });
   });
 
-  it("truncates a part to 700 characters and fills an empty one", async () => {
-    const { service, discord, flush } = setup(answer({ allegro: ["a".repeat(1000)], profit: "" }));
+  it("truncates the lines to 700 characters", async () => {
+    const query = "a".repeat(1000);
+    const { service, discord, flush } = setup(answer({ query }));
 
     service.check(ad, prices, alert, 5);
     await flush();
 
-    expect(sentAnalysis(discord).description).toBe(`✅ **KUPUJ**\n\n${"a".repeat(700)}\n\nbrak danych`);
+    const expected = `Wycena: **289.00 – 299.90 zł**\nAllegro: [${query}`.slice(0, 700);
+    expect(sentAnalysis(discord).description).toBe(`✅ **KUPUJ**\n\n${expected}`);
+  });
+
+  it.each([
+    ["one price", 10, 10, false, "Wycena: **10.00 zł**\n"],
+    ["only the lowest price", 10, null, false, "Wycena: **10.00 zł**\n"],
+    ["no price", null, null, false, "Wycena: **brak cen w wynikach wyszukiwania**\n"],
+    ["an estimated price", 10, 10, true, "Szacunek: **10.00 zł**\n"],
+  ])("shows %s", async (_, minPrice, maxPrice, estimated, expected) => {
+    const { service, discord, flush } = setup(answer({ minPrice, maxPrice, estimated }));
+
+    service.check(ad, prices, alert, 5);
+    await flush();
+
+    expect(sentAnalysis(discord).description).toContain(expected);
+  });
+
+  it.each([
+    ["the numbers that are null", 89.4, "&order=p)\n\nKoszt 89.40 zł"],
+    ["the profit line without any number", null, "&order=p)"],
+  ])("leaves out %s", async (_, cost, ending) => {
+    const { service, discord, flush } = setup(answer({ profit: null, sale: null, cost, roi: null, commission: null }));
+
+    service.check(ad, prices, alert, 5);
+    await flush();
+
+    expect(sentAnalysis(discord).description.endsWith(ending)).toBe(true);
+  });
+
+  it("escapes brackets in the label and encodes the query in the link", async () => {
+    const { service, discord, flush } = setup(answer({ query: " Bateria [AA] (4) " }));
+
+    service.check(ad, prices, alert, 5);
+    await flush();
+
+    expect(sentAnalysis(discord).description).toContain(
+      "Allegro: [Bateria (AA) (4)](https://allegro.pl/listing?string=Bateria+%5BAA%5D+%284%29&order=p)"
+    );
+  });
+
+  it("analyses an ad once and posts its alerts to every channel that asked meanwhile", async () => {
+    const { service, run, log, discord, flush } = setup(answer());
+    const other = { title: "Price drop" };
+
+    service.check(ad, prices, alert, 5);
+    service.check(ad, prices, other, 9);
+    await flush();
+
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(log.create).toHaveBeenCalledTimes(2);
+    expect(discord.send).toHaveBeenNthCalledWith(1, 5, { embeds: [alert, expect.anything()] }, { asin: "B000TEST01" });
+    expect(discord.send).toHaveBeenNthCalledWith(2, 9, { embeds: [other, expect.anything()] }, { asin: "B000TEST01" });
+  });
+
+  it("analyses the ad again once the previous analysis has finished", async () => {
+    const { service, run, flush } = setup(answer());
+
+    service.check(ad, prices, alert, 5);
+    await flush();
+    service.check(ad, prices, alert, 9);
+    await flush();
+
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+
+  it("logs an error and still posts to the other channels when posting fails", async () => {
+    const error = new Error("discord down");
+    const { service, discord, logger, flush } = setup(answer());
+    discord.send.mockRejectedValueOnce(error);
+
+    service.check(ad, prices, alert, 5);
+    service.check(ad, prices, alert, 9);
+    await flush();
+
+    expect(logger.error).toHaveBeenCalledWith(
+      "AmazonDealCheckService",
+      "Posting the deal check of B000TEST01 failed",
+      { asin: "B000TEST01", channelId: 5, error }
+    );
+    expect(discord.send).toHaveBeenCalledTimes(2);
+  });
+
+  it("shares one instance", () => {
+    resetSingleton(AmazonDealCheckService);
+
+    expect(AmazonDealCheckService.getInstance()).toBe(AmazonDealCheckService.getInstance());
   });
 
   it("asks about the ad with its prices, the deal check instructions and the answer schema", async () => {

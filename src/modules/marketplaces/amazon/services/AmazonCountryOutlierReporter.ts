@@ -18,7 +18,7 @@ export class AmazonCountryOutlierReporter
     businessLogService = new BusinessLogService(),
     discordService = new AmazonCountryOutlierDiscordService(),
     reportRepository = new AmazonCountryOutlierReportRepository(),
-    dealCheckService = new AmazonDealCheckService()
+    dealCheckService = AmazonDealCheckService.getInstance()
   ) {
     this.businessLogService = businessLogService;
     this.discordService = discordService;
@@ -35,6 +35,7 @@ export class AmazonCountryOutlierReporter
       url: price.url,
     }));
     const alert = this.discordService.buildEmbed(ad, prices, difference);
+    await this.log(ad, prices, channelId);
     this.dealCheckService.check(ad, dealPrices, alert, channelId);
   }
 
@@ -52,6 +53,11 @@ export class AmazonCountryOutlierReporter
     channelId: number,
     difference?: number
   ) {
+    await this.log(ad, prices, channelId);
+    await this.discordService.send(channelId, ad, prices, difference);
+  }
+
+  private async log(ad: AmazonAdSelectDto, prices: ListingPrice[], channelId: number) {
     await this.businessLogService.creatable.create({
       type: "country_outlier_sent",
       marketplace: "amazon",
@@ -65,7 +71,5 @@ export class AmazonCountryOutlierReporter
         })),
       },
     });
-
-    await this.discordService.send(channelId, ad, prices, difference);
   }
 }

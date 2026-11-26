@@ -19,7 +19,7 @@ npm run test:integration  # tests/integration, needs Docker running
 ## Tests
 
 - Coverage: 100% lines/functions/statements, max 4 uncovered branches, for `src/` except `index.ts`, `dtos`,
-  `interfaces`, `declarations.d.ts`.
+  `interfaces`, `types`, `declarations.d.ts`.
 - One test file per source file, same relative path; mappers share `tests/unit/mappers/mappers.test.ts`.
 - Inject dependencies through defaulted constructor params. `vi.mock` only for external modules, private-constructor
   singletons (`resetSingleton()`) and composition roots.
@@ -47,7 +47,9 @@ npm run test:integration  # tests/integration, needs Docker running
 - `src/shared/` holds cross-cutting code, `src/modules/` the modules (`settings`, `currency`, `monitoring`,
   `exclusion-rules`, `anomalies`, `marketplaces/<name>`). No other top-level `src/` folders.
 - Module layers: `routes/` → `controllers/` → `services/` → `repositories/`, plus `mappers/`, `dtos/`, `interfaces/`,
-  `cron/`. Generic CRUD from `src/shared/crud`. Specific routes before generic ones.
+  `types/`, `cron/`. Generic CRUD from `src/shared/crud`. Specific routes before generic ones.
+- `interfaces/` only for interfaces that classes implement, named with the suffix `I`; plain types in `types/`.
+- File names in `types/` and `helpers/` in kebab case (`deal-check-format.ts`).
 - Logic as classes with dependencies as defaulted constructor params; `helpers/` only small stateless functions.
 - Each module exports `create<Name>Module()` from its `index.ts`, registered in `src/modules.ts`.
 - Dependencies: `marketplaces/*` → other modules → `shared`; `src/shared` imports nothing from modules; other modules

@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { ScraperStatus } from "@/modules/monitoring/dtos/ScraperMetricDtos";
-import { compareScrapers } from "@/modules/monitoring/helpers/compareScrapers";
+import { compareScrapers } from "@/modules/monitoring/helpers/compare-scrapers";
 import { HOUR_MS } from "@/modules/monitoring/helpers/hours";
 import { ScraperConfigRepository } from "@/modules/monitoring/repositories/ScraperConfigRepository";
 import { ScraperMetricRepository } from "@/modules/monitoring/repositories/ScraperMetricRepository";

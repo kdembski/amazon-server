@@ -27,12 +27,16 @@ const setup = () => {
 };
 
 describe("AmazonCountryOutlierReporter.checkDeal", () => {
-  it("passes the PLN prices and the alert embed to the deal check without logging or sending", async () => {
+  it("logs the event and passes the PLN prices and the alert embed to the deal check without sending", async () => {
     const { reporter, log, discord, dealCheck } = setup();
-    const ad = buildAd();
+    const ad = buildAd({ asin: "B000TEST01", name: "Bosch drill" });
     const prices = [
-      buildListingPrice({ value: 49.21246953, url: "https://amazon.se/dp/X", country: { name: "Szwecja" } }),
-      buildListingPrice({ value: 200, url: "https://amazon.pl/dp/X", country: { name: "Polska" } }),
+      buildListingPrice({
+        value: 49.21246953,
+        url: "https://amazon.se/dp/X",
+        country: { name: "Szwecja", code: "se" },
+      }),
+      buildListingPrice({ value: 200, url: "https://amazon.pl/dp/X", country: { name: "Polska", code: "pl" } }),
     ];
 
     await reporter.checkDeal(ad, prices, 10, -50);
@@ -47,7 +51,19 @@ describe("AmazonCountryOutlierReporter.checkDeal", () => {
       { title: "alert" },
       10
     );
-    expect(log.create).not.toHaveBeenCalled();
+    expect(log.create).toHaveBeenCalledWith({
+      type: "country_outlier_sent",
+      marketplace: "amazon",
+      data: {
+        asin: "B000TEST01",
+        name: "Bosch drill",
+        channel: "10",
+        prices: [
+          { country: "se", value: "49.21246953" },
+          { country: "pl", value: "200" },
+        ],
+      },
+    });
     expect(discord.send).not.toHaveBeenCalled();
   });
 });
