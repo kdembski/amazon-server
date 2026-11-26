@@ -28,9 +28,17 @@ const VERDICTS: Record<string, string> = { KUPUJ: "✅ **KUPUJ**", MOŻE: "❔ *
 // Discord rejects a message whose embeds exceed 6000 characters.
 const MAX_PART_LENGTH = 700;
 
-// Analyses whether an ad is worth buying for resale on Allegro, one at a time, and posts the alert with the
-// analysis, or the alert alone when the analysis fails.
+interface DealCheckWaiter {
+  alert: APIEmbed;
+  channelId: number;
+}
+
+// Analyses whether an ad is worth buying for resale on Allegro, one at a time for all anomaly reporters, and posts
+// the alert with the analysis, or the alert alone when the analysis fails. Alerts of an ad queued or being analysed
+// wait for that analysis instead of starting another.
 export class AmazonDealCheckService {
+  private static instance: AmazonDealCheckService;
+  private waiters = new Map<string, DealCheckWaiter[]>();
   private claude;
   private discord;
   private businessLogService;
@@ -51,11 +59,35 @@ export class AmazonDealCheckService {
     this.queue = queue;
   }
 
-  check(ad: AmazonAdSelectDto, prices: DealCheckPrice[], alert: APIEmbed, channelId: number) {
-    this.queue.add(() => this.run(ad, prices, alert, channelId));
+  public static getInstance(): AmazonDealCheckService {
+    if (!AmazonDealCheckService.instance) {
+      AmazonDealCheckService.instance = new AmazonDealCheckService();
+    }
+
+    return AmazonDealCheckService.instance;
   }
 
-  private async run(ad: AmazonAdSelectDto, prices: DealCheckPrice[], alert: APIEmbed, channelId: number) {
+  check(ad: AmazonAdSelectDto, prices: DealCheckPrice[], alert: APIEmbed, channelId: number) {
+    const waiters = this.waiters.get(ad.asin);
+    if (waiters) {
+      waiters.push({ alert, channelId });
+      return;
+    }
+
+    this.waiters.set(ad.asin, [{ alert, channelId }]);
+    this.queue.add(() => this.run(ad, prices));
+  }
+
+  private async run(ad: AmazonAdSelectDto, prices: DealCheckPrice[]) {
+    const answer = await this.getAnswer(ad, prices);
+    const waiters = this.waiters.get(ad.asin)!;
+    this.waiters.delete(ad.asin);
+    for (const { alert, channelId } of waiters) {
+      await this.post(ad, alert, channelId, answer);
+    }
+  }
+
+  private async getAnswer(ad: AmazonAdSelectDto, prices: DealCheckPrice[]) {
     const context = { asin: ad.asin };
     try {
       const answer = await this.claude.run(
@@ -64,11 +96,22 @@ export class AmazonDealCheckService {
         AMAZON_DEAL_CHECK_SCHEMA
       );
       const verdict = (answer as DealCheckAnswer | undefined)?.verdict;
-      if (!verdict || !VERDICTS[verdict]) {
-        this.logger.error("AmazonDealCheckService", `Deal check of ${ad.asin} returned no verdict`, {
-          ...context,
-          answer,
-        });
+      if (verdict && VERDICTS[verdict]) return answer as DealCheckAnswer;
+
+      this.logger.error("AmazonDealCheckService", `Deal check of ${ad.asin} returned no verdict`, {
+        ...context,
+        answer,
+      });
+    } catch (error) {
+      this.logger.error("AmazonDealCheckService", `Deal check of ${ad.asin} failed`, { ...context, error });
+    }
+  }
+
+  // Without an answer the rule still caught the listing, so the channel gets the alert alone.
+  private async post(ad: AmazonAdSelectDto, alert: APIEmbed, channelId: number, answer?: DealCheckAnswer) {
+    const context = { asin: ad.asin };
+    try {
+      if (!answer) {
         await this.discord.send(channelId, { embeds: [alert] }, context);
         return;
       }
@@ -76,14 +119,15 @@ export class AmazonDealCheckService {
       await this.businessLogService.creatable.create({
         type: "deal_check_sent",
         marketplace: "amazon",
-        data: { asin: ad.asin, name: ad.name, channel: String(channelId), verdict },
+        data: { asin: ad.asin, name: ad.name, channel: String(channelId), verdict: answer.verdict },
       });
-      const analysis = this.getAnalysisEmbed(answer as DealCheckAnswer);
-      await this.discord.send(channelId, { embeds: [alert, analysis] }, context);
+      await this.discord.send(channelId, { embeds: [alert, this.getAnalysisEmbed(answer)] }, context);
     } catch (error) {
-      this.logger.error("AmazonDealCheckService", `Deal check of ${ad.asin} failed`, { ...context, error });
-      // The rule caught the listing, so the channel still gets the alert without the analysis.
-      await this.discord.send(channelId, { embeds: [alert] }, context);
+      this.logger.error("AmazonDealCheckService", `Posting the deal check of ${ad.asin} failed`, {
+        ...context,
+        channelId,
+        error,
+      });
     }
   }
 

@@ -18,7 +18,7 @@ export class AmazonCountryOutlierReporter
     businessLogService = new BusinessLogService(),
     discordService = new AmazonCountryOutlierDiscordService(),
     reportRepository = new AmazonCountryOutlierReportRepository(),
-    dealCheckService = new AmazonDealCheckService()
+    dealCheckService = AmazonDealCheckService.getInstance()
   ) {
     this.businessLogService = businessLogService;
     this.discordService = discordService;

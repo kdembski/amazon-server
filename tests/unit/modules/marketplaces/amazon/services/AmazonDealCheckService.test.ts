@@ -11,6 +11,7 @@ import {
   fakeBusinessLogService,
   fakeDiscordChannelService,
   fakeSystemLogService,
+  resetSingleton,
 } from "../../../../../support/fakes";
 
 const setup = (answer: unknown) => {
@@ -122,6 +123,54 @@ describe("AmazonDealCheckService", () => {
     await flush();
 
     expect(sentAnalysis(discord).description).toBe(`✅ **KUPUJ**\n\n${"a".repeat(700)}\n\nbrak danych`);
+  });
+
+  it("analyses an ad once and posts its alerts to every channel that asked meanwhile", async () => {
+    const { service, run, log, discord, flush } = setup(answer());
+    const other = { title: "Price drop" };
+
+    service.check(ad, prices, alert, 5);
+    service.check(ad, prices, other, 9);
+    await flush();
+
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(log.create).toHaveBeenCalledTimes(2);
+    expect(discord.send).toHaveBeenNthCalledWith(1, 5, { embeds: [alert, expect.anything()] }, { asin: "B000TEST01" });
+    expect(discord.send).toHaveBeenNthCalledWith(2, 9, { embeds: [other, expect.anything()] }, { asin: "B000TEST01" });
+  });
+
+  it("analyses the ad again once the previous analysis has finished", async () => {
+    const { service, run, flush } = setup(answer());
+
+    service.check(ad, prices, alert, 5);
+    await flush();
+    service.check(ad, prices, alert, 9);
+    await flush();
+
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+
+  it("logs an error and still posts to the other channels when posting fails", async () => {
+    const error = new Error("discord down");
+    const { service, discord, logger, flush } = setup(answer());
+    discord.send.mockRejectedValueOnce(error);
+
+    service.check(ad, prices, alert, 5);
+    service.check(ad, prices, alert, 9);
+    await flush();
+
+    expect(logger.error).toHaveBeenCalledWith(
+      "AmazonDealCheckService",
+      "Posting the deal check of B000TEST01 failed",
+      { asin: "B000TEST01", channelId: 5, error }
+    );
+    expect(discord.send).toHaveBeenCalledTimes(2);
+  });
+
+  it("shares one instance", () => {
+    resetSingleton(AmazonDealCheckService);
+
+    expect(AmazonDealCheckService.getInstance()).toBe(AmazonDealCheckService.getInstance());
   });
 
   it("asks about the ad with its prices, the deal check instructions and the answer schema", async () => {

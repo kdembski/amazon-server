@@ -15,7 +15,7 @@ export class AmazonPriceDropReporter
   constructor(
     businessLogService = new BusinessLogService(),
     discordService = new AmazonPriceDropDiscordService(),
-    dealCheckService = new AmazonDealCheckService()
+    dealCheckService = AmazonDealCheckService.getInstance()
   ) {
     this.businessLogService = businessLogService;
     this.discordService = discordService;

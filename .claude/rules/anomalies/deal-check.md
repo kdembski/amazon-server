@@ -16,7 +16,8 @@ analysis and its verdict `KUPUJ`, `MOŻE` or `NIE`.
 1. The anomaly manager calls `checkDeal` of the marketplace reporter instead of `report` for the channel.
 2. The Amazon reporter builds the normal alert embed (`buildEmbed` of its Discord service) and passes it with the
    prices (country outlier: PLN; price drop: newest price per country in its own currency) to `AmazonDealCheckService`.
-3. `AmazonDealCheckService` queues the check, one at a time per reporter.
+3. Both reporters share `AmazonDealCheckService.getInstance()`; it queues the check, one at a time. An alert of an
+   ASIN already queued or being analysed waits for that analysis and gets the same answer on its own channel.
 4. `ClaudeCliService` runs `claude -p` with the `AMAZON_DEAL_CHECK_PROMPT` system prompt: model `sonnet`, only
    `WebSearch`/`WebFetch`, env only `PATH`, `HOME`, `CLAUDE_CODE_OAUTH_TOKEN`, timeout 5 min, and the answer as
    `AMAZON_DEAL_CHECK_SCHEMA` (`--json-schema`, read from `structured_output`).
