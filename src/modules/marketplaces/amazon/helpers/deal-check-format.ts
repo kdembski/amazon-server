@@ -1,5 +1,4 @@
 import { DealCheckNumbers } from "@/modules/marketplaces/amazon/types/deal-check";
-import { DiscordFormatter } from "@/shared/discord/DiscordFormatter";
 
 // Brackets in the label would end the markdown link early; encodeURIComponent leaves parentheses in the URL.
 export const getListingLink = (query: string) => {
@@ -19,7 +18,7 @@ const percent = (value: number) => `${Math.round(value)}%`;
 
 export const getProfitLine = ({ profit, sale, cost, roi, commission }: DealCheckNumbers) => {
   const cells: [string, number | null, (value: number) => string][] = [
-    ["Zysk", profit, money],
+    ["Zysk", profit, (value) => `**${money(value)}**`],
     ["Sprzedaż", sale, money],
     ["Koszt", cost, money],
     ["ROI", roi, percent],
@@ -27,6 +26,6 @@ export const getProfitLine = ({ profit, sale, cost, roi, commission }: DealCheck
   ];
   return cells
     .filter(([, value]) => value !== null)
-    .map(([name, value, format]) => `${name}: **${format(value!)}**`)
-    .join(DiscordFormatter.spacing(3));
+    .map(([name, value, format]) => `${name} ${format(value!)}`)
+    .join(" · ");
 };

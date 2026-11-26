@@ -5,7 +5,6 @@ import {
   AMAZON_DEAL_CHECK_SCHEMA,
 } from "@/modules/marketplaces/amazon/helpers/deal-check-prompt";
 import { ClaudeCliService } from "@/shared/claude/ClaudeCliService";
-import { DiscordFormatter } from "@/shared/discord/DiscordFormatter";
 import { ConcurrencyQueue } from "@/shared/utils/ConcurrencyQueue";
 import { buildAd } from "../../../../../support/factories";
 import {
@@ -82,8 +81,8 @@ describe("AmazonDealCheckService", () => {
               `${description}\n\n` +
               "Wycena: **289.00 – 299.90 zł**\n" +
               "Allegro: [bosch gsr 12v-15](https://allegro.pl/listing?string=bosch+gsr+12v-15&order=p)\n\n" +
-              ["Zysk: **167.81 zł**", "Sprzedaż: **289.00 zł**", "Koszt: **89.40 zł**", "ROI: **188%**", "Prowizja: **11%**"]
-                .join(DiscordFormatter.spacing(3)),
+              ["Zysk **167.81 zł**", "Sprzedaż 289.00 zł", "Koszt 89.40 zł", "ROI 188%", "Prowizja 11%"]
+                .join(" · "),
           },
         ],
       },
@@ -148,7 +147,7 @@ describe("AmazonDealCheckService", () => {
   });
 
   it.each([
-    ["the numbers that are null", 89.4, "&order=p)\n\nKoszt: **89.40 zł**"],
+    ["the numbers that are null", 89.4, "&order=p)\n\nKoszt 89.40 zł"],
     ["the profit line without any number", null, "&order=p)"],
   ])("leaves out %s", async (_, cost, ending) => {
     const { service, discord, flush } = setup(answer({ profit: null, sale: null, cost, roi: null, commission: null }));

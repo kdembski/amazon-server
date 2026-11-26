@@ -4,7 +4,6 @@ import {
   getPriceRange,
   getProfitLine,
 } from "@/modules/marketplaces/amazon/helpers/deal-check-format";
-import { DiscordFormatter } from "@/shared/discord/DiscordFormatter";
 
 describe("deal-check-format", () => {
   it("builds an Allegro listing link sorted by price with an escaped label", () => {
@@ -26,7 +25,7 @@ describe("deal-check-format", () => {
     const line = getProfitLine({ profit: 167.81, sale: null, cost: 89.4, roi: 187.7, commission: 11 });
 
     expect(line).toBe(
-      ["Zysk: **167.81 zł**", "Koszt: **89.40 zł**", "ROI: **188%**", "Prowizja: **11%**"].join(DiscordFormatter.spacing(3))
+      ["Zysk **167.81 zł**", "Koszt 89.40 zł", "ROI 188%", "Prowizja 11%"].join(" · ")
     );
   });
 
