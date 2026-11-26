@@ -4,7 +4,7 @@ paths:
   - "**/modules/marketplaces/*/helpers/deal-check*"
   - "**/modules/marketplaces/*/types/deal-check*"
   - "**/modules/marketplaces/*/services/*Reporter*"
-  - "**/modules/anomalies/interfaces/AnomalyReporters.ts"
+  - "**/modules/anomalies/interfaces/*ReporterI.ts"
   - "**/shared/claude/**"
 ---
 

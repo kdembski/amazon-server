@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CountryOutlierRuleMatcher } from "@/modules/anomalies/country-outlier/CountryOutlierRuleMatcher";
-import { Settings } from "@/modules/settings/interfaces/Settings";
+import { Settings } from "@/modules/settings/types/settings";
 import { buildListingPrice } from "../../../../support/factories";
 import { fakeSettingService } from "../../../../support/fakes";
 

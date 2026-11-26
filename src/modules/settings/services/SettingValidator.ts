@@ -4,7 +4,7 @@ import {
   PriceDropRuleSetting,
   SettingKey,
   Settings,
-} from "@/modules/settings/interfaces/Settings";
+} from "@/modules/settings/types/settings";
 
 export const SETTING_KEYS: SettingKey[] = [
   "countryOutlier.minPrices",

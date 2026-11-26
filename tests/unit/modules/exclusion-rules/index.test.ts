@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createExclusionRulesModule } from "@/modules/exclusion-rules";
 import { ExclusionRuleMatchService } from "@/modules/exclusion-rules/services/ExclusionRuleMatchService";
 import { ExclusionRuleMatchCronService } from "@/modules/exclusion-rules/cron/ExclusionRuleMatchCronService";
-import { ExclusionRuleTarget } from "@/modules/exclusion-rules/interfaces/ExclusionRuleTarget";
+import { ExclusionRuleTargetI } from "@/modules/exclusion-rules/interfaces/ExclusionRuleTargetI";
 
 vi.mock("@/modules/exclusion-rules/services/ExclusionRuleMatchService", () => ({
   ExclusionRuleMatchService: vi.fn(function () {
@@ -19,7 +19,7 @@ describe("createExclusionRulesModule", () => {
   it("runs the given targets from one match cron", () => {
     const targets = [
       { getExclusionRules: vi.fn(), getActiveScopes: vi.fn(), matchExclusionRules: vi.fn() },
-    ] as unknown as ExclusionRuleTarget[];
+    ] as unknown as ExclusionRuleTargetI[];
 
     const module = createExclusionRulesModule(targets);
 

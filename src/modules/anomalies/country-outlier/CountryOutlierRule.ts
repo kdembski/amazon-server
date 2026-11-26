@@ -1,8 +1,8 @@
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { ListingPrice } from "@/modules/anomalies/types/listing-price";
 import { CountryOutlierRuleI } from "@/modules/anomalies/interfaces/CountryOutlierRuleI";
 import { CountryOutlierEvaluator } from "@/modules/anomalies/country-outlier/CountryOutlierEvaluator";
 import { PriceDropEvaluator } from "@/modules/anomalies/price-drop/PriceDropEvaluator";
-import { CountryOutlierRuleSetting } from "@/modules/settings/interfaces/Settings";
+import { CountryOutlierRuleSetting } from "@/modules/settings/types/settings";
 
 export class CountryOutlierRule implements CountryOutlierRuleI {
   readonly channelId;

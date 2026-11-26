@@ -2,7 +2,7 @@ import { DiscordFormatter } from "@/shared/discord/DiscordFormatter";
 import { describe, expect, it, vi } from "vitest";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { SystemService } from "@/shared/system/SystemService";
-import type { ScraperMetricSummary } from "@/modules/monitoring/dtos/ScraperMetricDtos";
+import type { ScraperMetricSummaryDto } from "@/modules/monitoring/dtos/ScraperMetricDtos";
 import { fakeDiscordChannelService, fakeSettingService } from "../../../../support/fakes";
 
 const SP4 = DiscordFormatter.spacing(4);
@@ -20,8 +20,8 @@ const COUNTS = {
 };
 
 const summary = (
-  overrides: Partial<ScraperMetricSummary> = {}
-): ScraperMetricSummary => ({
+  overrides: Partial<ScraperMetricSummaryDto> = {}
+): ScraperMetricSummaryDto => ({
   scraper: "amazon-pdp",
   itemsPerSecond: 24.3,
   itemsPerSecondDiff: 0.12,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ExclusionRuleParser } from "@/modules/exclusion-rules/services/ExclusionRuleParser";
 import { ScopedExclusionRuleMatcher } from "@/modules/exclusion-rules/services/ScopedExclusionRuleMatcher";
-import { ScopedExclusionRule } from "@/modules/exclusion-rules/interfaces/ScopedExclusionRule";
+import { ScopedExclusionRule } from "@/modules/exclusion-rules/types/scoped-exclusion-rule";
 
 const parser = new ExclusionRuleParser();
 const createScopedExclusionRuleMatcher = (rules: ScopedExclusionRule[]) => {

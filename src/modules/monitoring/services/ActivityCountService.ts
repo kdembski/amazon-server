@@ -2,7 +2,8 @@ import _ from "lodash";
 import { floorHour } from "@/modules/monitoring/helpers/hours";
 import { BusinessLogCreateMapper } from "@/modules/monitoring/mappers/BusinessLogCreateMapper";
 import { BusinessLogRepository } from "@/modules/monitoring/repositories/BusinessLogRepository";
-import { ActivityCount, ActivityCounter } from "@/modules/monitoring/services/ActivityCounter";
+import { ActivityCounter } from "@/modules/monitoring/services/ActivityCounter";
+import { ActivityCount } from "@/modules/monitoring/types/activity-count";
 import { BusinessLogType, Marketplace } from "@prisma/client";
 
 // Counts high-volume events in memory; flush stores one BusinessLog per type and marketplace with data.count

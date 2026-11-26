@@ -1,14 +1,8 @@
 import { BatchDeleter } from "@/shared/crud/repositories/BatchDeleter";
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { Prisma } from "@prisma/client";
-import {
-  ScraperBreakdownKey,
-  ScraperCountKey,
-  ScraperGroupHourSum,
-  ScraperMetricGroupSum,
-  ScraperMetricSum,
-  ScraperStatusSum,
-} from "@/modules/monitoring/dtos/ScraperMetricDtos";
+import { ScraperBreakdownKey, ScraperCountKey } from "@/modules/monitoring/dtos/ScraperMetricDtos";
+import { ScraperGroupHourSum, ScraperMetricGroupSum, ScraperMetricSum, ScraperStatusSum } from "@/modules/monitoring/types/scraper-metric-sums";
 import { HOUR_MS } from "@/modules/monitoring/helpers/hours";
 
 const SUMMARY_METRICS = [

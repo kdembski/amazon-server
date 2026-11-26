@@ -1,9 +1,9 @@
 import { DiscordFormatter } from "@/shared/discord/DiscordFormatter";
 import { NumberFormatter } from "@/shared/utils/NumberFormatter";
 import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAdService";
-import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
+import { DailyReportSectionI } from "@/modules/monitoring/interfaces/DailyReportSectionI";
 
-export class AmazonAdDailyReportSection implements DailyReportSection {
+export class AmazonAdDailyReportSection implements DailyReportSectionI {
   private adService;
 
   constructor(adService = new AmazonAdService()) {

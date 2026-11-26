@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PriceDropManager } from "@/modules/anomalies/price-drop/PriceDropManager";
 import { PriceDropEvaluator } from "@/modules/anomalies/price-drop/PriceDropEvaluator";
 import { PriceDropRuleMatcher } from "@/modules/anomalies/price-drop/PriceDropRuleMatcher";
-import { Settings } from "@/modules/settings/interfaces/Settings";
+import { Settings } from "@/modules/settings/types/settings";
 import { buildListingPrice } from "../../../../support/factories";
 import { fakeSettingService } from "../../../../support/fakes";
 

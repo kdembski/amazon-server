@@ -5,8 +5,8 @@ import { AmazonAdCategorySelectDto } from "@/modules/marketplaces/amazon/dtos/Am
 import { CurrencySelectDto } from "@/modules/currency/dtos/CurrencyDtos";
 import { CurrencyExchangeRateSelectDto } from "@/modules/currency/dtos/CurrencyExchangeRateDtos";
 import { AmazonExclusionRuleSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonExclusionRuleDtos";
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
-import { Settings } from "@/modules/settings/interfaces/Settings";
+import { ListingPrice } from "@/modules/anomalies/types/listing-price";
+import { Settings } from "@/modules/settings/types/settings";
 
 export const FIXED_DATE = new Date("2026-01-01T12:00:00.000Z");
 

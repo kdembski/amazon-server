@@ -1,18 +1,9 @@
 import _ from "lodash";
-import {
-  ScraperBreakdown,
-  ScraperBreakdownKey,
-  ScraperCountSeries,
-  ScraperCountSeriesByKey,
-  ScraperGroupHourSum,
-  ScraperMetricSummary,
-  ScraperMetricsDto,
-  ScraperMetricValue,
-  ScraperSeries,
-} from "@/modules/monitoring/dtos/ScraperMetricDtos";
+import { ScraperBreakdownDto, ScraperBreakdownKey, ScraperCountSeries, ScraperCountSeriesDto, ScraperMetricSummaryDto, ScraperMetricsDto, ScraperSeriesDto } from "@/modules/monitoring/dtos/ScraperMetricDtos";
+import { ScraperGroupHourSum, ScraperMetricValue } from "@/modules/monitoring/types/scraper-metric-sums";
 import { compareScrapers } from "@/modules/monitoring/helpers/compare-scrapers";
 import { HOUR_MS, previousRange, toHourIso } from "@/modules/monitoring/helpers/hours";
-import { TimeRange } from "@/modules/monitoring/interfaces/TimeRange";
+import { TimeRange } from "@/modules/monitoring/types/time-range";
 import { ScraperMetricCreateMapper } from "@/modules/monitoring/mappers/ScraperMetricCreateMapper";
 import { ScraperMetricRepository } from "@/modules/monitoring/repositories/ScraperMetricRepository";
 import { ScraperMetricRollupService } from "@/modules/monitoring/services/ScraperMetricRollupService";
@@ -49,7 +40,7 @@ export class ScraperMetricService {
     return this.repository.deleteOlderThan(date);
   }
 
-  async getSummaries(from: Date, to: Date): Promise<ScraperMetricSummary[]> {
+  async getSummaries(from: Date, to: Date): Promise<ScraperMetricSummaryDto[]> {
     const range = { from, to };
     const previous = previousRange(range);
     const rolledUpUntil = await this.rollupService.getRolledUpUntil();
@@ -83,7 +74,7 @@ export class ScraperMetricService {
       });
   }
 
-  async getBreakdown(from: Date, to: Date, by: ScraperBreakdownKey): Promise<ScraperBreakdown[]> {
+  async getBreakdown(from: Date, to: Date, by: ScraperBreakdownKey): Promise<ScraperBreakdownDto[]> {
     const rows = await this.rollupService.sumParts(
       { from, to },
       await this.rollupService.getRolledUpUntil(),
@@ -104,7 +95,7 @@ export class ScraperMetricService {
       .sort((a, b) => compareScrapers(a.scraper, b.scraper) || a.group.localeCompare(b.group));
   }
 
-  async getSeries(range: TimeRange): Promise<ScraperSeries[]> {
+  async getSeries(range: TimeRange): Promise<ScraperSeriesDto[]> {
     const rows = await this.rollupService.sumParts(
       range,
       await this.rollupService.getRolledUpUntil(),
@@ -123,7 +114,7 @@ export class ScraperMetricService {
     }));
   }
 
-  async getCountSeries(range: TimeRange): Promise<ScraperCountSeriesByKey> {
+  async getCountSeries(range: TimeRange): Promise<ScraperCountSeriesDto> {
     const rolledUpUntil = await this.rollupService.getRolledUpUntil();
     const [scraper, country] = await Promise.all(
       (["scraper", "country"] as const).map((by) => {

@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { SettingKey, Settings } from "@/modules/settings/interfaces/Settings";
+import { SettingKey, Settings } from "@/modules/settings/types/settings";
 import { SettingSelectDto } from "@/modules/settings/dtos/SettingDtos";
 import { SettingRepository } from "@/modules/settings/repositories/SettingRepository";
 import { DiscordChannelRepository } from "@/modules/settings/repositories/DiscordChannelRepository";

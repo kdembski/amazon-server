@@ -13,7 +13,7 @@ import type { ExclusionRuleFingerprintRepository } from "@/modules/exclusion-rul
 import type { SettingService } from "@/modules/settings/services/SettingService";
 import type { DiscordChannelService } from "@/modules/settings/services/DiscordChannelService";
 import type { DiscordChannelSelectDto } from "@/modules/settings/dtos/DiscordChannelDtos";
-import type { SettingKey, Settings } from "@/modules/settings/interfaces/Settings";
+import type { SettingKey, Settings } from "@/modules/settings/types/settings";
 import { TEST_SETTINGS } from "./factories";
 
 export function fakeBusinessLogService() {

@@ -2,12 +2,12 @@ import { ActivityCountService } from "@/modules/monitoring/services/ActivityCoun
 import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
-import { HourlyReportCounts } from "@/modules/monitoring/dtos/StatsDtos";
+import { HourlyReportCounts } from "@/modules/monitoring/types/hourly-report-counts";
 import { BusinessLogType } from "@prisma/client";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { SettingService } from "@/modules/settings/services/SettingService";
 import { floorHour, HOUR_MS } from "@/modules/monitoring/helpers/hours";
-import { TimeRange } from "@/modules/monitoring/interfaces/TimeRange";
+import { TimeRange } from "@/modules/monitoring/types/time-range";
 import { CronService } from "@/shared/system/CronService";
 
 export class HourlyStatsCronService extends CronService {

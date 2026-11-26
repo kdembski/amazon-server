@@ -1,4 +1,4 @@
-import { AppModule } from "@/shared/interfaces/AppModule";
+import { AppModule } from "@/shared/types/app-module";
 import { ScraperRouter } from "@/modules/monitoring/routes/ScraperRouter";
 import { StatsRouter } from "@/modules/monitoring/routes/StatsRouter";
 import { HourlyStatsCronService } from "@/modules/monitoring/cron/HourlyStatsCronService";
@@ -6,7 +6,7 @@ import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronS
 import { ActivityCountFlushCronService } from "@/modules/monitoring/cron/ActivityCountFlushCronService";
 import { ScraperMetricRollupCronService } from "@/modules/monitoring/cron/ScraperMetricRollupCronService";
 import { ProcessMetricsCronService } from "@/modules/monitoring/cron/ProcessMetricsCronService";
-import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
+import { DailyReportSectionI } from "@/modules/monitoring/interfaces/DailyReportSectionI";
 import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
 import { ScraperMetricService } from "@/modules/monitoring/services/ScraperMetricService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
@@ -14,7 +14,7 @@ import { RetentionCleanupCronService } from "@/shared/system/RetentionCleanupCro
 import { DatabaseBackupCronService } from "@/shared/system/DatabaseBackupCronService";
 
 export function createMonitoringModule(
-  sections: DailyReportSection[]
+  sections: DailyReportSectionI[]
 ): AppModule {
   return {
     routers: [new ScraperRouter(), new StatsRouter()],

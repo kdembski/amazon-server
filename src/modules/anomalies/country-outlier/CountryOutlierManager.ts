@@ -1,7 +1,7 @@
 import { Decimal } from "@prisma/client/runtime/client";
 import { AnomalyManagerI } from "@/modules/anomalies/interfaces/AnomalyManagerI";
-import { CountryOutlierReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { CountryOutlierReporterI } from "@/modules/anomalies/interfaces/CountryOutlierReporterI";
+import { ListingPrice } from "@/modules/anomalies/types/listing-price";
 import { CountryOutlierRuleMatcher } from "@/modules/anomalies/country-outlier/CountryOutlierRuleMatcher";
 import { CountryOutlierEvaluator } from "@/modules/anomalies/country-outlier/CountryOutlierEvaluator";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
@@ -23,7 +23,7 @@ export class CountryOutlierManager<T> implements AnomalyManagerI<T> {
   private missingRateThrottle = new LogThrottle(MISSING_RATE_WARNING_INTERVAL_MS);
 
   constructor(
-    reporter: CountryOutlierReporter<T>,
+    reporter: CountryOutlierReporterI<T>,
     exchangeRateService = new CurrencyExchangeRateService(),
     ruleMatcher = new CountryOutlierRuleMatcher(),
     logger = SystemLogService.getInstance(),

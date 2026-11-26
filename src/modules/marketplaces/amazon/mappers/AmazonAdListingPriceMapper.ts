@@ -1,5 +1,5 @@
 import { AmazonAdPriceSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { ListingPrice } from "@/modules/anomalies/types/listing-price";
 
 export class AmazonAdListingPriceMapper {
   // Prices of countries outside scrapedCountryIds are only compared with, never reported.

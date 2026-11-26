@@ -1,4 +1,4 @@
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { ListingPrice } from "@/modules/anomalies/types/listing-price";
 import { PriceDropEvaluator } from "@/modules/anomalies/price-drop/PriceDropEvaluator";
 import { SettingService } from "@/modules/settings/services/SettingService";
 

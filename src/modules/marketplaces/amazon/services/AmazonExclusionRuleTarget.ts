@@ -1,6 +1,6 @@
 import { setImmediate } from "node:timers/promises";
 import { Marketplace, Prisma } from "@prisma/client";
-import { ExclusionRuleTarget } from "@/modules/exclusion-rules/interfaces/ExclusionRuleTarget";
+import { ExclusionRuleTargetI } from "@/modules/exclusion-rules/interfaces/ExclusionRuleTargetI";
 import { AmazonAdCategoryRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdCategoryRepository";
 import { AmazonAdRepository } from "@/modules/marketplaces/amazon/repositories/AmazonAdRepository";
 import { AmazonExclusionRuleRepository } from "@/modules/marketplaces/amazon/repositories/AmazonExclusionRuleRepository";
@@ -8,7 +8,7 @@ import { AmazonExclusionRuleRepository } from "@/modules/marketplaces/amazon/rep
 const MATCH_YIELD_EVERY = 100;
 
 // Amazon ads matched against their category's exclusion rules; the scope of an ad is its category
-export class AmazonExclusionRuleTarget implements ExclusionRuleTarget {
+export class AmazonExclusionRuleTarget implements ExclusionRuleTargetI {
   readonly marketplace = Marketplace.amazon;
   private adRepository;
   private ruleRepository;

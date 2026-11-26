@@ -1,4 +1,4 @@
-import { ParsedExclusionRule } from "@/modules/exclusion-rules/interfaces/ParsedExclusionRule";
+import { ParsedExclusionRule } from "@/modules/exclusion-rules/types/parsed-exclusion-rule";
 
 export interface ScopedExclusionRule {
   rule: ParsedExclusionRule;

@@ -1,6 +1,6 @@
 import { APIEmbedField } from "discord.js";
-import { ScraperMetricSummary } from "@/modules/monitoring/dtos/ScraperMetricDtos";
-import { HourlyReportCounts } from "@/modules/monitoring/dtos/StatsDtos";
+import { ScraperMetricSummaryDto } from "@/modules/monitoring/dtos/ScraperMetricDtos";
+import { HourlyReportCounts } from "@/modules/monitoring/types/hourly-report-counts";
 import { DiscordFormatter } from "@/shared/discord/DiscordFormatter";
 import { NumberFormatter } from "@/shared/utils/NumberFormatter";
 
@@ -8,7 +8,7 @@ import { NumberFormatter } from "@/shared/utils/NumberFormatter";
 export class StatusReportFormatter {
   getHourlyEmbed(
     counts: HourlyReportCounts,
-    summaries: ScraperMetricSummary[],
+    summaries: ScraperMetricSummaryDto[],
     server: { cpu: number; ram: number }
   ) {
     const fields: APIEmbedField[] = [];
@@ -86,7 +86,7 @@ export class StatusReportFormatter {
     return `${DiscordFormatter.spacing(3)}-${DiscordFormatter.spacing(3)}`;
   }
 
-  private getScrapersValue(summaries: ScraperMetricSummary[]) {
+  private getScrapersValue(summaries: ScraperMetricSummaryDto[]) {
     const content = summaries
       .map(({ scraper, itemsPerSecond, itemsPerSecondDiff }) => {
         return [

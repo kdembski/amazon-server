@@ -1,4 +1,4 @@
-import { TimeRange } from "@/modules/monitoring/interfaces/TimeRange";
+import { TimeRange } from "@/modules/monitoring/types/time-range";
 
 export const HOUR_MS = 3_600_000;
 

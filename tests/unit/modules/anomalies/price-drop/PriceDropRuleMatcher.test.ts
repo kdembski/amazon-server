@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PriceDropRuleMatcher } from "@/modules/anomalies/price-drop/PriceDropRuleMatcher";
-import { Settings } from "@/modules/settings/interfaces/Settings";
+import { Settings } from "@/modules/settings/types/settings";
 import { buildListingPrice } from "../../../../support/factories";
 import { fakeSettingService } from "../../../../support/fakes";
 

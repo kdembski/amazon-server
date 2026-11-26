@@ -1,6 +1,6 @@
 import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
-import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
+import { DailyReportSectionI } from "@/modules/monitoring/interfaces/DailyReportSectionI";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { SettingService } from "@/modules/settings/services/SettingService";
 import { CronService } from "@/shared/system/CronService";
@@ -13,7 +13,7 @@ export class DailyStatsCronService extends CronService {
   private settingService;
 
   constructor(
-    sections: DailyReportSection[],
+    sections: DailyReportSectionI[],
     discordService = new DiscordLogService(),
     activityCountService = new ActivityCountService(),
     logger = SystemLogService.getInstance(),

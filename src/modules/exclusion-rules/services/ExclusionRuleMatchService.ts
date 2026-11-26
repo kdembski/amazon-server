@@ -1,11 +1,11 @@
-import { ExclusionRuleTarget } from "@/modules/exclusion-rules/interfaces/ExclusionRuleTarget";
+import { ExclusionRuleTargetI } from "@/modules/exclusion-rules/interfaces/ExclusionRuleTargetI";
 import { ExclusionRuleFingerprintRepository } from "@/modules/exclusion-rules/repositories/ExclusionRuleFingerprintRepository";
-import { ScopedExclusionRule } from "@/modules/exclusion-rules/interfaces/ScopedExclusionRule";
+import { ScopedExclusionRule } from "@/modules/exclusion-rules/types/scoped-exclusion-rule";
 import { ExclusionRuleParser } from "@/modules/exclusion-rules/services/ExclusionRuleParser";
 import { ScopedExclusionRuleMatcher } from "@/modules/exclusion-rules/services/ScopedExclusionRuleMatcher";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
-type ExclusionRuleRow = Awaited<ReturnType<ExclusionRuleTarget["getExclusionRules"]>>[number];
+type ExclusionRuleRow = Awaited<ReturnType<ExclusionRuleTargetI["getExclusionRules"]>>[number];
 type IsExcluded = (name: string, scope: number | null) => boolean;
 
 export class ExclusionRuleMatchService {
@@ -13,13 +13,13 @@ export class ExclusionRuleMatchService {
   private parser;
   private logger;
   private fingerprintRepository;
-  private fingerprints = new Map<ExclusionRuleTarget, Map<string, string>>();
+  private fingerprints = new Map<ExclusionRuleTargetI, Map<string, string>>();
   // V8 drops the compiled regexes of discarded matchers, recompiling them blocks the event loop for seconds
-  private matchers = new Map<ExclusionRuleTarget, IsExcluded>();
+  private matchers = new Map<ExclusionRuleTargetI, IsExcluded>();
   private isRunning = false;
 
   constructor(
-    targets: ExclusionRuleTarget[],
+    targets: ExclusionRuleTargetI[],
     parser = new ExclusionRuleParser(),
     logger = SystemLogService.getInstance(),
     fingerprintRepository = new ExclusionRuleFingerprintRepository()
@@ -52,7 +52,7 @@ export class ExclusionRuleMatchService {
     }
   }
 
-  private async syncTarget(target: ExclusionRuleTarget) {
+  private async syncTarget(target: ExclusionRuleTargetI) {
     const exclusionRules = await target.getExclusionRules();
     const activeScopes = await target.getActiveScopes();
     const fingerprint = this.getFingerprint(exclusionRules, activeScopes);
@@ -73,7 +73,7 @@ export class ExclusionRuleMatchService {
   }
 
   // The fingerprint of the last run in this process, otherwise the stored one
-  private async getPreviousFingerprint(target: ExclusionRuleTarget) {
+  private async getPreviousFingerprint(target: ExclusionRuleTargetI) {
     return this.fingerprints.get(target) ?? (await this.getStoredFingerprint(target));
   }
 
@@ -87,7 +87,7 @@ export class ExclusionRuleMatchService {
   }
 
   private logRematch(
-    target: ExclusionRuleTarget,
+    target: ExclusionRuleTargetI,
     rules: number,
     activeScopes: number[],
     scopes: number[] | undefined,
@@ -111,7 +111,7 @@ export class ExclusionRuleMatchService {
   }
 
   // Without a stored fingerprint every ad is rematched
-  private async getStoredFingerprint(target: ExclusionRuleTarget) {
+  private async getStoredFingerprint(target: ExclusionRuleTargetI) {
     try {
       return await this.fingerprintRepository.getByMarketplace(target.marketplace);
     } catch (error) {
@@ -125,7 +125,7 @@ export class ExclusionRuleMatchService {
   }
 
   private async storeFingerprint(
-    target: ExclusionRuleTarget,
+    target: ExclusionRuleTargetI,
     fingerprint: Map<string, string>
   ) {
     try {

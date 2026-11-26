@@ -2,7 +2,7 @@ import _ from "lodash";
 import { BusinessLogType } from "@prisma/client";
 import { ActivityStatsDto } from "@/modules/monitoring/dtos/StatsDtos";
 import { previousRange, toHourIso } from "@/modules/monitoring/helpers/hours";
-import { TimeRange } from "@/modules/monitoring/interfaces/TimeRange";
+import { TimeRange } from "@/modules/monitoring/types/time-range";
 import { BusinessLogRepository } from "@/modules/monitoring/repositories/BusinessLogRepository";
 import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import { SettingService } from "@/modules/settings/services/SettingService";

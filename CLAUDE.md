@@ -48,14 +48,18 @@ npm run test:integration  # tests/integration, needs Docker running
   `exclusion-rules`, `anomalies`, `marketplaces/<name>`). No other top-level `src/` folders.
 - Module layers: `routes/` → `controllers/` → `services/` → `repositories/`, plus `mappers/`, `dtos/`, `interfaces/`,
   `types/`, `cron/`. Generic CRUD from `src/shared/crud`. Specific routes before generic ones.
-- `interfaces/` only for interfaces that classes implement, named with the suffix `I`; plain types in `types/`.
+- Prefer interfaces and classes; `type` only for unions, function types and types derived from others.
+- `interfaces/`: only interfaces that classes implement, named with the suffix `I`.
+- `dtos/`: only data transfer objects (request and response bodies, create/update/select inputs) and the shapes
+  nested in them. A DTO name ends with `Dto`; nested shapes and unions do not.
+- `types/`: other plain types.
 - File names in `types/` and `helpers/` in kebab case (`deal-check-format.ts`).
 - Logic as classes with dependencies as defaulted constructor params; `helpers/` only small stateless functions.
 - Each module exports `create<Name>Module()` from its `index.ts`, registered in `src/modules.ts`.
 - Dependencies: `marketplaces/*` → other modules → `shared`; `src/shared` imports nothing from modules; other modules
   import nothing from `marketplaces`, which get passed in from `src/modules.ts`. Any module may import `settings`.
-- A marketplace maps its prices to `ListingPrice` and implements the anomaly reporters, `ExclusionRuleTarget` and
-  `DailyReportSection`.
+- A marketplace maps its prices to `ListingPrice` and implements the anomaly reporters, `ExclusionRuleTargetI` and
+  `DailyReportSectionI`.
 - Settings: anomaly parameters only from the `Setting` table via `SettingService.get(key)`, no defaults in code; a
   missing row means the caller skips its work. New key: add it to `SettingValidator` and insert the row in production.
 - Discord webhooks live only in `DiscordChannel` rows, never in env.

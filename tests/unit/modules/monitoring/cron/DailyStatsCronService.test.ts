@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CronJob } from "cron";
 import { DailyStatsCronService } from "@/modules/monitoring/cron/DailyStatsCronService";
 import { DiscordLogService } from "@/modules/monitoring/services/DiscordLogService";
-import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
+import { DailyReportSectionI } from "@/modules/monitoring/interfaces/DailyReportSectionI";
 import { fakeActivityCountService, fakeSettingService, unitLogger } from "../../../../support/fakes";
 
 vi.mock("cron", () => ({
@@ -19,7 +19,7 @@ const setup = () => {
   const getField2 = vi.fn().mockResolvedValue(field2);
   const log = fakeActivityCountService();
   const service = new DailyStatsCronService(
-    [{ getField: getField1 }, { getField: getField2 }] as DailyReportSection[],
+    [{ getField: getField1 }, { getField: getField2 }] as DailyReportSectionI[],
     { sendDaily } as unknown as DiscordLogService,
     log.service,
     undefined,
