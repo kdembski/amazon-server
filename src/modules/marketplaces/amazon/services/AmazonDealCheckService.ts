@@ -1,41 +1,30 @@
 import { APIEmbed } from "discord.js";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import {
+  getListingLink,
+  getPriceRange,
+  getProfitLine,
+} from "@/modules/marketplaces/amazon/helpers/deal-check-format";
+import {
   AMAZON_DEAL_CHECK_PROMPT,
   AMAZON_DEAL_CHECK_SCHEMA,
-} from "@/modules/marketplaces/amazon/services/AmazonDealCheckPrompt";
+} from "@/modules/marketplaces/amazon/helpers/deal-check-prompt";
+import {
+  DealCheckAnswer,
+  DealCheckPrice,
+  DealCheckWaiter,
+} from "@/modules/marketplaces/amazon/types/deal-check";
 import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
 import { DiscordChannelService } from "@/modules/settings/services/DiscordChannelService";
 import { ClaudeCliService } from "@/shared/claude/ClaudeCliService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { ConcurrencyQueue } from "@/shared/utils/ConcurrencyQueue";
 
-export interface DealCheckPrice {
-  country: string;
-  value: string;
-  currency: string;
-  url: string;
-}
-
-interface DealCheckAnswer {
-  verdict: string;
-  allegro: string[];
-  profit: string;
-}
-
-// Discord colours no text in embeds, so the verdict gets a coloured emoji.
 const VERDICTS: Record<string, string> = { KUPUJ: "✅ **KUPUJ**", MOŻE: "❔ **MOŻE**", NIE: "❌ **NIE**" };
 // Discord rejects a message whose embeds exceed 6000 characters.
-const MAX_PART_LENGTH = 700;
+const MAX_LINES_LENGTH = 700;
 
-interface DealCheckWaiter {
-  alert: APIEmbed;
-  channelId: number;
-}
-
-// Analyses whether an ad is worth buying for resale on Allegro, one at a time for all anomaly reporters, and posts
-// the alert with the analysis, or the alert alone when the analysis fails. Alerts of an ad queued or being analysed
-// wait for that analysis instead of starting another.
+// One analysis at a time for all reporters; alerts of an ad already queued share its analysis.
 export class AmazonDealCheckService {
   private static instance: AmazonDealCheckService;
   private waiters = new Map<string, DealCheckWaiter[]>();
@@ -131,9 +120,16 @@ export class AmazonDealCheckService {
     }
   }
 
-  private getAnalysisEmbed({ verdict, allegro, profit }: DealCheckAnswer) {
-    const parts = [allegro.join("\n"), profit].map((part) => part.slice(0, MAX_PART_LENGTH) || "brak danych");
-    return { description: [VERDICTS[verdict], ...parts].join("\n\n") };
+  private getAnalysisEmbed(answer: DealCheckAnswer) {
+    const { verdict, query, minPrice, maxPrice, estimated } = answer;
+    const profit = getProfitLine(answer);
+    const lines = [
+      `${estimated ? "Szacunek" : "Wycena"}: **${getPriceRange(minPrice, maxPrice)}**`,
+      `Allegro: ${getListingLink(query)}`,
+      profit && `\n${profit}`,
+    ];
+    const details = lines.filter(Boolean).join("\n").slice(0, MAX_LINES_LENGTH);
+    return { description: `${VERDICTS[verdict]}\n\n${details}` };
   }
 
   private getPrompt(ad: AmazonAdSelectDto, prices: DealCheckPrice[]) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareScrapers } from "@/modules/monitoring/helpers/compareScrapers";
+import { compareScrapers } from "@/modules/monitoring/helpers/compare-scrapers";
 
 describe("compareScrapers", () => {
   it("puts PDP scrapers first, PLP scrapers last and the others between them", () => {

@@ -1,6 +1,8 @@
 ---
 paths:
   - "**/modules/marketplaces/*/services/*DealCheck*"
+  - "**/modules/marketplaces/*/helpers/deal-check*"
+  - "**/modules/marketplaces/*/types/deal-check*"
   - "**/modules/marketplaces/*/services/*Reporter*"
   - "**/modules/anomalies/interfaces/AnomalyReporters.ts"
   - "**/shared/claude/**"
@@ -23,8 +25,11 @@ analysis and its verdict `KUPUJ`, `MOŻE` or `NIE`.
    `WebSearch`/`WebFetch`, env only `PATH`, `HOME`, `CLAUDE_CODE_OAUTH_TOKEN`, timeout 5 min, and the answer as
    `AMAZON_DEAL_CHECK_SCHEMA` (`--json-schema`, read from `structured_output`).
 5. Stores a `deal_check_sent` event and posts the alert embed plus the analysis embed to the rule's channel:
-   only a description: ✅ **KUPUJ** / ❔ **MOŻE** / ❌ **NIE**, the Allegro offers (one per line) and the profit,
-   separated by blank lines, each part at most 700 characters, `brak danych` when empty.
+   only a description: ✅ **KUPUJ** / ❔ **MOŻE** / ❌ **NIE**, a blank line, then one line each: `Wycena:`
+   (`Szacunek:` when `estimated`) with bold `minPrice`–`maxPrice` (`brak cen w wynikach wyszukiwania` when `null`),
+   `Allegro:` with one listing link built by the service from `query` (`&order=p`), a blank line and `Zysk: **<n> zł**`,
+   `Sprzedaż`, `Koszt`, `ROI`, `Prowizja` separated by `DiscordFormatter.spacing(3)` (`null` left out, no line when
+   all are); the lines after the verdict at most 700 characters.
 6. No known verdict or a failed run: error log, and the alert embed alone goes to the rule's channel.
 
 ## Setup

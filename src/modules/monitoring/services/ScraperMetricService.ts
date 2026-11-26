@@ -10,7 +10,7 @@ import {
   ScraperMetricValue,
   ScraperSeries,
 } from "@/modules/monitoring/dtos/ScraperMetricDtos";
-import { compareScrapers } from "@/modules/monitoring/helpers/compareScrapers";
+import { compareScrapers } from "@/modules/monitoring/helpers/compare-scrapers";
 import { HOUR_MS, previousRange, toHourIso } from "@/modules/monitoring/helpers/hours";
 import { TimeRange } from "@/modules/monitoring/interfaces/TimeRange";
 import { ScraperMetricCreateMapper } from "@/modules/monitoring/mappers/ScraperMetricCreateMapper";

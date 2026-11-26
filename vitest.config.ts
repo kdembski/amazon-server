@@ -40,6 +40,7 @@ export default mergeConfig(
           "src/worker.ts",
           "src/**/dtos/**",
           "src/**/interfaces/**",
+          "src/**/types/**",
           "src/declarations.d.ts",
         ],
         reporter: ["text", "html"],
