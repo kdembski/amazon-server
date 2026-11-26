@@ -31,10 +31,16 @@ export class AmazonPriceDropReporter
       url: newest.url,
     }));
     const alert = this.discordService.buildEmbed(ad, countryPrices);
+    await this.log(ad, countryPrices, channelId);
     this.dealCheckService.check(ad, dealPrices, alert, channelId);
   }
 
   async report(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][], channelId: number) {
+    await this.log(ad, countryPrices, channelId);
+    await this.discordService.send(ad, countryPrices, channelId);
+  }
+
+  private async log(ad: AmazonAdSelectDto, countryPrices: ListingPrice[][], channelId: number) {
     await this.businessLogService.creatable.create({
       type: "price_drop_sent",
       marketplace: "amazon",
@@ -49,6 +55,5 @@ export class AmazonPriceDropReporter
         })),
       },
     });
-    await this.discordService.send(ad, countryPrices, channelId);
   }
 }

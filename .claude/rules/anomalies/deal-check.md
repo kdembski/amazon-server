@@ -13,7 +13,8 @@ analysis and its verdict `KUPUJ`, `MOŻE` or `NIE`.
 
 ## Steps
 
-1. The anomaly manager calls `checkDeal` of the marketplace reporter instead of `report` for the channel.
+1. The anomaly manager calls `checkDeal` of the marketplace reporter instead of `report` for the channel; it stores
+   the same `country_outlier_sent`/`price_drop_sent` event as `report`.
 2. The Amazon reporter builds the normal alert embed (`buildEmbed` of its Discord service) and passes it with the
    prices (country outlier: PLN; price drop: newest price per country in its own currency) to `AmazonDealCheckService`.
 3. Both reporters share `AmazonDealCheckService.getInstance()`; it queues the check, one at a time. An alert of an

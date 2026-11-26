@@ -20,10 +20,10 @@ const setup = () => {
 };
 
 describe("AmazonPriceDropReporter.checkDeal", () => {
-  it("passes the newest price of each country and the alert embed to the deal check without logging or sending", async () => {
+  it("logs the event and passes the newest price of each country and the alert embed to the deal check without sending", async () => {
     const { reporter, log, discord, dealCheck } = setup();
-    const ad = buildAd();
-    const de = { name: "Niemcy", currencyCode: "EUR" };
+    const ad = buildAd({ asin: "B000TEST01", name: "Bosch drill" });
+    const de = { name: "Niemcy", code: "de", currencyCode: "EUR" };
     const countryPrices = [
       [
         buildListingPrice({ value: 10, url: "https://amazon.de/dp/X", country: de }),
@@ -40,7 +40,16 @@ describe("AmazonPriceDropReporter.checkDeal", () => {
       { title: "alert" },
       9
     );
-    expect(log.create).not.toHaveBeenCalled();
+    expect(log.create).toHaveBeenCalledWith({
+      type: "price_drop_sent",
+      marketplace: "amazon",
+      data: {
+        asin: "B000TEST01",
+        name: "Bosch drill",
+        channel: "9",
+        prices: [{ country: "de", value: "10", currency: "EUR" }],
+      },
+    });
     expect(discord.send).not.toHaveBeenCalled();
   });
 });
