@@ -24,7 +24,8 @@ analysis and its verdict `KUPUJ`, `MOŻE` or `NIE`.
 4. `ClaudeCliService` runs `claude -p` with the `AMAZON_DEAL_CHECK_PROMPT` system prompt: model `sonnet`, only
    `WebSearch`/`WebFetch`, env only `PATH`, `HOME`, `CLAUDE_CODE_OAUTH_TOKEN`, timeout 5 min, and the answer as
    `AMAZON_DEAL_CHECK_SCHEMA` (`--json-schema`, read from `structured_output`).
-5. Stores a `deal_check_sent` event and posts the alert embed plus the analysis embed to the rule's channel:
+5. Stores one `deal_check_done` event per analysis (`asin`, `name`, `verdict`, no channel), then posts the alert embed
+   plus the analysis embed to each waiting channel:
    only a description: ✅ **KUPUJ** / ❔ **MOŻE** / ❌ **NIE**, a blank line, then one line each: `Wycena:`
    (`Szacunek:` when `estimated`) with bold `minPrice`–`maxPrice` (`brak cen w wynikach wyszukiwania` when `null`)
    and `Allegro:` with one listing link built by the service from `query` (`&order=p`); then a blank line and

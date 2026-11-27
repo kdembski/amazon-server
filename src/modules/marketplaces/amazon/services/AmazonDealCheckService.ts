@@ -71,6 +71,7 @@ export class AmazonDealCheckService {
     const answer = await this.getAnswer(ad, prices);
     const waiters = this.waiters.get(ad.asin)!;
     this.waiters.delete(ad.asin);
+    if (answer) await this.logDone(ad, answer);
     for (const { alert, channelId } of waiters) {
       await this.post(ad, alert, channelId, answer);
     }
@@ -96,21 +97,27 @@ export class AmazonDealCheckService {
     }
   }
 
+  private async logDone(ad: AmazonAdSelectDto, answer: DealCheckAnswer) {
+    try {
+      await this.businessLogService.creatable.create({
+        type: "deal_check_done",
+        marketplace: "amazon",
+        data: { asin: ad.asin, name: ad.name, verdict: answer.verdict },
+      });
+    } catch (error) {
+      this.logger.error("AmazonDealCheckService", `Logging the deal check of ${ad.asin} failed`, {
+        asin: ad.asin,
+        error,
+      });
+    }
+  }
+
   // Without an answer the rule still caught the listing, so the channel gets the alert alone.
   private async post(ad: AmazonAdSelectDto, alert: APIEmbed, channelId: number, answer?: DealCheckAnswer) {
     const context = { asin: ad.asin };
     try {
-      if (!answer) {
-        await this.discord.send(channelId, { embeds: [alert] }, context);
-        return;
-      }
-
-      await this.businessLogService.creatable.create({
-        type: "deal_check_sent",
-        marketplace: "amazon",
-        data: { asin: ad.asin, name: ad.name, channel: String(channelId), verdict: answer.verdict },
-      });
-      await this.discord.send(channelId, { embeds: [alert, this.getAnalysisEmbed(answer)] }, context);
+      const embeds = answer ? [alert, this.getAnalysisEmbed(answer)] : [alert];
+      await this.discord.send(channelId, { embeds }, context);
     } catch (error) {
       this.logger.error("AmazonDealCheckService", `Posting the deal check of ${ad.asin} failed`, {
         ...context,

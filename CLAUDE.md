@@ -71,7 +71,7 @@ npm run test:integration  # tests/integration, needs Docker running
   (rule `anomalies/deal-check.md`).
 - Every route requires `Authorization: Bearer <API_TOKEN>`.
 - Log errors and significant actions via `SystemLogService.getInstance()`, never `console.*`. `BusinessLog` only for
-  `ad_scraped`/`*_sent`.
+  `ad_scraped`/`*_sent`/`deal_check_done`.
 - `src/index.ts` runs HTTP and `crons`, `src/worker.ts` runs `workerCrons`. A cron goes to `crons` only when it reads
   memory filled by HTTP requests.
 - A cron extends `CronService`; retention cleanup uses `RetentionCleanupCronService`.
