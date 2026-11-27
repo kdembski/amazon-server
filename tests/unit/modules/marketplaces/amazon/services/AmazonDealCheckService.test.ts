@@ -67,9 +67,9 @@ describe("AmazonDealCheckService", () => {
     await flush();
 
     expect(log.create).toHaveBeenCalledWith({
-      type: "deal_check_sent",
+      type: "deal_check_done",
       marketplace: "amazon",
-      data: { asin: "B000TEST01", name: "Bosch drill", channel: "5", verdict },
+      data: { asin: "B000TEST01", name: "Bosch drill", verdict },
     });
     expect(discord.send).toHaveBeenCalledWith(
       5,
@@ -178,7 +178,7 @@ describe("AmazonDealCheckService", () => {
     await flush();
 
     expect(run).toHaveBeenCalledTimes(1);
-    expect(log.create).toHaveBeenCalledTimes(2);
+    expect(log.create).toHaveBeenCalledTimes(1);
     expect(discord.send).toHaveBeenNthCalledWith(1, 5, { embeds: [alert, expect.anything()] }, { asin: "B000TEST01" });
     expect(discord.send).toHaveBeenNthCalledWith(2, 9, { embeds: [other, expect.anything()] }, { asin: "B000TEST01" });
   });
@@ -209,6 +209,21 @@ describe("AmazonDealCheckService", () => {
       { asin: "B000TEST01", channelId: 5, error }
     );
     expect(discord.send).toHaveBeenCalledTimes(2);
+  });
+
+  it("logs an error and still posts when logging the analysis fails", async () => {
+    const error = new Error("db down");
+    const { service, log, discord, logger, flush } = setup(answer());
+    log.create.mockRejectedValueOnce(error);
+
+    service.check(ad, prices, alert, 5);
+    await flush();
+
+    expect(logger.error).toHaveBeenCalledWith("AmazonDealCheckService", "Logging the deal check of B000TEST01 failed", {
+      asin: "B000TEST01",
+      error,
+    });
+    expect(discord.send).toHaveBeenCalledTimes(1);
   });
 
   it("shares one instance", () => {

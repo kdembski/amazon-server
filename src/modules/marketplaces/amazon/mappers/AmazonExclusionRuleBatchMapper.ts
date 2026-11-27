@@ -1,7 +1,7 @@
 import { AmazonExclusionRuleBatchDto } from "@/modules/marketplaces/amazon/dtos/AmazonExclusionRuleDtos";
 import { AmazonExclusionRuleCreateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonExclusionRuleCreateMapper";
 import { AmazonExclusionRuleUpdateMapper } from "@/modules/marketplaces/amazon/mappers/AmazonExclusionRuleUpdateMapper";
-import { AmazonExclusionRuleBatchInput } from "@/modules/marketplaces/amazon/repositories/AmazonExclusionRuleRepository";
+import { AmazonExclusionRuleBatchInput } from "@/modules/marketplaces/amazon/types/amazon-exclusion-rule-batch-input";
 import { ExclusionRuleBatchValidator } from "@/modules/exclusion-rules/services/ExclusionRuleBatchValidator";
 
 export class AmazonExclusionRuleBatchMapper {

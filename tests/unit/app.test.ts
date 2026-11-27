@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { NextFunction, Request, Response } from "express";
 import { createApp, handleError } from "@/app";
-import { AppModule } from "@/shared/interfaces/AppModule";
+import { AppModule } from "@/shared/types/app-module";
 import { fakeResponse, unitLogger } from "../support/fakes";
 
 const { app, use, json, corsMiddleware } = vi.hoisted(() => {

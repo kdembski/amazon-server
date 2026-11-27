@@ -3,7 +3,7 @@ import { AmazonAdService } from "@/modules/marketplaces/amazon/services/AmazonAd
 import { AnomalyManager } from "@/modules/anomalies/AnomalyManager";
 import { CountryOutlierManager } from "@/modules/anomalies/country-outlier/CountryOutlierManager";
 import { PriceDropManager } from "@/modules/anomalies/price-drop/PriceDropManager";
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { ListingPrice } from "@/modules/anomalies/types/listing-price";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { AmazonCountryOutlierReporter } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierReporter";
 import { AmazonPriceDropReporter } from "@/modules/marketplaces/amazon/services/AmazonPriceDropReporter";

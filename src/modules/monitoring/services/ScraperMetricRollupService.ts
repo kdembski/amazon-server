@@ -1,5 +1,5 @@
 import { floorHour, HOUR_MS } from "@/modules/monitoring/helpers/hours";
-import { TimeRange } from "@/modules/monitoring/interfaces/TimeRange";
+import { TimeRange } from "@/modules/monitoring/types/time-range";
 import { ScraperMetricRepository } from "@/modules/monitoring/repositories/ScraperMetricRepository";
 
 // shortcut: metrics of an hour that arrive later than this are missing from its hourly sums; re-roll the hour if scrapers start sending late

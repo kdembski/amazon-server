@@ -1,13 +1,16 @@
 import _ from "lodash";
 import { LogLevelCounts, LogStatsDto } from "@/modules/monitoring/dtos/StatsDtos";
 import { previousRange, toHourIso } from "@/modules/monitoring/helpers/hours";
-import { TimeRange } from "@/modules/monitoring/interfaces/TimeRange";
+import { TimeRange } from "@/modules/monitoring/types/time-range";
 import { SystemLogRepository } from "@/shared/logging/repositories/SystemLogRepository";
 
 const LEVELS = ["error", "warn"] as const;
 const TOP_SOURCES = 10;
 
-type Count = { level: "error" | "warn"; value: number };
+interface Count {
+  level: "error" | "warn";
+  value: number;
+}
 
 export class LogStatsService {
   private repository;

@@ -2,8 +2,8 @@ import { DiscordChannelService } from "@/modules/settings/services/DiscordChanne
 import { SettingService } from "@/modules/settings/services/SettingService";
 import { APIEmbedField, MessagePayload, WebhookMessageCreateOptions } from "discord.js";
 import { SystemService } from "@/shared/system/SystemService";
-import { ScraperMetricSummary } from "@/modules/monitoring/dtos/ScraperMetricDtos";
-import { HourlyReportCounts } from "@/modules/monitoring/dtos/StatsDtos";
+import { ScraperMetricSummaryDto } from "@/modules/monitoring/dtos/ScraperMetricDtos";
+import { HourlyReportCounts } from "@/modules/monitoring/types/hourly-report-counts";
 import { StatusReportFormatter } from "@/modules/monitoring/services/StatusReportFormatter";
 
 export class DiscordLogService {
@@ -29,7 +29,7 @@ export class DiscordLogService {
     await this.service.send(channelId, options);
   }
 
-  async sendHourly(counts: HourlyReportCounts, summaries: ScraperMetricSummary[]) {
+  async sendHourly(counts: HourlyReportCounts, summaries: ScraperMetricSummaryDto[]) {
     const cpu = this.systemService.getCpuUsage();
     const ram = await this.systemService.getMemoryUsage();
 

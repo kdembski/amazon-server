@@ -1,11 +1,6 @@
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { Prisma } from "@prisma/client";
-
-export interface AmazonExclusionRuleBatchInput {
-  create: Prisma.AmazonExclusionRuleUncheckedCreateInput[];
-  update: { id: number; data: Prisma.AmazonExclusionRuleUncheckedUpdateInput }[];
-  delete: number[];
-}
+import { AmazonExclusionRuleBatchInput } from "@/modules/marketplaces/amazon/types/amazon-exclusion-rule-batch-input";
 
 export class AmazonExclusionRuleRepository {
   private prisma;

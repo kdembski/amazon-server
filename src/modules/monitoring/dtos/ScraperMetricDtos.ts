@@ -14,29 +14,9 @@ export interface ScraperMetricsDto {
   metrics: ScraperMetricDto[];
 }
 
-export interface ScraperMetricValue {
-  metric: string;
-  outcome: string | null;
-  value: number;
-}
-
-export interface ScraperMetricSum extends ScraperMetricValue {
-  scraper: string;
-}
-
 export type ScraperCountKey = "scraper" | "country";
 
-// group = scraper or country; hour = epoch seconds of the UTC hour start
-export interface ScraperGroupHourSum extends ScraperMetricValue {
-  group: string;
-  hour: number;
-}
-
 export type ScraperBreakdownKey = "country" | "flow";
-
-export interface ScraperMetricGroupSum extends ScraperMetricSum {
-  group: string | null;
-}
 
 export interface ScraperMetrics {
   itemsPerSecond: number;
@@ -51,7 +31,7 @@ export interface ScraperMetrics {
   connections: number;
 }
 
-export interface ScraperMetricSummary extends ScraperMetrics {
+export interface ScraperMetricSummaryDto extends ScraperMetrics {
   scraper: string;
   itemsPerSecondDiff: number;
   previousRequests: number;
@@ -63,13 +43,13 @@ export interface ScraperMetricSummary extends ScraperMetrics {
 }
 
 // connections and bytes carry no country: per country they are 0 and kbPerItem and reusePercent mean nothing
-export interface ScraperBreakdown extends ScraperMetrics {
+export interface ScraperBreakdownDto extends ScraperMetrics {
   scraper: string;
   group: string;
 }
 
 // One per ScraperConfig row; averages of the last hour: rates over the whole hour, gauges over its reports
-export interface ScraperStatus {
+export interface ScraperStatusDto {
   scraper: string;
   // No report in the last 5 minutes
   stopped: boolean;
@@ -82,10 +62,6 @@ export interface ScraperStatus {
   openConnections: number;
 }
 
-export interface ScraperStatusSum extends ScraperMetricSum {
-  reports: number;
-}
-
 export interface ScraperSeriesPoint {
   t: string;
   itemsPerSecond: number;
@@ -94,7 +70,7 @@ export interface ScraperSeriesPoint {
   requests: number;
 }
 
-export interface ScraperSeries {
+export interface ScraperSeriesDto {
   scraper: string;
   points: ScraperSeriesPoint[];
 }
@@ -118,4 +94,4 @@ export interface ScraperCountSeries {
 }
 
 // The same counts per scraper (every country) and per country (every scraper)
-export type ScraperCountSeriesByKey = Record<ScraperCountKey, ScraperCountSeries[]>;
+export type ScraperCountSeriesDto = Record<ScraperCountKey, ScraperCountSeries[]>;

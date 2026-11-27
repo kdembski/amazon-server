@@ -4,12 +4,13 @@ paths:
   - "**/modules/marketplaces/*/services/*PriceDrop*"
   - "**/modules/anomalies/*.ts"
   - "**/modules/anomalies/interfaces/**"
+  - "**/modules/anomalies/types/**"
   - "**/modules/marketplaces/*/mappers/*ListingPriceMapper*"
   - "**/modules/marketplaces/*/mappers/*RecentPriceMapper*"
   - "**/modules/marketplaces/*/services/*AdService*"
   - "**/modules/marketplaces/*/repositories/*AdPriceRepository*"
   - "**/modules/settings/services/SettingValidator*"
-  - "**/modules/settings/interfaces/Settings.ts"
+  - "**/modules/settings/types/settings.ts"
 ---
 
 # Price drop
@@ -43,11 +44,11 @@ Production rule groups:
    the rule's `dropPercent` below the lowest older price, so a temporary spike (47 → 111 → 44) is not a drop.
 4. A country matching any rule is a matched country; the distinct `channelId`s of all matched rules are the channels,
    each with the `dealCheck` of its first matched rule in group order.
-5. Without a channel nothing happens. Otherwise, per channel, the marketplace's `PriceDropReporter.report` gets the
+5. Without a channel nothing happens. Otherwise, per channel, the marketplace's `PriceDropReporterI.report` gets the
    listing, the price histories of all matched countries and the `channelId`; it stores one `price_drop_sent` event
    (`data.channel` = `String(channelId)`) with the newest price of each country and posts one Discord message to that
    `DiscordChannel`. The Amazon message shows per country the lowest older and the newest price with the percentage
-   between them. A `dealCheck` channel goes to `PriceDropReporter.checkDeal` with the same arguments instead
+   between them. A `dealCheck` channel goes to `PriceDropReporterI.checkDeal` with the same arguments instead
    (`.claude/rules/anomalies/deal-check.md`).
 
 ## Repeats

@@ -1,7 +1,7 @@
 import { BatchDeleter } from "@/shared/crud/repositories/BatchDeleter";
 import { PrismaClient } from "@@prisma/PrismaClient";
 import { Prisma } from "@prisma/client";
-import { AmazonAdRecentPriceRow } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
+import { AmazonAdRecentPriceRow } from "@/modules/marketplaces/amazon/types/amazon-ad-recent-price-row";
 import { AmazonAdRecentPriceMapper } from "@/modules/marketplaces/amazon/mappers/AmazonAdRecentPriceMapper";
 
 export class AmazonAdPriceRepository {

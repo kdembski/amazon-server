@@ -1,7 +1,7 @@
 import {
   ParsedExclusionRule,
   SearchPhrase,
-} from "@/modules/exclusion-rules/interfaces/ParsedExclusionRule";
+} from "@/modules/exclusion-rules/types/parsed-exclusion-rule";
 import { normalizeSearchText } from "@/modules/exclusion-rules/helpers/normalize-search-text";
 
 type Test = (name: string) => boolean;

@@ -1,7 +1,5 @@
-import {
-  AmazonAdPriceSelectDto,
-  AmazonAdRecentPriceRow,
-} from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
+import { AmazonAdPriceSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdPriceDtos";
+import { AmazonAdRecentPriceRow } from "@/modules/marketplaces/amazon/types/amazon-ad-recent-price-row";
 
 export class AmazonAdRecentPriceMapper {
   // Groups keep the order of each country's newest price; prices inside a group keep the row order

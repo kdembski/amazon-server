@@ -1,4 +1,4 @@
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { ListingPrice } from "@/modules/anomalies/types/listing-price";
 import { CountryOutlierEvaluator } from "@/modules/anomalies/country-outlier/CountryOutlierEvaluator";
 import { CountryOutlierRule } from "@/modules/anomalies/country-outlier/CountryOutlierRule";
 import { SettingService } from "@/modules/settings/services/SettingService";

@@ -1,7 +1,7 @@
 import {
   ParsedExclusionRule,
   SearchPhrase,
-} from "@/modules/exclusion-rules/interfaces/ParsedExclusionRule";
+} from "@/modules/exclusion-rules/types/parsed-exclusion-rule";
 
 const WILDCARD = "*";
 

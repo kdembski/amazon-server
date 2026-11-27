@@ -1,8 +1,8 @@
 import { DiscordFormatter } from "@/shared/discord/DiscordFormatter";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
-import { DailyReportSection } from "@/modules/monitoring/interfaces/DailyReportSection";
+import { DailyReportSectionI } from "@/modules/monitoring/interfaces/DailyReportSectionI";
 
-export class ExchangeRateDailyReportSection implements DailyReportSection {
+export class ExchangeRateDailyReportSection implements DailyReportSectionI {
   private exchangeRateService;
 
   constructor(exchangeRateService = new CurrencyExchangeRateService()) {

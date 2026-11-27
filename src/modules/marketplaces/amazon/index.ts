@@ -1,4 +1,4 @@
-import { MarketplaceModule } from "@/modules/marketplaces/interfaces/MarketplaceModule";
+import { MarketplaceModule } from "@/modules/marketplaces/types/marketplace-module";
 import { AmazonAdCategoryRouter } from "@/modules/marketplaces/amazon/routes/AmazonAdCategoryRouter";
 import { AmazonAdRouter } from "@/modules/marketplaces/amazon/routes/AmazonAdRouter";
 import { AmazonAdPriceRouter } from "@/modules/marketplaces/amazon/routes/AmazonAdPriceRouter";

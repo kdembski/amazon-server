@@ -1,10 +1,10 @@
-import { ScopedExclusionRule } from "@/modules/exclusion-rules/interfaces/ScopedExclusionRule";
+import { ScopedExclusionRule } from "@/modules/exclusion-rules/types/scoped-exclusion-rule";
 import { ExclusionRuleMatcher } from "@/modules/exclusion-rules/services/ExclusionRuleMatcher";
 
-type ScopeMatchers = {
+interface ScopeMatchers {
   excluding: ExclusionRuleMatcher;
   inverted: ExclusionRuleMatcher | null;
-};
+}
 
 export class ScopedExclusionRuleMatcher {
   private rules;

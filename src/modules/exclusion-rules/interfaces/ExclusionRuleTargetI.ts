@@ -1,6 +1,6 @@
 import { Marketplace } from "@prisma/client";
 
-export interface ExclusionRuleTarget {
+export interface ExclusionRuleTargetI {
   readonly marketplace: Marketplace;
   getExclusionRules(): Promise<{ value: string; scope: number | null; inverted: boolean }[]>;
   getActiveScopes(): Promise<number[]>;

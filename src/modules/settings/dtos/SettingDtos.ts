@@ -1,4 +1,4 @@
-import { SettingKey, Settings } from "@/modules/settings/interfaces/Settings";
+import { SettingKey, Settings } from "@/modules/settings/types/settings";
 
 export interface SettingUpdateDto {
   value: unknown;

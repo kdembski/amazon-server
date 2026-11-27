@@ -1,5 +1,5 @@
 import { AnomalyManagerI } from "@/modules/anomalies/interfaces/AnomalyManagerI";
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { ListingPrice } from "@/modules/anomalies/types/listing-price";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
 export class AnomalyManager<T> implements AnomalyManagerI<T> {

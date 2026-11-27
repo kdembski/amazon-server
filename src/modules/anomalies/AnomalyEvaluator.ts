@@ -1,4 +1,4 @@
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { ListingPrice } from "@/modules/anomalies/types/listing-price";
 
 export class AnomalyEvaluator {
   isReportable(prices: ListingPrice[]) {

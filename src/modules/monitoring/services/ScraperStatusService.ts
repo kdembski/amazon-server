@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { ScraperStatus } from "@/modules/monitoring/dtos/ScraperMetricDtos";
+import { ScraperStatusDto } from "@/modules/monitoring/dtos/ScraperMetricDtos";
 import { compareScrapers } from "@/modules/monitoring/helpers/compare-scrapers";
 import { HOUR_MS } from "@/modules/monitoring/helpers/hours";
 import { ScraperConfigRepository } from "@/modules/monitoring/repositories/ScraperConfigRepository";
@@ -17,7 +17,7 @@ export class ScraperStatusService {
     this.configRepository = configRepository;
   }
 
-  async getStatuses(): Promise<ScraperStatus[]> {
+  async getStatuses(): Promise<ScraperStatusDto[]> {
     const to = new Date();
     const from = new Date(to.getTime() - HOUR_MS);
     const [reporting, rows, configs] = await Promise.all([

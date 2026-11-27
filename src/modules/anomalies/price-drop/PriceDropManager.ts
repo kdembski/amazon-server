@@ -1,6 +1,6 @@
 import { AnomalyManagerI } from "@/modules/anomalies/interfaces/AnomalyManagerI";
-import { PriceDropReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { PriceDropReporterI } from "@/modules/anomalies/interfaces/PriceDropReporterI";
+import { ListingPrice } from "@/modules/anomalies/types/listing-price";
 import { PriceDropEvaluator } from "@/modules/anomalies/price-drop/PriceDropEvaluator";
 import { PriceDropRuleMatcher } from "@/modules/anomalies/price-drop/PriceDropRuleMatcher";
 
@@ -10,7 +10,7 @@ export class PriceDropManager<T> implements AnomalyManagerI<T> {
   private ruleMatcher;
 
   constructor(
-    reporter: PriceDropReporter<T>,
+    reporter: PriceDropReporterI<T>,
     evaluator = new PriceDropEvaluator(),
     ruleMatcher = new PriceDropRuleMatcher()
   ) {

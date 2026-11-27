@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Decimal } from "@prisma/client/runtime/client";
 import { CountryOutlierManager } from "@/modules/anomalies/country-outlier/CountryOutlierManager";
 import { CountryOutlierRuleMatcher } from "@/modules/anomalies/country-outlier/CountryOutlierRuleMatcher";
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { ListingPrice } from "@/modules/anomalies/types/listing-price";
 import { CurrencyExchangeRateService } from "@/modules/currency/services/CurrencyExchangeRateService";
 import {
   buildCurrency,

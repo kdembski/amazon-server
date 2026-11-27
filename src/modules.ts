@@ -1,4 +1,4 @@
-import { AppModule } from "@/shared/interfaces/AppModule";
+import { AppModule } from "@/shared/types/app-module";
 import { createCurrencyModule } from "@/modules/currency";
 import { createMonitoringModule } from "@/modules/monitoring";
 import { createExclusionRulesModule } from "@/modules/exclusion-rules";

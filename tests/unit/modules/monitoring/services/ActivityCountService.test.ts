@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { ActivityCountService } from "@/modules/monitoring/services/ActivityCountService";
 import { BusinessLogRepository } from "@/modules/monitoring/repositories/BusinessLogRepository";
-import { ActivityCount, ActivityCounter } from "@/modules/monitoring/services/ActivityCounter";
+import { ActivityCounter } from "@/modules/monitoring/services/ActivityCounter";
+import { ActivityCount } from "@/modules/monitoring/types/activity-count";
 import { deferred } from "../../../../support/fakes";
 
 const setup = () => {

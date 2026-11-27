@@ -1,4 +1,4 @@
-import { TimeRange } from "@/modules/monitoring/interfaces/TimeRange";
+import { TimeRange } from "@/modules/monitoring/types/time-range";
 import { HttpError } from "@/shared/http/HttpError";
 
 const MAX_RANGE_MS = 30 * 86_400_000;

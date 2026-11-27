@@ -1,5 +1,5 @@
-import { CountryOutlierReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { CountryOutlierReporterI } from "@/modules/anomalies/interfaces/CountryOutlierReporterI";
+import { ListingPrice } from "@/modules/anomalies/types/listing-price";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { AmazonCountryOutlierDiscordService } from "@/modules/marketplaces/amazon/services/AmazonCountryOutlierDiscordService";
 import { AmazonCountryOutlierReportRepository } from "@/modules/marketplaces/amazon/repositories/AmazonCountryOutlierReportRepository";
@@ -7,7 +7,7 @@ import { AmazonDealCheckService } from "@/modules/marketplaces/amazon/services/A
 import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
 
 export class AmazonCountryOutlierReporter
-  implements CountryOutlierReporter<AmazonAdSelectDto>
+  implements CountryOutlierReporterI<AmazonAdSelectDto>
 {
   private businessLogService;
   private discordService;

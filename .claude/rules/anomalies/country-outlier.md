@@ -5,12 +5,13 @@ paths:
   - "**/modules/marketplaces/*/repositories/*CountryOutlier*"
   - "**/modules/anomalies/*.ts"
   - "**/modules/anomalies/interfaces/**"
+  - "**/modules/anomalies/types/**"
   - "**/modules/marketplaces/*/mappers/*ListingPriceMapper*"
   - "**/modules/marketplaces/*/mappers/*RecentPriceMapper*"
   - "**/modules/marketplaces/*/services/*AdService*"
   - "**/modules/marketplaces/*/repositories/*AdPriceRepository*"
   - "**/modules/settings/services/SettingValidator*"
-  - "**/modules/settings/interfaces/Settings.ts"
+  - "**/modules/settings/types/settings.ts"
 ---
 
 # Country outlier
@@ -79,9 +80,9 @@ Production rule groups (the values in parentheses are the production values too)
     (`getReportedPrice`: the last price sent to any channel, in its own currency); with one, stops unless the newest
     price is at least `dropSinceSentPercent` below it. Changes of other countries or since the previous scrape never
     pass.
-12. Per matched channel, `CountryOutlierReporter.report` gets the listing, the sorted PLN prices, the `channelId` and
+12. Per matched channel, `CountryOutlierReporterI.report` gets the listing, the sorted PLN prices, the `channelId` and
     the cheapest price's change in percent against the lowest older price of its country (none without one; shown next
-    to the cheapest price on Discord); a `dealCheck` channel goes to `CountryOutlierReporter.checkDeal` with the same
+    to the cheapest price on Discord); a `dealCheck` channel goes to `CountryOutlierReporterI.checkDeal` with the same
     arguments instead (`.claude/rules/anomalies/deal-check.md`).
 13. The reporter stores a `country_outlier_sent` event (`data.channel` = `String(channelId)`) and posts through
     `DiscordChannelService.send` (a missing channel logs an error).

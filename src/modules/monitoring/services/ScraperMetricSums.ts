@@ -1,6 +1,7 @@
 import _ from "lodash";
-import { ScraperMetrics, ScraperMetricValue } from "@/modules/monitoring/dtos/ScraperMetricDtos";
-import { TimeRange } from "@/modules/monitoring/interfaces/TimeRange";
+import { ScraperMetrics } from "@/modules/monitoring/dtos/ScraperMetricDtos";
+import { ScraperMetricValue } from "@/modules/monitoring/types/scraper-metric-sums";
+import { TimeRange } from "@/modules/monitoring/types/time-range";
 
 // The scraper labels traffic with its route: proxy, direct4 or direct6
 const DIRECT_ROUTES = ["direct4", "direct6"];

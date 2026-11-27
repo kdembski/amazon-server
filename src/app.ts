@@ -1,7 +1,7 @@
 import express, { ErrorRequestHandler } from "express";
 import cors from "cors";
 import { createModules } from "@/modules";
-import { AppModule } from "@/shared/interfaces/AppModule";
+import { AppModule } from "@/shared/types/app-module";
 import { RequestLogMiddleware } from "@/shared/http/RequestLogMiddleware";
 import { ResponseErrorService } from "@/shared/http/ResponseErrorService";
 import { ApiTokenMiddleware } from "@/shared/http/ApiTokenMiddleware";

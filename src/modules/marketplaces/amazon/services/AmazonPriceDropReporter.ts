@@ -1,12 +1,12 @@
-import { PriceDropReporter } from "@/modules/anomalies/interfaces/AnomalyReporters";
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { PriceDropReporterI } from "@/modules/anomalies/interfaces/PriceDropReporterI";
+import { ListingPrice } from "@/modules/anomalies/types/listing-price";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { AmazonPriceDropDiscordService } from "@/modules/marketplaces/amazon/services/AmazonPriceDropDiscordService";
 import { AmazonDealCheckService } from "@/modules/marketplaces/amazon/services/AmazonDealCheckService";
 import { BusinessLogService } from "@/modules/monitoring/services/BusinessLogService";
 
 export class AmazonPriceDropReporter
-  implements PriceDropReporter<AmazonAdSelectDto>
+  implements PriceDropReporterI<AmazonAdSelectDto>
 {
   private businessLogService;
   private discordService;

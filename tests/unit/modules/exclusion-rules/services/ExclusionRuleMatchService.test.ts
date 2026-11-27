@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ExclusionRuleMatchService } from "@/modules/exclusion-rules/services/ExclusionRuleMatchService";
-import { ExclusionRuleTarget } from "@/modules/exclusion-rules/interfaces/ExclusionRuleTarget";
+import { ExclusionRuleTargetI } from "@/modules/exclusion-rules/interfaces/ExclusionRuleTargetI";
 import {
   deferred,
   fakeExclusionRuleFingerprintRepository,
@@ -25,7 +25,7 @@ const setup = (rulesA: Rule[] = [], rulesB: Rule[] = []) => {
   const logger = fakeSystemLogService();
   const fingerprints = fakeExclusionRuleFingerprintRepository();
   const service = new ExclusionRuleMatchService(
-    [targetA, targetB] as unknown as ExclusionRuleTarget[],
+    [targetA, targetB] as unknown as ExclusionRuleTargetI[],
     undefined,
     logger.service,
     fingerprints.repository
@@ -308,7 +308,7 @@ describe("ExclusionRuleMatchService.sync", () => {
     const error = new Error("db down");
     targetA.getExclusionRules.mockRejectedValueOnce(error);
     const service = new ExclusionRuleMatchService(
-      [targetA, targetB] as unknown as ExclusionRuleTarget[],
+      [targetA, targetB] as unknown as ExclusionRuleTargetI[],
       undefined,
       logger.service,
       fakeExclusionRuleFingerprintRepository().repository
@@ -363,7 +363,7 @@ describe("ExclusionRuleMatchService.sync", () => {
     const targetB = fakeTarget([], "other");
     const logger = fakeSystemLogService();
     const service = new ExclusionRuleMatchService(
-      [targetA, targetB] as unknown as ExclusionRuleTarget[],
+      [targetA, targetB] as unknown as ExclusionRuleTargetI[],
       undefined,
       logger.service,
       before.fingerprints.repository

@@ -1,6 +1,6 @@
 import { AmazonAdEmbedBuilder } from "@/modules/marketplaces/amazon/services/AmazonAdEmbedBuilder";
 import { NumberFormatter } from "@/shared/utils/NumberFormatter";
-import { ListingPrice } from "@/modules/anomalies/interfaces/ListingPrice";
+import { ListingPrice } from "@/modules/anomalies/types/listing-price";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import { DiscordChannelService } from "@/modules/settings/services/DiscordChannelService";
 

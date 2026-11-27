@@ -7,7 +7,13 @@ export interface DealCheckPrice {
   url: string;
 }
 
-export type DealCheckNumbers = Record<"profit" | "sale" | "cost" | "roi" | "commission", number | null>;
+export interface DealCheckNumbers {
+  profit: number | null;
+  sale: number | null;
+  cost: number | null;
+  roi: number | null;
+  commission: number | null;
+}
 
 export interface DealCheckAnswer extends DealCheckNumbers {
   verdict: string;

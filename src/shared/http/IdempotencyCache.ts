@@ -3,7 +3,11 @@ import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 
 const TTL = 10 * 60 * 1000;
 
-type Entry = { createdAt: number; result: Promise<unknown>; pending: boolean };
+interface Entry {
+  createdAt: number;
+  result: Promise<unknown>;
+  pending: boolean;
+}
 
 // Results of work keyed by an Idempotency-Key, so a retried request reuses them; lost on restart
 export class IdempotencyCache {
