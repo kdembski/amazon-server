@@ -83,7 +83,7 @@ Production rule groups (the values in parentheses are the production values too)
 12. Per matched channel, `CountryOutlierReporterI.report` gets the listing, the sorted PLN prices, the `channelId` and
     the cheapest price's change in percent against the lowest older price of its country (none without one; shown next
     to the cheapest price on Discord); a `dealCheck` channel goes to `CountryOutlierReporterI.checkDeal` with the same
-    arguments instead (`.claude/rules/anomalies/deal-check.md`).
+    arguments instead.
 13. The reporter stores a `country_outlier_sent` event (`data.channel` = `String(channelId)`) and posts through
     `DiscordChannelService.send` (a missing channel logs an error).
 14. `setReportedPrice` stores the cheapest price once, in its own currency (Amazon: `AmazonCountryOutlierReport`, one

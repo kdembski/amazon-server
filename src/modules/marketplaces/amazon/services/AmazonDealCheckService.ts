@@ -1,9 +1,9 @@
 import { APIEmbed } from "discord.js";
 import { AmazonAdSelectDto } from "@/modules/marketplaces/amazon/dtos/AmazonAdDtos";
 import {
-  getListingLink,
-  getPriceRange,
-  getProfitLine,
+  getProfitField,
+  getSaleField,
+  getSearchLinks,
 } from "@/modules/marketplaces/amazon/helpers/deal-check-format";
 import {
   AMAZON_DEAL_CHECK_PROMPT,
@@ -20,7 +20,12 @@ import { ClaudeCliService } from "@/shared/claude/ClaudeCliService";
 import { SystemLogService } from "@/shared/logging/services/SystemLogService";
 import { ConcurrencyQueue } from "@/shared/utils/ConcurrencyQueue";
 
-const VERDICTS: Record<string, string> = { KUPUJ: "✅ **KUPUJ**", MOŻE: "❔ **MOŻE**", NIE: "❌ **NIE**" };
+// A hair space after the space widens the gap between the icon and the verdict.
+const VERDICTS: Record<string, string> = {
+  KUPUJ: "### ✅ \u200AKUPUJ",
+  MOŻE: "### ❔ MOŻE",
+  NIE: "### ❌ \u200ANIE",
+};
 // Discord rejects a message whose embeds exceed 6000 characters.
 const MAX_LINES_LENGTH = 700;
 
@@ -83,7 +88,8 @@ export class AmazonDealCheckService {
       const answer = await this.claude.run(
         this.getPrompt(ad, prices),
         AMAZON_DEAL_CHECK_PROMPT,
-        AMAZON_DEAL_CHECK_SCHEMA
+        AMAZON_DEAL_CHECK_SCHEMA,
+        ad.image || undefined
       );
       const verdict = (answer as DealCheckAnswer | undefined)?.verdict;
       if (verdict && VERDICTS[verdict]) return answer as DealCheckAnswer;
@@ -102,7 +108,7 @@ export class AmazonDealCheckService {
       await this.businessLogService.creatable.create({
         type: "deal_check_done",
         marketplace: "amazon",
-        data: { asin: ad.asin, name: ad.name, verdict: answer.verdict },
+        data: { asin: ad.asin, name: ad.name, ...answer },
       });
     } catch (error) {
       this.logger.error("AmazonDealCheckService", `Logging the deal check of ${ad.asin} failed`, {
@@ -127,16 +133,13 @@ export class AmazonDealCheckService {
     }
   }
 
-  private getAnalysisEmbed(answer: DealCheckAnswer) {
-    const { verdict, query, minPrice, maxPrice, estimated } = answer;
-    const profit = getProfitLine(answer);
-    const lines = [
-      `${estimated ? "Szacunek" : "Wycena"}: **${getPriceRange(minPrice, maxPrice)}**`,
-      `Allegro: ${getListingLink(query)}`,
-      profit && `\n${profit}`,
-    ];
+  private getAnalysisEmbed(answer: DealCheckAnswer): APIEmbed {
+    const lines = [answer.attributes.trim(), `-# ${getSearchLinks(answer.query)}`];
     const details = lines.filter(Boolean).join("\n").slice(0, MAX_LINES_LENGTH);
-    return { description: `${VERDICTS[verdict]}\n\n${details}` };
+    return {
+      description: `${VERDICTS[answer.verdict]}\n${details}`,
+      fields: [...getSaleField(answer), ...getProfitField(answer)],
+    };
   }
 
   private getPrompt(ad: AmazonAdSelectDto, prices: DealCheckPrice[]) {
