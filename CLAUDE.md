@@ -67,8 +67,7 @@ npm run test:integration  # tests/integration, needs Docker running
 - Exclusion rules: syntax in `ExclusionRuleParser`, matching in JS (`ScopedExclusionRuleMatcher`), not SQL (skill
   `exclusion-rules`).
 - Never delete `AmazonCountry` rows; set `scraped = false`.
-- Deal checks (`dealCheck` rules): `claude -p` only through `ClaudeCliService`, only with `WebSearch`/`WebFetch`
-  (rule `anomalies/deal-check.md`).
+- Deal checks (`dealCheck` rules): `claude -p` only through `ClaudeCliService`, only with `WebSearch`/`WebFetch`.
 - Every route requires `Authorization: Bearer <API_TOKEN>`.
 - Log errors and significant actions via `SystemLogService.getInstance()`, never `console.*`. `BusinessLog` only for
   `ad_scraped`/`*_sent`/`deal_check_done`.

@@ -40,9 +40,9 @@ const prices = [
 const answer = (overrides: object = {}) => ({
   verdict: "KUPUJ",
   query: "bosch gsr 12v-15",
-  minPrice: 289,
-  maxPrice: 299.9,
-  estimated: false,
+  attributes: "Bosch GSR 12V-15 wkrętarka 12V",
+  price: [289, 299.9],
+  estimate: [280],
   profit: 167.81,
   sale: 289,
   cost: 89.4,
@@ -57,10 +57,10 @@ const sentAnalysis = (discord: ReturnType<typeof fakeDiscordChannelService>) => 
 
 describe("AmazonDealCheckService", () => {
   it.each([
-    ["KUPUJ", "✅ **KUPUJ**"],
-    ["MOŻE", "❔ **MOŻE**"],
-    ["NIE", "❌ **NIE**"],
-  ])("sends the alert with the analysis for %s", async (verdict, description) => {
+    ["KUPUJ", "### ✅ \u200AKUPUJ"],
+    ["MOŻE", "### ❔ MOŻE"],
+    ["NIE", "### ❌ \u200ANIE"],
+  ])("sends the alert with the analysis for %s", async (verdict, heading) => {
     const { service, log, discord, flush } = setup(answer({ verdict }));
 
     service.check(ad, prices, alert, 5);
@@ -78,11 +78,13 @@ describe("AmazonDealCheckService", () => {
           alert,
           {
             description:
-              `${description}\n\n` +
-              "Wycena: **289.00 – 299.90 zł**\n" +
-              "Allegro: [bosch gsr 12v-15](https://allegro.pl/listing?string=bosch+gsr+12v-15&order=p)\n\n" +
-              ["Zysk **167.81 zł**", "Sprzedaż 289.00 zł", "Koszt 89.40 zł", "ROI 188%", "Prowizja 11%"]
-                .join(" · "),
+              `${heading}\nBosch GSR 12V-15 wkrętarka 12V\n` +
+              "-# [Allegro](https://allegro.pl/listing?string=bosch+gsr+12v-15&order=p) · " +
+              "[Google](https://www.google.com/search?q=bosch+gsr+12v-15)",
+            fields: [
+              { name: "Wycena", value: "**289.00 zł**\n-# 289.00 – 299.90 zł, 280.00 zł\\*", inline: true },
+              { name: "Zysk", value: "**+167.81 zł**\n-# ROI: 188%, prowizja: 11%", inline: true },
+            ],
           },
         ],
       },
@@ -121,52 +123,25 @@ describe("AmazonDealCheckService", () => {
     });
   });
 
-  it("truncates the lines to 700 characters", async () => {
-    const query = "a".repeat(1000);
-    const { service, discord, flush } = setup(answer({ query }));
+  it("truncates the lines after the verdict to 700 characters", async () => {
+    const { service, discord, flush } = setup(answer({ attributes: "b".repeat(800) }));
 
     service.check(ad, prices, alert, 5);
     await flush();
 
-    const expected = `Wycena: **289.00 – 299.90 zł**\nAllegro: [${query}`.slice(0, 700);
-    expect(sentAnalysis(discord).description).toBe(`✅ **KUPUJ**\n\n${expected}`);
+    expect(sentAnalysis(discord).description).toBe(`### ✅ \u200AKUPUJ\n${"b".repeat(700)}`);
   });
 
-  it.each([
-    ["one price", 10, 10, false, "Wycena: **10.00 zł**\n"],
-    ["only the lowest price", 10, null, false, "Wycena: **10.00 zł**\n"],
-    ["no price", null, null, false, "Wycena: **brak cen w wynikach wyszukiwania**\n"],
-    ["an estimated price", 10, 10, true, "Szacunek: **10.00 zł**\n"],
-  ])("shows %s", async (_, minPrice, maxPrice, estimated, expected) => {
-    const { service, discord, flush } = setup(answer({ minPrice, maxPrice, estimated }));
+  it("shows only the verdict and the links without attributes and numbers", async () => {
+    const empty = { price: [], estimate: [], profit: null, sale: null, roi: null, commission: null };
+    const { service, discord, flush } = setup(answer({ ...empty, attributes: " " }));
 
     service.check(ad, prices, alert, 5);
     await flush();
 
-    expect(sentAnalysis(discord).description).toContain(expected);
-  });
-
-  it.each([
-    ["the numbers that are null", 89.4, "&order=p)\n\nKoszt 89.40 zł"],
-    ["the profit line without any number", null, "&order=p)"],
-  ])("leaves out %s", async (_, cost, ending) => {
-    const { service, discord, flush } = setup(answer({ profit: null, sale: null, cost, roi: null, commission: null }));
-
-    service.check(ad, prices, alert, 5);
-    await flush();
-
-    expect(sentAnalysis(discord).description.endsWith(ending)).toBe(true);
-  });
-
-  it("escapes brackets in the label and encodes the query in the link", async () => {
-    const { service, discord, flush } = setup(answer({ query: " Bateria [AA] (4) " }));
-
-    service.check(ad, prices, alert, 5);
-    await flush();
-
-    expect(sentAnalysis(discord).description).toContain(
-      "Allegro: [Bateria (AA) (4)](https://allegro.pl/listing?string=Bateria+%5BAA%5D+%284%29&order=p)"
-    );
+    const { description, fields } = sentAnalysis(discord);
+    expect(description).toMatch(/^### ✅ \u200AKUPUJ\n-# \[Allegro\]/);
+    expect(fields).toEqual([]);
   });
 
   it("analyses an ad once and posts its alerts to every channel that asked meanwhile", async () => {
@@ -238,7 +213,7 @@ describe("AmazonDealCheckService", () => {
     service.check(ad, prices, alert, 5);
     await flush();
 
-    const [prompt, systemPrompt, schema] = run.mock.calls[0];
+    const [prompt, systemPrompt, schema, imageUrl] = run.mock.calls[0];
     expect(prompt).toContain("Bosch drill");
     expect(prompt).toContain("ASIN: B000TEST01");
     expect(prompt).toContain(
@@ -246,5 +221,15 @@ describe("AmazonDealCheckService", () => {
     );
     expect(systemPrompt).toBe(AMAZON_DEAL_CHECK_PROMPT);
     expect(schema).toBe(AMAZON_DEAL_CHECK_SCHEMA);
+    expect(imageUrl).toBe(ad.image);
+  });
+
+  it("sends no image when the ad has none", async () => {
+    const { service, run, flush } = setup(answer());
+
+    service.check(buildAd({ asin: "B000TEST02", image: "" }), prices, alert, 5);
+    await flush();
+
+    expect(run.mock.calls[0][3]).toBeUndefined();
   });
 });

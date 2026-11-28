@@ -18,9 +18,9 @@ export interface DealCheckNumbers {
 export interface DealCheckAnswer extends DealCheckNumbers {
   verdict: string;
   query: string;
-  minPrice: number | null;
-  maxPrice: number | null;
-  estimated: boolean;
+  attributes: string;
+  price: number[];
+  estimate: number[];
 }
 
 export interface DealCheckWaiter {

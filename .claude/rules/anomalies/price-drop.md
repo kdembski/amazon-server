@@ -48,8 +48,7 @@ Production rule groups:
    listing, the price histories of all matched countries and the `channelId`; it stores one `price_drop_sent` event
    (`data.channel` = `String(channelId)`) with the newest price of each country and posts one Discord message to that
    `DiscordChannel`. The Amazon message shows per country the lowest older and the newest price with the percentage
-   between them. A `dealCheck` channel goes to `PriceDropReporterI.checkDeal` with the same arguments instead
-   (`.claude/rules/anomalies/deal-check.md`).
+   between them. A `dealCheck` channel goes to `PriceDropReporterI.checkDeal` with the same arguments instead.
 
 ## Repeats
 
