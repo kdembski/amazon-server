@@ -16,6 +16,7 @@ const answer = (overrides: object = {}) => ({
   cost: 89.4,
   roi: 187.7,
   commission: 11,
+  reasoning: "",
   ...overrides,
 });
 

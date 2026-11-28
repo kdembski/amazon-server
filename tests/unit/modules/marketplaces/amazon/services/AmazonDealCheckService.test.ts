@@ -48,6 +48,7 @@ const answer = (overrides: object = {}) => ({
   cost: 89.4,
   roi: 187.7,
   commission: 11,
+  reasoning: "Cena z Allegro zgodna z szacunkiem.",
   ...overrides,
 });
 
@@ -69,7 +70,7 @@ describe("AmazonDealCheckService", () => {
     expect(log.create).toHaveBeenCalledWith({
       type: "deal_check_done",
       marketplace: "amazon",
-      data: { asin: "B000TEST01", name: "Bosch drill", verdict },
+      data: { asin: "B000TEST01", name: "Bosch drill", ...answer({ verdict }) },
     });
     expect(discord.send).toHaveBeenCalledWith(
       5,

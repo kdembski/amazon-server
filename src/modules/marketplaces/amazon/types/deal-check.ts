@@ -21,6 +21,7 @@ export interface DealCheckAnswer extends DealCheckNumbers {
   attributes: string;
   price: number[];
   estimate: number[];
+  reasoning: string;
 }
 
 export interface DealCheckWaiter {

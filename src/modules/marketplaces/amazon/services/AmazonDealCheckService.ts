@@ -108,7 +108,7 @@ export class AmazonDealCheckService {
       await this.businessLogService.creatable.create({
         type: "deal_check_done",
         marketplace: "amazon",
-        data: { asin: ad.asin, name: ad.name, verdict: answer.verdict },
+        data: { asin: ad.asin, name: ad.name, ...answer },
       });
     } catch (error) {
       this.logger.error("AmazonDealCheckService", `Logging the deal check of ${ad.asin} failed`, {
